@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <!-- net48 to match the extension and run in any VS with the .NET development workload -->
+    <TargetFramework>net48</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <IsPackable>false</IsPackable>
+    <RootNamespace>NestLight.Tests</RootNamespace>
+  </PropertyGroup>
+
+  <!-- The parsing files are shared (linked) with the extension; they do not depend on the VS SDK. -->
+  <ItemGroup>
+    <Compile Include="..\NestLight\TplNames.cs" Link="Source\TplNames.cs" />
+    <Compile Include="..\NestLight\TplScanner.cs" Link="Source\TplScanner.cs" />
+    <Compile Include="..\NestLight\TplHtmlTokenizer.cs" Link="Source\TplHtmlTokenizer.cs" />
+    <Compile Include="..\NestLight\TplCssTokenizer.cs" Link="Source\TplCssTokenizer.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.11.1" />
+    <PackageReference Include="xunit" Version="2.9.2" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2" />
+  </ItemGroup>
+
+</Project>
