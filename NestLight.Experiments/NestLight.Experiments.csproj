@@ -8,6 +8,9 @@
     <IsPackable>false</IsPackable>
     <RootNamespace>NestLight.Experiments</RootNamespace>
     <Optimize>true</Optimize>
+    <!-- The .NET Framework JIT has no tiers. Turn them off on newer runtimes, so the first experiments do not run on cold code
+         and the results do not depend on the order of the experiments. -->
+    <TieredCompilation>false</TieredCompilation>
   </PropertyGroup>
 
   <!-- The same shared source the tests compile: everything but VisualStudio\, so the experiments run against the real code. -->

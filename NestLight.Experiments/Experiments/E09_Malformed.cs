@@ -61,7 +61,7 @@ namespace NestLight.Experiments
         public override Outcome Run(Settings settings)
         {
             var outcome = new Outcome();
-            var table = new Table("Time at N and at 2N", "Host", "Case", "N", "Time at N", "Time at 2N", "Growth");
+            var table = new Table("Time at N and at 2N", "Host", "Case", "N", "Time at N", "Time at 2N", "Growth", "Gen2 collections (N / 2N)");
             int n = settings.Quick ? 25000 : 250000, depth = settings.Quick ? 100 : 200;
             bool met = true;
             double worst = 0;
@@ -98,7 +98,7 @@ namespace NestLight.Experiments
             Sample sa = Measure.Run(() => highlighter.Highlight(small), 1, settings.SlowRuns);
             Sample sb = Measure.Run(() => highlighter.Highlight(large), 1, settings.SlowRuns);
             double growth = sb.Ms / sa.Ms;
-            table.Add(host, name, a + " " + unit, Measure.Ms(sa.Ms), Measure.Ms(sb.Ms), sb.Ms < 5 ? Measure.Ratio(growth) + " (ignored: under 5 ms)" : Measure.Ratio(growth));
+            table.Add(host, name, a + " " + unit, Measure.Ms(sa.Ms), Measure.Ms(sb.Ms), sb.Ms < 5 ? Measure.Ratio(growth) + " (ignored: under 5 ms)" : Measure.Ratio(growth), sa.Gen2 + " / " + sb.Gen2);
             if (sb.Ms < 5) return;
             met &= growth < 2.5;
             if (growth > worst) { worst = growth; worstCase = host + ", " + name; }

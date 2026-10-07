@@ -17,7 +17,7 @@ namespace NestLight.Experiments
         public override Outcome Run(Settings settings)
         {
             var outcome = new Outcome();
-            var table = new Table("Time by number of embedded strings", "Host", "Characters", "Embedded strings", "Time", "Per embedded string");
+            var table = new Table("Time by number of embedded strings", "Host", "Characters", "Embedded strings", "Time", "Per embedded string", "Gen2 collections");
             int baseChars = settings.Chars[0];
             bool met = true;
             double worstGrowth = 0;
@@ -33,7 +33,7 @@ namespace NestLight.Experiments
                     var engine = new HighlightEngine(scanner, languages);
                     int count = scanner.Scan(text).Count;
                     Sample s = Measure.Run(() => engine.Highlight(text), settings.Warmup, settings.Runs);
-                    table.Add(host, text.Length, count, Measure.Ms(s.Ms), Measure.Ms(s.Ms / count));
+                    table.Add(host, text.Length, count, Measure.Ms(s.Ms), Measure.Ms(s.Ms / count), s.Gen2 + " in " + settings.Runs + " runs");
                     if (factor == 1) first = s.Ms;
                     last = s.Ms;
                 }
