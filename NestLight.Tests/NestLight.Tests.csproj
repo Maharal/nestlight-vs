@@ -1,9 +1,8 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <!-- net48 matches the extension and runs in any VS with the .NET development workload.
-         net10.0 lets the same tests run with `dotnet test` on any OS (including Linux CI, which has no .NET Framework). -->
-    <TargetFrameworks>net48;net10.0</TargetFrameworks>
+    <!-- net48 to match the extension and run in any VS with the .NET development workload -->
+    <TargetFramework>net48</TargetFramework>
     <LangVersion>latest</LangVersion>
     <IsPackable>false</IsPackable>
     <RootNamespace>NestLight.Tests</RootNamespace>

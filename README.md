@@ -70,7 +70,7 @@ Download the `.vsix` from [Releases](../../releases), close Visual Studio and do
 
 To build from source, open `NestLight/NestLight.csproj` with the **Visual Studio extension development** workload and press F5.
 
-To run the tests, use **Test > Run All Tests** in Visual Studio or `dotnet test NestLight.Tests` from a terminal (any OS).
+To run the tests, use **Test > Run All Tests** in Visual Studio or `dotnet test NestLight.Tests` from a terminal.
 
 Colors are under **Tools > Options > Environment > Fonts and Colors > Text Editor**, in the items named **Template &lt;Language&gt; ...**.
 

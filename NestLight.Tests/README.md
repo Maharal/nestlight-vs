@@ -17,9 +17,9 @@ They cover the whole pipeline without depending on the Visual Studio SDK.
 
 ## How to run
 - Visual Studio: *Test > Test Explorer > Run All* (restore the NuGet packages first).
-- Command line, in this project's folder: `dotnet test` (add `-f net10.0` on a machine without the .NET Framework, such as Linux).
+- Command line, in this project's folder: `dotnet test`
 
-The project targets `net48` (like the extension) and `net10.0`. The source folders `Common`, `Hosts`, `Languages` and `Highlighting` of `../NestLight` are linked into
+The project targets `net48`, like the extension. The source folders `Common`, `Hosts`, `Languages` and `Highlighting` of `../NestLight` are linked into
 the test project, so the tests always run against the extension's real code. Keep the two folders side by side.
 
 ## How to add a case
