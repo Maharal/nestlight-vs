@@ -25,24 +25,43 @@ namespace NestLight.Common
     /// <summary>Reads the language out of a marker comment: <c>html</c>, <c>language=html</c> or <c>lang=html</c>.</summary>
     internal static class MarkerComment
     {
+        private static readonly string[] Keys = { "language", "lang" };
+
         /// <param name="body">Comment text without its delimiters.</param>
         /// <returns>The lower-case id, or null when the comment is not a marker.</returns>
         public static string Parse(string body)
         {
-            string s = body.Trim();
-            string id = s;
-            foreach (string key in new[] { "language", "lang" })
+            return Parse(body, 0, body.Length);
+        }
+
+        /// <summary>
+        /// The same as <see cref="Parse(string)"/> for text[from, to), without copying the comment: most comments are not
+        /// markers, and a scan meets thousands of them.
+        /// </summary>
+        public static string Parse(string text, int from, int to)
+        {
+            Trim(text, ref from, ref to);
+            int idFrom = from, idTo = to;
+            foreach (string key in Keys)
             {
-                if (!s.StartsWith(key, StringComparison.OrdinalIgnoreCase)) continue;
-                int p = key.Length;
-                while (p < s.Length && char.IsWhiteSpace(s[p])) p++;
-                if (p < s.Length && s[p] == '=')
+                if (to - from < key.Length || string.Compare(text, from, key, 0, key.Length, StringComparison.OrdinalIgnoreCase) != 0) continue;
+                int p = from + key.Length;
+                while (p < to && char.IsWhiteSpace(text[p])) p++;
+                if (p < to && text[p] == '=')
                 {
-                    id = s.Substring(p + 1).Trim();
+                    idFrom = p + 1;
+                    idTo = to;
+                    Trim(text, ref idFrom, ref idTo);
                     break;
                 }
             }
-            return IsId(id) ? id.ToLowerInvariant() : null;
+            return IsId(text, idFrom, idTo) ? text.Substring(idFrom, idTo - idFrom).ToLowerInvariant() : null;
+        }
+
+        private static void Trim(string text, ref int from, ref int to)
+        {
+            while (from < to && char.IsWhiteSpace(text[from])) from++;
+            while (to > from && char.IsWhiteSpace(text[to - 1])) to--;
         }
 
         /// <summary>The id of a tag glued to a backtick, like <c>html</c> in <c>ui.html`...`</c>.</summary>
@@ -54,11 +73,14 @@ namespace NestLight.Common
             return length > 0 ? text.Substring(j + 1, length).ToLowerInvariant() : null;
         }
 
-        private static bool IsId(string s)
+        private static bool IsId(string text, int from, int to)
         {
-            if (s.Length == 0) return false;
-            foreach (char c in s)
+            if (to <= from) return false;
+            for (int k = from; k < to; k++)
+            {
+                char c = text[k];
                 if (!(char.IsLetterOrDigit(c) || c == '_' || c == '-' || c == '+' || c == '#')) return false;
+            }
             return true;
         }
     }
@@ -81,7 +103,7 @@ namespace NestLight.Common
         /// <summary>Call for every comment; a comment that is not a marker cancels the previous one.</summary>
         public void Comment(string text, int bodyStart, int bodyEnd, int commentEnd)
         {
-            string id = MarkerComment.Parse(text.Substring(bodyStart, Math.Max(0, bodyEnd - bodyStart)));
+            string id = MarkerComment.Parse(text, bodyStart, bodyStart + Math.Max(0, bodyEnd - bodyStart));
             if (_languages.Accepts(id)) { _id = id; _commentEnd = commentEnd; }
             else _id = null;
         }
