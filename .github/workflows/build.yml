@@ -1,0 +1,114 @@
+name: Build
+
+# Builds the VSIX with a test report.
+#  - push to build/**  : builds and uploads the VSIX and the report as workflow artifacts
+#  - push of a v* tag  : the same, plus a GitHub release with both files attached
+on:
+  push:
+    branches: ['build/**']
+    tags: ['v*.*.*']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    # the tests target net48 and the VSIX needs the Visual Studio SDK, so both need Windows
+    runs-on: windows-latest
+    timeout-minutes: 30
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+
+      # source.extension.vsixmanifest is the single source of truth for the version
+      - name: Read version
+        id: version
+        shell: pwsh
+        env:
+          REF_TYPE: ${{ github.ref_type }}
+          REF_NAME: ${{ github.ref_name }}
+        run: |
+          $manifest = [xml](Get-Content NestLight/source.extension.vsixmanifest)
+          $version = $manifest.PackageManifest.Metadata.Identity.Version
+          if ($version -notmatch '^\d+\.\d+\.\d+$') { throw "Manifest version '$version' is not MAJOR.MINOR.PATCH" }
+          if ($env:REF_TYPE -eq 'tag' -and $env:REF_NAME -ne "v$version") {
+            throw "Tag $($env:REF_NAME) does not match the manifest version v$version"
+          }
+          "version=$version" >> $env:GITHUB_OUTPUT
+          "Building NestLight $version"
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - uses: microsoft/setup-msbuild@v2
+
+      - name: Test
+        run: dotnet test NestLight.Tests/NestLight.Tests.csproj --configuration Release --logger "trx;LogFileName=results.trx" --results-directory TestResults
+
+      - name: Test report
+        if: always()
+        shell: pwsh
+        run: |
+          $trx = Get-ChildItem TestResults -Filter *.trx | Select-Object -First 1
+          if (-not $trx) { throw 'No .trx file: the tests did not run' }
+          python scripts/test_report.py $trx.FullName test-report.md --version "${{ steps.version.outputs.version }}" --commit "$env:GITHUB_SHA"
+          Get-Content test-report.md >> $env:GITHUB_STEP_SUMMARY
+
+      - name: Build VSIX
+        run: msbuild NestLight/NestLight.csproj /restore /p:Configuration=Release /v:minimal
+
+      - name: Collect output
+        shell: pwsh
+        run: |
+          $vsix = Get-ChildItem NestLight/bin/Release -Filter *.vsix | Select-Object -First 1
+          if (-not $vsix) { throw 'The build produced no .vsix' }
+          New-Item -ItemType Directory -Force dist | Out-Null
+          Copy-Item $vsix.FullName "dist/NestLight-${{ steps.version.outputs.version }}.vsix"
+
+      - name: Upload VSIX
+        uses: actions/upload-artifact@v4
+        with:
+          name: NestLight-${{ steps.version.outputs.version }}-vsix
+          path: dist/*.vsix
+          if-no-files-found: error
+
+      - name: Upload test report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: NestLight-${{ steps.version.outputs.version }}-test-report
+          path: |
+            test-report.md
+            TestResults/*.trx
+          if-no-files-found: warn
+
+  release:
+    if: github.ref_type == 'tag'
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+
+      - name: Create release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+          VERSION: ${{ needs.build.outputs.version }}
+        run: |
+          # 0.y.z is initial development in SemVer: anything may change, so flag it as a pre-release
+          flags=""
+          if [[ "$VERSION" == 0.* ]]; then flags="--prerelease"; fi
+          gh release create "$TAG" dist/NestLight-$VERSION.vsix dist/test-report.md \
+            --repo "$GITHUB_REPOSITORY" --title "NestLight $VERSION" --generate-notes $flags
