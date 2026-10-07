@@ -72,6 +72,8 @@ To build from source, open `NestLight/NestLight.csproj` with the **Visual Studio
 
 To run the tests, use **Test > Run All Tests** in Visual Studio or `dotnet test NestLight.Tests` from a terminal.
 
+Releases are built by CI (VSIX plus a test report) and follow [Semantic Versioning](https://semver.org); see [RELEASING.md](RELEASING.md) and the [changelog](CHANGELOG.md).
+
 Colors are under **Tools > Options > Environment > Fonts and Colors > Text Editor**, in the items named **Template &lt;Language&gt; ...**.
 
 ## How it works
