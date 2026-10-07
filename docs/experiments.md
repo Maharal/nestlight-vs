@@ -42,14 +42,15 @@ All the criteria below were written before the run that decided them, except tho
 | [E04](#e04-the-language-registry-built-per-buffer) | Does building the registry per buffer matter? | Automated | Done | Rejected |
 | [E05](#e05-where-highlight-allocates) | Where do the allocations of `Highlight` come from? | Automated | Done | Points at the scan |
 | [E06](#e06-number-of-marked-strings) | Does the cost stay linear as the strings multiply? | Automated | Done | Not linear above ~400k characters |
-| [E07](#e07-many-interpolations-in-one-string) | Does one string with many interpolations scale? | Automated | Done | **Quadratic** |
+| [E07](#e07-many-interpolations-in-one-string) | Does one string with many interpolations scale? | Automated | Done | **Quadratic**, fixed by E13 |
 | [E08](#e08-throughput-of-each-embedded-language) | Is any tokenizer much slower than the others? | Automated | Done | No outlier; all superlinear on large strings |
 | [E09](#e09-malformed-and-pathological-input) | Does bad input make the cost explode? | Automated | Done | Inconclusive (borderline) |
 | [E10](#e10-typing-latency-and-gc-inside-visual-studio) | What does the user feel while typing in a large file? | Manual | Planned | |
 | [E11](#e11-background-re-analysis) | Does analyzing off the UI thread improve typing latency? | Manual | Planned | |
 | [E12](#e12-incremental-analysis) | Is re-analyzing only the edited strings worth it? | Both | Planned | |
-| [E13](#e13-clip-tokens-without-rescanning-the-interpolations) | Does fixing the quadratic clipping make E07 linear? | Automated | Planned | |
-| [E14](#e14-fewer-allocations-in-the-scan) | How much does the scan's allocation fall if comments stop allocating? | Automated | Planned | |
+| [E13](#e13-clip-tokens-without-rescanning-the-interpolations) | Does fixing the quadratic clipping make E07 linear? | Automated | Done | Adopt: criterion met |
+| [E14](#e14-fewer-allocations-in-the-scan) | How much does the scan's allocation fall if comments stop allocating? | Automated | Done | Modest gain; criterion not met |
+| [E15](#e15-why-the-cost-grows-faster-than-the-text-above-400k-characters) | What makes the cost superlinear on very large strings? | Automated | Planned | |
 
 ## Latest runs
 
@@ -68,6 +69,19 @@ Three consecutive full runs on commit `6a7f9ff`, 2026-10-07, .NET 10 in Release 
 | E09 | 2.41x | 2.45x | 2.58x | **Met, met, not met** |
 
 (E01: worst case at 60k lines. E02: best speed-up without markers / worst result with them. E03: time the copy could save per edit at 400k characters. E05: allocation as a multiple of the text, and the share of the dominant stage. E06: time for 8x the strings. E07: time for 10x the interpolations. E08: worst time for 10x the text. E09: worst time for 2x the input.)
+
+### The two changes, measured against the code they change
+
+Same session, three runs each, on the code of the experiments (`6797746`) and on each change on top of it. The changes are on their own branches: `perf/e13-linear-clipping` (`5796fe6`) and `perf/e14-scan-allocations` (`3380d4b`).
+
+| Id | Before (3 runs) | After E13 | After E14 |
+|---|---|---|---|
+| E01 | 9.9 / 9.9 / 10.1 ms | 9.9 / 10.3 / 10.0 ms | 9.3 / 9.1 / 9.5 ms |
+| E05 (Highlight / text, with markers) | 1.74x | not run | 1.18x |
+| E06 | 18.2x / 18.5x / 17.9x | not run | 16.9x / 21.9x / 17.4x |
+| E07 | 87.4x / 86.8x / 82.3x | **13.6x / 13.8x / 14.6x** | 82.1x / 87.8x / 82.0x |
+| E08 | 22.0x / 21.6x / 22.9x | not run | 22.4x / 23.7x / 22.5x |
+| E09 | 2.94x / 2.75x / 3.08x | not run | 2.69x / 2.56x / 2.62x |
 
 ## E01: baseline cost of one `Highlight` call
 
@@ -151,7 +165,9 @@ Three consecutive full runs on commit `6a7f9ff`, 2026-10-07, .NET 10 in Release 
 
 **Decision.** The allocation is in the scan, and it is independent of what the file contains. The stage split is as far as this test goes: the call sites need an allocation profile. The comment handling is the first suspect (a `Substring`, a `Trim` and a `ToLowerInvariant` for each comment): see E14.
 
-**Revisit when.** E14 is run.
+**Update.** E14 ran: the scan now allocates 27% to 60% less and `Highlight` 1.74x to 1.18x the text. The stage split is now more even (69% to 84% in the scan), which is why this experiment's criterion reads "not met" on the new code.
+
+**Revisit when.** The scanners create the embedded string lazily (see E14).
 
 ## E06: number of marked strings
 
@@ -169,7 +185,9 @@ Three consecutive full runs on commit `6a7f9ff`, 2026-10-07, .NET 10 in Release 
 
 **Note.** The first version of this experiment (a fixed file with a growing density of marked strings) was replaced before any result was recorded: it measured a difference between two noisy times of about 1 ms and its verdict changed between identical runs. A later version also gave an optimistic result when run alone, because the first experiments ran on code the JIT had not optimized yet; tiered compilation is now off, which also matches `net48`.
 
-**Revisit when.** E14 reduces the allocations: if the gen2 collections and the extra cost go away together, the cause was the garbage collector.
+**Update.** E14 reduced the allocations of the scan and neither the growth (16.9x to 21.9x) nor the gen2 collections changed. The scan's allocation is not the cause; see E15.
+
+**Revisit when.** E15 attributes the growth.
 
 ## E07: many interpolations in one string
 
@@ -185,7 +203,9 @@ Three consecutive full runs on commit `6a7f9ff`, 2026-10-07, .NET 10 in Release 
 
 **Decision.** The cost is quadratic in the number of interpolations of one string. It is invisible below a few hundred interpolations and a freeze of half a second at 10,000. The experiment does not isolate the cause: `AddClipped` is the suspect, not a proven culprit. E13 tests the fix.
 
-**Revisit when.** E13 is run.
+**Update.** E13 replaced the walk with a binary search: 10x the interpolations now cost 13.6x to 14.6x the time, 10,000 interpolations take 22 ms instead of 550 to 600 ms, and the tokens are identical. The remaining 14x (against 10x for linear) is the same superlinear effect as in E06 and E08.
+
+**Revisit when.** The clipping changes again.
 
 ## E08: throughput of each embedded language
 
@@ -201,7 +221,9 @@ Three consecutive full runs on commit `6a7f9ff`, 2026-10-07, .NET 10 in Release 
 
 **Decision.** No tokenizer is an outlier. The superlinear growth is common to all of them, which points to the shared engine (large buffers, the garbage collector) more than to any tokenizer, as in E06. The test does not separate the two.
 
-**Revisit when.** E14 reduces the allocations.
+**Update.** E14 did not change the growth (22.4x to 23.7x). The cause is not the scan's allocation; see E15.
+
+**Revisit when.** E15 attributes the growth.
 
 ## E09: malformed and pathological input
 
@@ -217,7 +239,7 @@ Three consecutive full runs on commit `6a7f9ff`, 2026-10-07, .NET 10 in Release 
 
 **Decision.** Inconclusive: the verdict flips on noise, so there is no quadratic here, but a mild superlinear effect cannot be ruled out. The size of an unterminated string is the same situation as E06 and E08.
 
-**Revisit when.** E14 reduces the allocations. A criterion of 2.5 is too close to the noise to separate a mild effect: a larger N or more runs would help.
+**Update.** E14 left the case where it was (2.56x to 2.69x, over the limit in the three runs). **Revisit when.** E15 attributes the growth. A criterion of 2.5 is too close to the noise to separate a mild effect: a larger N or more runs would help.
 
 ## E10: typing latency and GC inside Visual Studio
 
@@ -255,20 +277,48 @@ Three consecutive full runs on commit `6a7f9ff`, 2026-10-07, .NET 10 in Release 
 
 ## E13: clip tokens without rescanning the interpolations
 
-**Status:** Planned (follows E07)
+**Status:** Done · **Decision:** Adopt (branch `perf/e13-linear-clipping`, `5796fe6`)
 
-**Hypothesis.** E07 is quadratic because `AddClipped` walks the interpolations of the string from the first one for every token. Resuming from where the previous token ended makes the cost linear.
+**Hypothesis.** E07 is quadratic because `AddClipped` walks the interpolations of the string from the first one for every token. Starting from the first one that can matter, found by binary search, makes the cost linear.
 
-**Test.** Change the clipping, then run E07 again, and run the unit tests of the engine and the robustness tests to check that the tokens are exactly the same.
+**Test.** Change the clipping and run E07 again. Check that the tokens are exactly the same: the unit tests, plus a differential run of 3,000 random templates (all 4 hosts, random interpolations, nested templates, text cut at any point) whose tokens are compared before and after.
 
-**Criterion.** E07 criterion met (10x the interpolations cost less than 20x the time), no token changes in the existing tests, and no slowdown above 5% in E01.
+**Criterion.** E07 criterion met (10x the interpolations cost less than 20x the time), no token changes, and no slowdown above 5% in E01.
+
+**Result.** Met. E07: 13.6x, 13.8x and 14.6x, against 82x to 87x before. 10,000 interpolations: 22 ms, against 550 to 600 ms. The 829 unit tests pass, and the 5.6 MB of tokens of the 3,000 random templates are byte for byte identical. E01: 9.9 to 10.3 ms against 9.9 to 10.1 ms (+1.6% at most).
+
+**Decision.** Adopt: a change of ten lines in one private method, with a large effect where the bug was and none elsewhere.
+
+**Limit.** Only the HTML inside JavaScript, C# and Python templates was measured for the speed; the differential run also covers CSS, SQL and JSON.
 
 ## E14: fewer allocations in the scan
 
-**Status:** Planned (follows E05)
+**Status:** Done · **Decision:** Modest gain; criterion not met (branch `perf/e14-scan-allocations`, `3380d4b`)
 
-**Hypothesis.** The scan allocates more than the size of the text even when there is nothing to find, mostly in the handling of comments (a `Substring`, a `Trim` and a `ToLowerInvariant` for each one). Parsing the marker on the text itself, without creating strings, removes most of it. If E06, E08 and E09 are limited by the garbage collector, they improve together.
+**Hypothesis.** The scan allocates more than the size of the text even when there is nothing to find, mostly in the handling of comments (a `Substring`, a `Trim` and a `ToLowerInvariant` for each one, plus an array of keys per call). Parsing the marker on the text itself, without creating strings, removes most of it. If E06, E08 and E09 are limited by the garbage collector, they improve together.
 
-**Test.** An allocation profile of the scan on a large file to confirm the call sites, then the change, then E05 again, and E06, E08 and E09 to see whether the superlinear growth goes away.
+**Test.** Change `MarkerComment.Parse` to read a range of the text, then run E05 again, and E06, E08 and E09 to see whether the superlinear growth goes away. Check that nothing changes: the unit tests (19 new ones compare the two overloads), a differential fuzz of 200,000 random comments (including Unicode that changes case in unexpected ways) against the old implementation, and the 3,000 random templates of E13.
 
-**Criterion.** E05: the scan allocates less than 0.5x the size of the text without marked strings, and no token changes in the existing tests.
+**Criterion.** E05: the scan allocates less than 0.5x the size of the text without marked strings, and no token changes.
+
+**Result.** Not met, but the change is real.
+- **Allocation.** The scan without marked strings went from 1.01x-2.01x the size of the text to 0.41x-1.41x (JavaScript 996 to 610 KB, C# 1.2 MB to 834 KB, Python 1.1 MB to 803 KB, C++ 645 to 258 KB). Only C++ is under 0.5x. `Highlight` as a whole: 1.74x to 1.18x the text, on average with marked strings.
+- **Time.** E01 improved by 11.5% on average at 12k and 60k lines (from -2% to -18% by case; worst case 60k lines: 9.9 to 9.3 ms).
+- **No change in behavior.** 848 unit tests pass, the fuzz found no difference and the 5.6 MB of tokens are identical.
+- **E06, E08 and E09 did not move.** E06: 16.9x to 21.9x (before 17.9x to 18.5x). E08: 22.4x to 23.7x (before 21.6x to 22.9x). E09: 2.56x to 2.69x (before 2.75x to 3.08x, the same borderline case). The gen2 collections of E06 at 800k characters did not fall either (4 to 5 in 25 runs, before 3).
+
+**Decision.** The change is safe, small and worth merging for the 11% and the lower allocation. The part of the hypothesis that said the garbage collector explains the superlinear growth is **refuted** for the allocations of the scan: removing a third of them changed nothing. The cause of the growth above ~400k characters is still unknown (see E15).
+
+**Remaining allocation.** What is left is probably an `EmbeddedString` (with its lists) and an id string created for every string literal of the host, marked or not. Allocating them only when the string is marked would remove it, but the scanners need the object while they read the interpolations, so it is a larger change than this one.
+
+**Revisit when.** The scanners are changed to create the embedded string lazily.
+
+## E15: why the cost grows faster than the text above ~400k characters
+
+**Status:** Planned (follows E06, E08, E09 and E14)
+
+**Hypothesis.** When one file or one string is large, the cost per character grows even without the scan's allocations. Candidates: the decoding buffers (`List<char>` and `List<int>` of 12 bytes per character of the string, which land on the Large Object Heap and double as they grow), the list of tokens and its sort, and the processor cache.
+
+**Test.** For one marked string of 100k, 400k and 800k characters, time the stages separately (decode, tokenize, map back, sort) and record gen2 collections and bytes allocated per stage. A variant presizes the buffers.
+
+**Criterion.** One stage accounts for the extra cost, so that the superlinear growth can be attributed. Success is a cause, not a speed-up.
