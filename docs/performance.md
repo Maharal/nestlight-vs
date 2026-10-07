@@ -10,8 +10,9 @@ What grows is the cost **per edit**, proportional to the file size: on every new
 | 1 | Skip the scan when the text contains no language id | **Tested, rejected** | No relevant gain; slower for files with markers |
 | 2 | Re-analyze in the background and answer with the previous tokens (debounce) | Not tested | n/a |
 | 3 | Incremental analysis: re-analyze only the strings touched by the edit | Not tested | n/a |
-| 4 | Avoid copying the whole text on every edit (`GetText()`, Large Object Heap allocation above ~85 KB) | Not tested | n/a |
-| 5 | Language registry built per buffer (`CreateHighlighter`) | Not tested (cost expected to be irrelevant) | n/a |
+| 4 | Avoid copying the whole text on every edit (`GetText()`, Large Object Heap allocation above ~85 KB) | **Tested, rejected for now** | Triggers gen2 collections, but the time saved is under 1 ms for files up to ~800 KB |
+| 5 | Language registry built per buffer (`CreateHighlighter`) | **Tested, rejected** | 45 µs and 11 KB per buffer |
+| 6 | `Highlight` itself allocates ~2x the text size per edit; reduce those allocations | Not tested (found while testing 4) | n/a |
 
 ## Baseline: the scan is already cheap
 
@@ -70,10 +71,53 @@ For the first three, a meaningful measurement only exists inside Visual Studio, 
 - Test: cost of a one-character edit in the middle of the file, compared to the full scan. Only worth it if (2) is not enough.
 - Risk: the largest. Escapes, nested interpolations and unterminated strings shift everything after the edit point.
 
-**4. Text copy (`GetText()`).** On files above ~85 KB the copy lands on the Large Object Heap on every keystroke.
-- Test: count gen2 GC collections and bytes allocated per edit on a 1 MB file, with and without the copy. One variant is scanning directly over the `ITextSnapshot`, without materializing the string.
-- Risk: the scanners currently take a `string`; changing that touches every host and its tests.
+## Hypothesis 4: the text copy (`GetText()`) on every edit
 
-**5. Registry per buffer.** `CreateHighlighter` builds ~11 tokenizers for every open file.
-- Test: time and memory of `CreateLanguages()` and of opening 100 buffers.
-- Expectation: irrelevant. If confirmed, the registry can become a singleton at no maintenance cost.
+**Idea.** On every new snapshot the classifier copies the whole text into a string. Above ~85 KB (about 42k characters) that string lands on the Large Object Heap, which is only reclaimed by gen2 collections.
+
+**Test.** Simulated typing on a synthetic C# file: 1000 edits (300 for the largest file), each one doing what the classifier does, in three variants: copy + `Highlight` (current), copy only, and `Highlight` only on an existing string. We measured time per edit, bytes allocated and GC collections. Same setup and caveats as the baseline.
+
+| File | Copy + highlight | Copy only | Highlight only | Gen2 collections (copy + highlight / highlight only) |
+|---|---:|---:|---:|---:|
+| 78 KB | 0.32 ms | 0.01 ms | 0.24 ms | 0 / 0 |
+| 195 KB | 0.63 ms | 0.24 ms | 0.39 ms | 62 / 0 |
+| 781 KB | 2.5 ms | 0.19 ms | 1.5 ms | 208 / 0 |
+| 1.9 MB | 6.2 ms | 0.67 ms | 4.0 ms | 447 / 1 |
+| 7.8 MB (300 edits) | 22 ms | 3.4 ms | 18 ms | 148 / 55 |
+
+**What it shows.**
+- The mechanism is real: once the copy goes to the LOH, a gen2 collection happens every 2 to 5 edits, against almost none without it.
+- The time cost is small. The copy itself takes 0.2 to 0.7 ms up to 2 MB, and removing it would save at most 0.1 to 1 ms per edit up to ~800 KB (about 25 to 40%), 2.2 ms at 1.9 MB. That is an upper bound: scanning directly over `ITextSnapshot` instead of a `string` would make every character access slower, so part of the gain would be lost.
+- Typical large files (under 200 KB) spend 0.6 ms per edit in total.
+
+**Decision: rejected for now.** The change touches every scanner and its tests for a gain that is below a millisecond on files of normal size.
+
+**Caveat.** The benchmark process has a tiny heap. A gen2 collection in Visual Studio walks a heap of hundreds of megabytes, so each one costs more there than here, and the real penalty of the copy may be larger. Only a measurement inside Visual Studio (gen2 count and pause time while typing in a large file) can settle that.
+
+## Hypothesis 5: the registry built per buffer
+
+**Idea.** `CreateHighlighter` builds all the tokenizers again for every open file.
+
+**Test.** 200 calls to `CreateLanguages()` (time and bytes), and 100 consecutive `CreateHighlighter` calls for each host.
+
+**Result.** `CreateLanguages()` takes 45 µs (p99: 64 µs) and allocates 11 KB. A hundred buffers cost 3 to 6 ms and about 1.1 MB in total.
+
+**Decision: rejected.** The cost per open file is too small to justify a shared registry.
+
+## Hypothesis 6 (new): allocations inside `Highlight`
+
+The test for hypothesis 4 showed that `Highlight` allocates about twice the size of the text per edit (1.5 MB for a 781 KB file), more than the copy itself. These are small objects, so the collections are mostly gen0 and cheap, but it is the largest allocation source in the pipeline. Candidates: one `Substring` per comment in `MarkerTracker.Comment`, the token and embedded-string lists, the `Decode` buffers.
+- Test: an allocation profile of one `Highlight` call on a large file, to see which objects dominate before changing anything.
+- Expectation: a modest gain. Worth it only if a few call sites account for most of the bytes.
+
+## Hypotheses still to test
+
+These two need a measurement inside Visual Studio, with a large real file and continuous typing: the isolated scan does not capture time spent waiting on the UI thread.
+
+**2. Background re-analysis.** Today the analysis runs inside `GetClassificationSpans`, on the UI thread. Proposal: return the tokens of the previous snapshot and raise `ClassificationChanged` when the new analysis finishes.
+- Test: typing latency (per keystroke) on files of 10k, 50k and 100k lines, before and after.
+- Risk: briefly stale colors, and more concurrency complexity.
+
+**3. Incremental analysis.** Re-analyze only the strings hit by the edit and reuse the tokens of the rest.
+- Test: cost of a one-character edit in the middle of the file, compared to the full scan. Only worth it if (2) is not enough.
+- Risk: the largest. Escapes, nested interpolations and unterminated strings shift everything after the edit point.
