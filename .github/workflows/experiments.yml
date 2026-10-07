@@ -1,0 +1,36 @@
+name: Experiments
+
+# Runs the performance experiments and uploads the report. Manual: the numbers depend on the machine,
+# so they are not a gate for pull requests.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  experiments:
+    # net48, the runtime of Visual Studio, needs Windows
+    runs-on: windows-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Run experiments
+        run: dotnet run --configuration Release --project NestLight.Experiments -- --out reports
+
+      - name: Report in the job summary
+        if: always()
+        shell: pwsh
+        run: Get-ChildItem reports -Filter *.md | ForEach-Object { Get-Content $_.FullName >> $env:GITHUB_STEP_SUMMARY }
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: experiments-report
+          path: reports/*.md
+          if-no-files-found: error

@@ -33,6 +33,32 @@ namespace NestLight.Tests
             Assert.Null(MarkerComment.Parse(body));
         }
 
+        [Theory]
+        [InlineData("html")]
+        [InlineData(" html ")]
+        [InlineData("HTML")]
+        [InlineData("language=html")]
+        [InlineData(" language=HTML ")]
+        [InlineData("lang=sql")]
+        [InlineData("language = css")]
+        [InlineData("Lang=Json")]
+        [InlineData("language")]
+        [InlineData("lang")]
+        [InlineData("languag")]
+        [InlineData("language html")]
+        [InlineData("")]
+        [InlineData("   ")]
+        [InlineData("html is great")]
+        [InlineData("TODO: html")]
+        [InlineData("language=")]
+        [InlineData("language=html css")]
+        [InlineData("a/b")]
+        public void Reading_a_range_of_the_text_gives_the_same_result_as_reading_the_comment_alone(string body)
+        {
+            string text = "x // " + body + " tail";
+            Assert.Equal(MarkerComment.Parse(body), MarkerComment.Parse(text, 5, 5 + body.Length));
+        }
+
         [Fact]
         public void Language_alone_is_an_id_not_a_key()
         {

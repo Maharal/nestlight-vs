@@ -94,12 +94,21 @@ namespace NestLight.Highlighting
             return chars.ToArray();
         }
 
-        /// <summary>Adds the token [start, end) without the parts that fall inside an interpolation.</summary>
+        /// <summary>
+        /// Adds the token [start, end) without the parts that fall inside an interpolation.
+        /// The interpolations are ordered and do not overlap, so the first one that can matter is found by binary search.
+        /// </summary>
         private static void AddClipped(int start, int end, string type, List<Interpolation> holes, List<Token> output)
         {
-            foreach (Interpolation hole in holes)
+            int lo = 0, hi = holes.Count;
+            while (lo < hi)
             {
-                if (hole.End <= start) continue;
+                int mid = (lo + hi) / 2;
+                if (holes[mid].End <= start) lo = mid + 1; else hi = mid;
+            }
+            for (int k = lo; k < holes.Count; k++)
+            {
+                Interpolation hole = holes[k];
                 if (hole.Start >= end) break;
                 if (hole.Start > start) output.Add(new Token(start, hole.Start - start, type));
                 start = Math.Max(start, hole.End);

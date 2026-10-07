@@ -100,6 +100,18 @@ Everything but `VisualStudio` is free of the Visual Studio SDK, so the tests run
 
 Adding a host means writing a scanner and a provider. Adding a language means writing a tokenizer, adding it to the composition root and declaring its classification types in `VisualStudio`.
 
+## Experiments
+
+Beyond the unit tests, which check what the plugin colors, a suite of **experiments** checks how well it performs. Each experiment is a hypothesis (for example, "the text copy on every edit is worth removing") with an automated test and a criterion written in advance. They live in their own project, `NestLight.Experiments`, and are not part of `dotnet test`.
+
+```
+dotnet run -c Release --project NestLight.Experiments
+```
+
+The run executes every experiment and writes a Markdown report with the tables, the analysis and whether each criterion held to `docs/reports/experiments-<date>-<commit>.md`. The reports are versioned: each one is valid only for its commit and machine, so a new run adds a file instead of replacing the old one. Options: `--only E03,E05`, `--list`, `--quick` (a smoke run, numbers not worth keeping) and `--out <dir>`.
+
+The experiments and their results are described in [docs/experiments.md](docs/experiments.md). The *Experiments* workflow runs the suite on Windows, on the same runtime as Visual Studio (`net48`), and uploads the report.
+
 ## Limitations
 
 - Code inside an interpolation gets a neutral color, not host-language highlighting.
