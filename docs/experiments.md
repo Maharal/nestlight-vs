@@ -72,7 +72,7 @@ Three consecutive full runs on commit `6a7f9ff`, 2026-10-07, .NET 10 in Release 
 
 ### The two changes, measured against the code they change
 
-Same session, three runs each, on the code of the experiments (`6797746`) and on each change on top of it. The changes are on their own branches: `perf/e13-linear-clipping` (`5796fe6`) and `perf/e14-scan-allocations` (`3380d4b`).
+Same session, three runs each, on the code of the experiments (`6797746`) and on each change on top of it. The changes are commit `5796fe6` (E13) and commit `3380d4b` (E14). Together, on one build: E01 9.0 ms, E05 1.18x, E07 13.8x.
 
 | Id | Before (3 runs) | After E13 | After E14 |
 |---|---|---|---|
@@ -277,7 +277,7 @@ Same session, three runs each, on the code of the experiments (`6797746`) and on
 
 ## E13: clip tokens without rescanning the interpolations
 
-**Status:** Done · **Decision:** Adopt (branch `perf/e13-linear-clipping`, `5796fe6`)
+**Status:** Done · **Decision:** Adopt (`5796fe6`)
 
 **Hypothesis.** E07 is quadratic because `AddClipped` walks the interpolations of the string from the first one for every token. Starting from the first one that can matter, found by binary search, makes the cost linear.
 
@@ -293,7 +293,7 @@ Same session, three runs each, on the code of the experiments (`6797746`) and on
 
 ## E14: fewer allocations in the scan
 
-**Status:** Done · **Decision:** Modest gain; criterion not met (branch `perf/e14-scan-allocations`, `3380d4b`)
+**Status:** Done · **Decision:** Modest gain; criterion not met, adopted (`3380d4b`)
 
 **Hypothesis.** The scan allocates more than the size of the text even when there is nothing to find, mostly in the handling of comments (a `Substring`, a `Trim` and a `ToLowerInvariant` for each one, plus an array of keys per call). Parsing the marker on the text itself, without creating strings, removes most of it. If E06, E08 and E09 are limited by the garbage collector, they improve together.
 
