@@ -17,6 +17,13 @@ namespace NestLight.Experiments
                 new E07_Interpolations(),
                 new E08_Throughput(),
                 new E09_Malformed(),
+                new E16_CompletionLatency(),
+                new E17_CompletionLimits(),
+                new E18_CompletionRobustness(),
+                new E19_VocabularyConsistency(),
+                new E20_RankingQuality(),
+                new E21_ScopeAndSavings(),
+                new E22_CompletionFastPath(),
             };
         }
     }

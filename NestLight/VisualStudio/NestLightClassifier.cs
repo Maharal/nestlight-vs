@@ -56,7 +56,7 @@ namespace NestLight.VisualStudio
         {
             return buffer.Properties.GetOrCreateSingletonProperty(
                 typeof(NestLightClassifier),
-                () => new NestLightClassifier(buffer, Registry, NestLightComposition.CreateHighlighter(_host)));
+                () => new NestLightClassifier(buffer, Registry, NestLightBuffer.Get(buffer, _host)));
         }
     }
 
@@ -69,10 +69,10 @@ namespace NestLight.VisualStudio
 
         public event EventHandler<ClassificationChangedEventArgs> ClassificationChanged;
 
-        public NestLightClassifier(ITextBuffer buffer, IClassificationTypeRegistryService registry, IHighlighter highlighter)
+        public NestLightClassifier(ITextBuffer buffer, IClassificationTypeRegistryService registry, NestLightBuffer shared)
         {
             _registry = registry;
-            _cache = new SnapshotTokenCache<ITextSnapshot>(highlighter, snapshot => snapshot.GetText());
+            _cache = new SnapshotTokenCache<ITextSnapshot>(shared.Analysis.Highlighter, shared.Text.Of);
             buffer.ChangedLowPriority += OnBufferChanged;
         }
 
@@ -105,6 +105,27 @@ namespace NestLight.VisualStudio
                 _types[name] = type;
             }
             return type;
+        }
+    }
+
+    /// <summary>
+    /// What the classifier and the completion of a buffer share: one scan and one copy of the text per snapshot. The first of the two
+    /// that needs the snapshot pays for them, the other finds them done.
+    /// </summary>
+    internal sealed class NestLightBuffer
+    {
+        private NestLightBuffer(HostLanguage host)
+        {
+            Analysis = NestLightComposition.CreateForBuffer(host);
+            Text = new SnapshotTextCache<ITextSnapshot>(snapshot => snapshot.GetText());
+        }
+
+        public BufferAnalysis Analysis { get; private set; }
+        public SnapshotTextCache<ITextSnapshot> Text { get; private set; }
+
+        public static NestLightBuffer Get(ITextBuffer buffer, HostLanguage host)
+        {
+            return buffer.Properties.GetOrCreateSingletonProperty(typeof(NestLightBuffer), () => new NestLightBuffer(host));
         }
     }
 }

@@ -16,6 +16,7 @@
   <!-- The same shared source the tests compile: everything but VisualStudio\, so the experiments run against the real code. -->
   <ItemGroup>
     <Compile Include="..\NestLight\Common\**\*.cs" LinkBase="Source\Common" />
+    <Compile Include="..\NestLight\Completion\**\*.cs" LinkBase="Source\Completion" />
     <Compile Include="..\NestLight\Hosts\**\*.cs" LinkBase="Source\Hosts" />
     <Compile Include="..\NestLight\Languages\**\*.cs" LinkBase="Source\Languages" />
     <Compile Include="..\NestLight\Highlighting\**\*.cs" LinkBase="Source\Highlighting" />

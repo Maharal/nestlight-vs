@@ -41,6 +41,7 @@
     <!-- Common, Hosts, Languages and Highlighting do not depend on the Visual Studio SDK (the tests compile them directly).
          Only VisualStudio\ talks to the editor. -->
     <Compile Include="Common\**\*.cs" />
+    <Compile Include="Completion\**\*.cs" />
     <Compile Include="Hosts\**\*.cs" />
     <Compile Include="Languages\**\*.cs" />
     <Compile Include="Highlighting\**\*.cs" />

@@ -5,6 +5,15 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+### Added
+- Completion inside embedded strings: keywords of the language of the string (SQL, CSS, HTML / SVG, GraphQL, JSON, YAML, GLSL, WGSL) and words that already exist in the document, nearest to the caret first.
+
+### Changed
+- The classifier and the completion share one scan per snapshot, and the completion creates a word only when it offers it: the start of a session on a 60,000-line file falls from 12-32 ms to under 3 ms (E22).
+
+### Experiments
+- E16 to E22 for the completion (latency, limits, robustness, vocabulary against tokenizers, order and scope of the words) and a seeded generator of code for them.
+
 ## [0.1.0] - 2026-10-06
 
 First build of the extension, published as a pre-release.

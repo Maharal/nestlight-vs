@@ -11,6 +11,7 @@
   <!-- Everything but VisualStudio\ is shared (linked) with the extension; it does not depend on the VS SDK. -->
   <ItemGroup>
     <Compile Include="..\NestLight\Common\**\*.cs" LinkBase="Source\Common" />
+    <Compile Include="..\NestLight\Completion\**\*.cs" LinkBase="Source\Completion" />
     <Compile Include="..\NestLight\Hosts\**\*.cs" LinkBase="Source\Hosts" />
     <Compile Include="..\NestLight\Languages\**\*.cs" LinkBase="Source\Languages" />
     <Compile Include="..\NestLight\Highlighting\**\*.cs" LinkBase="Source\Highlighting" />

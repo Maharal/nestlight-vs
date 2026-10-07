@@ -12,7 +12,7 @@ namespace NestLight.Languages
     {
         private static readonly string[] YamlIds = { "yaml", "yml" };
 
-        private static readonly HashSet<string> Literals = new HashSet<string>
+        internal static readonly HashSet<string> Literals = new HashSet<string>
         {
             "true", "false", "null", "yes", "no", "on", "off", "~",
             "True", "False", "Null", "Yes", "No", "On", "Off", "TRUE", "FALSE", "NULL"

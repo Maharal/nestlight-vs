@@ -10,7 +10,7 @@ namespace NestLight.Languages
         private const char Mask = TextUtil.Mask;
         private static readonly string[] SqlIds = { "sql" };
 
-        private static readonly HashSet<string> Keywords = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        internal static readonly HashSet<string> Keywords = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
         {
             "select", "from", "where", "insert", "into", "values", "update", "set", "delete", "create", "alter", "drop",
             "table", "view", "index", "database", "schema", "join", "inner", "left", "right", "full", "outer", "cross",

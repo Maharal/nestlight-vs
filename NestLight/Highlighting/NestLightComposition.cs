@@ -1,5 +1,6 @@
 using System;
 using NestLight.Common;
+using NestLight.Completion;
 using NestLight.Hosts;
 using NestLight.Languages;
 
@@ -53,5 +54,29 @@ namespace NestLight.Highlighting
             ILanguageRegistry languages = CreateLanguages();
             return new HighlightEngine(CreateScanner(host, languages), languages);
         }
+
+        /// <summary>
+        /// The pieces of one buffer. The highlighter and the completion share one scanner that remembers its last scan, so the
+        /// strings of a snapshot are found once for both.
+        /// </summary>
+        public static BufferAnalysis CreateForBuffer(HostLanguage host)
+        {
+            ILanguageRegistry languages = CreateLanguages();
+            IHostScanner scanner = new CachingHostScanner(CreateScanner(host, languages));
+            return new BufferAnalysis(new HighlightEngine(scanner, languages), new CompletionEngine(scanner));
+        }
+    }
+
+    /// <summary>The highlighter and the completion of one buffer, built over the same scan.</summary>
+    internal sealed class BufferAnalysis
+    {
+        public BufferAnalysis(IHighlighter highlighter, ICompletionProvider completion)
+        {
+            Highlighter = highlighter;
+            Completion = completion;
+        }
+
+        public IHighlighter Highlighter { get; private set; }
+        public ICompletionProvider Completion { get; private set; }
     }
 }
