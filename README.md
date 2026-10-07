@@ -68,7 +68,9 @@ Interpolations are never colored as embedded code in any language. Templates nes
 
 Download the `.vsix` from [Releases](../../releases), close Visual Studio and double-click the file.
 
-To build from source, open `TemplateHtmlHighlighter/TemplateHtmlHighlighter.csproj` with the **Visual Studio extension development** workload and press F5.
+To build from source, open `NestLight/NestLight.csproj` with the **Visual Studio extension development** workload and press F5.
+
+To run the tests, use **Test > Run All Tests** in Visual Studio or `dotnet test NestLight.Tests` from a terminal (any OS).
 
 Colors are under **Tools > Options > Environment > Fonts and Colors > Text Editor**, in the items named **Template &lt;Language&gt; ...**.
 
@@ -76,12 +78,25 @@ Colors are under **Tools > Options > Environment > Fonts and Colors > Text Edito
 
 Nestlight is a MEF `IClassifier` that layers its colors over the editor's string color.
 
-1. **Host scanner** (one per host) finds marked strings and the range of every interpolation, skipping comments and unmarked strings.
-2. **Language tokenizer** (one per embedded language) masks the interpolations, tokenizes the text and clips tokens so they never overlap an interpolation.
+1. **Host scanner** (one per host) finds marked strings, the range of every interpolation and the escape sequences, skipping comments and unmarked strings.
+2. **Language tokenizer** (one per embedded language) receives the text with interpolations masked and escapes decoded, tokenizes it and never sees the host code.
 3. **Registry** maps tags, markers and ids to tokenizers.
-4. **Classifier** turns tokens into classification spans, cached per text snapshot.
+4. **Engine** runs the pipeline and maps the tokens back to the source, clipping them so they never overlap an interpolation.
+5. **Classifier** turns tokens into classification spans, cached per text snapshot.
 
-Adding a host means writing a scanner. Adding a language means writing a tokenizer and registering its ids.
+The code is split by responsibility, and every dependency is injected through a constructor:
+
+| Folder | Holds |
+|---|---|
+| `Common` | The model (embedded string, interpolation, token), the interfaces everything else depends on, marker rules and text helpers |
+| `Hosts` | One scanner per host language |
+| `Languages` | One tokenizer per embedded language |
+| `Highlighting` | The engine, the registry, the snapshot cache and the composition root, the only place that knows the concrete classes |
+| `VisualStudio` | The only code that touches the editor: classifier providers and the classification types and default colors |
+
+Everything but `VisualStudio` is free of the Visual Studio SDK, so the tests run it as is.
+
+Adding a host means writing a scanner and a provider. Adding a language means writing a tokenizer, adding it to the composition root and declaring its classification types in `VisualStudio`.
 
 ## Limitations
 

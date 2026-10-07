@@ -1,3 +1,4 @@
+using NestLight.Common;
 using System;
 using System.Diagnostics;
 using System.Linq;
@@ -72,12 +73,12 @@ class MyEl extends LitElement {
         public void Html_and_css_tokens_never_cover_expression_text()
         {
             var templates = Lexer.Templates(FlatSample);
-            var exprs = templates.SelectMany(tp => tp.Expressions).ToList();
+            var exprs = templates.SelectMany(tp => tp.Interpolations).ToList();
             Assert.Equal(6, exprs.Count);
 
             foreach (var t in Lexer.Lex(FlatSample))
             {
-                if (t.Type == TplNames.Expression || t.Type == TplNames.ExprDelimiter) continue;
+                if (t.Type == ClassificationNames.Expression || t.Type == ClassificationNames.ExprDelimiter) continue;
                 foreach (var e in exprs)
                     Assert.False(t.Start < e.End && e.Start < t.End, "token overlaps an expression: " + t);
             }
@@ -107,7 +108,7 @@ class MyEl extends LitElement {
         [Fact]
         public void Classification_names_are_unique_and_namespaced()
         {
-            var names = typeof(TplNames)
+            var names = typeof(ClassificationNames)
                 .GetFields(BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic)
                 .Where(f => f.IsLiteral)
                 .Select(f => (string)f.GetRawConstantValue())

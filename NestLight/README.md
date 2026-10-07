@@ -1,30 +1,32 @@
 # NestLight (Visual Studio 2022/2026)
 
-Highlights HTML and CSS inside template strings in .ts/.js files.
+The extension project. See the [main README](../README.md) for what it highlights and how to use it.
 
-## What is recognized
-**HTML:** `html\`...\``, `svg\`...\``, `htm\`...\``, `/* html */ \`...\`` (and `/* language=html */`)
-- tags, attributes, `@event`, `.property`, `?boolean`, comments and `${...}` expressions
-- CSS inside `<style>...</style>` and `style="..."`
+## Layout
+- `Common/`: model, interfaces, marker rules, text helpers
+- `Hosts/`: scanners for JavaScript / TypeScript, C#, Python and C++
+- `Languages/`: tokenizers for HTML, CSS, SQL, JSON, GraphQL, XML, Markdown, YAML, regular expressions and shaders (GLSL, WGSL)
+- `Highlighting/`: engine, language registry, snapshot cache and the composition root (`NestLightComposition`)
+- `VisualStudio/`: MEF classifier providers, classification types and default formats
 
-**CSS:** `css\`...\``, `/* css */ \`...\`` (and `/* language=css */`)
-- selectors, classes/ids, pseudo-classes, properties, `--custom-properties`, values, numbers/colors,
-  functions (`var()`, `calc()`...), `@media`/`@keyframes`..., `!important`, strings, comments
-- CSS nesting (`&:hover { }`)
-
-Works with Lit, uhtml, htm and similar libraries. The extension only reads the buffer (classification);
-it does not edit code.
+Dependencies are passed through constructors. Only `VisualStudio/` references the Visual Studio SDK.
 
 ## Build
 1. Open `NestLight.csproj` (workload "Visual Studio extension development").
-2. F5 opens the experimental instance; open `sample.ts`.
+2. F5 opens the experimental instance.
 3. Release build -> `bin\Release\NestLight.vsix`.
 
 ## Colors
-Tools > Options > Environment > Fonts and Colors > "Text Editor" > items "Template HTML ..." and "Template CSS ...".
+Tools > Options > Environment > Fonts and Colors > "Text Editor" > items "Template <Language> ...".
 
-## Adding other tags
-In `TplScanner.cs`, method `KindFromName`, add the tag name (for example `styled`) to the desired group.
+## Adding a language
+1. Write a tokenizer in `Languages/` (`ILanguageTokenizer`) and add it to `NestLightComposition.CreateLanguages`.
+2. Add its names to `Common/ClassificationNames.cs` and declare the types and default colors in `VisualStudio/`.
+   A test fails until every name has both.
+
+## Adding a host
+1. Write a scanner in `Hosts/` (`IHostScanner`) and add a `HostLanguage` value and a case in `NestLightComposition.CreateScanner`.
+2. Add a classifier provider in `VisualStudio/NestLightClassifier.cs` with the host's content type.
 
 ## License
 MIT - see LICENSE.txt. Copyright (c) 2026 Raphael Augusto Teixeira Silva.

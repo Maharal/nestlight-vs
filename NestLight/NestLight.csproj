@@ -38,13 +38,13 @@
     <DefineConstants>TRACE</DefineConstants>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="TplNames.cs" />
-    <Compile Include="TplScanner.cs" />
-    <Compile Include="TplHtmlTokenizer.cs" />
-    <Compile Include="TplCssTokenizer.cs" />
-    <Compile Include="TplHtmlClassifier.cs" />
-    <Compile Include="TplClassificationDefinitions.cs" />
-    <Compile Include="TplCssClassificationDefinitions.cs" />
+    <!-- Common, Hosts, Languages and Highlighting do not depend on the Visual Studio SDK (the tests compile them directly).
+         Only VisualStudio\ talks to the editor. -->
+    <Compile Include="Common\**\*.cs" />
+    <Compile Include="Hosts\**\*.cs" />
+    <Compile Include="Languages\**\*.cs" />
+    <Compile Include="Highlighting\**\*.cs" />
+    <Compile Include="VisualStudio\**\*.cs" />
     <Content Include="LICENSE.txt">
       <IncludeInVSIX>true</IncludeInVSIX>
     </Content>

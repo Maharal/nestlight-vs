@@ -1,19 +1,20 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <!-- net48 to match the extension and run in any VS with the .NET development workload -->
-    <TargetFramework>net48</TargetFramework>
+    <!-- net48 matches the extension and runs in any VS with the .NET development workload.
+         net10.0 lets the same tests run with `dotnet test` on any OS (including Linux CI, which has no .NET Framework). -->
+    <TargetFrameworks>net48;net10.0</TargetFrameworks>
     <LangVersion>latest</LangVersion>
     <IsPackable>false</IsPackable>
     <RootNamespace>NestLight.Tests</RootNamespace>
   </PropertyGroup>
 
-  <!-- The parsing files are shared (linked) with the extension; they do not depend on the VS SDK. -->
+  <!-- Everything but VisualStudio\ is shared (linked) with the extension; it does not depend on the VS SDK. -->
   <ItemGroup>
-    <Compile Include="..\NestLight\TplNames.cs" Link="Source\TplNames.cs" />
-    <Compile Include="..\NestLight\TplScanner.cs" Link="Source\TplScanner.cs" />
-    <Compile Include="..\NestLight\TplHtmlTokenizer.cs" Link="Source\TplHtmlTokenizer.cs" />
-    <Compile Include="..\NestLight\TplCssTokenizer.cs" Link="Source\TplCssTokenizer.cs" />
+    <Compile Include="..\NestLight\Common\**\*.cs" LinkBase="Source\Common" />
+    <Compile Include="..\NestLight\Hosts\**\*.cs" LinkBase="Source\Hosts" />
+    <Compile Include="..\NestLight\Languages\**\*.cs" LinkBase="Source\Languages" />
+    <Compile Include="..\NestLight\Highlighting\**\*.cs" LinkBase="Source\Highlighting" />
   </ItemGroup>
 
   <ItemGroup>

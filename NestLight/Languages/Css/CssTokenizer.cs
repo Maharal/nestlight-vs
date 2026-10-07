@@ -1,6 +1,8 @@
 using System;
+using System.Collections.Generic;
+using NestLight.Common;
 
-namespace NestLight
+namespace NestLight.Languages
 {
     /// <summary>
     /// Simple, error-tolerant CSS tokenizer. Works on "masked" text
@@ -8,15 +10,19 @@ namespace NestLight
     /// &lt;style&gt; blocks and style="..." attributes inside HTML templates.
     /// Recognizes nesting (CSS nesting), at-rules, selectors, properties and values.
     /// </summary>
-    internal static class TplCssTokenizer
+    internal sealed class CssTokenizer : ILanguageTokenizer
     {
-        private const char Mask = '\u0001';
+        private const char Mask = TextUtil.Mask;
+
+        private static readonly string[] CssIds = { "css" };
+
+        public IReadOnlyList<string> Ids { get { return CssIds; } }
 
         /// <param name="m">Masked template text.</param>
         /// <param name="from">Start (inclusive) of the CSS range.</param>
         /// <param name="to">End (exclusive) of the CSS range.</param>
         /// <param name="add">Callback (start, end, type) in coordinates of <paramref name="m"/>.</param>
-        public static void Tokenize(char[] m, int from, int to, Action<int, int, string> add)
+        public void Tokenize(char[] m, int from, int to, TokenSink add)
         {
             int i = from;
             while (i < to)
@@ -26,7 +32,7 @@ namespace NestLight
                 if (IsCommentStart(m, i, to)) { i = Comment(m, i, to, add); continue; }
                 if (c == '{' || c == '}' || c == ';')
                 {
-                    add(i, i + 1, TplNames.CssPunct);
+                    add(i, i + 1, ClassificationNames.CssPunct);
                     i++;
                     continue;
                 }
@@ -50,7 +56,7 @@ namespace NestLight
                     // nested rule: selector or at-rule with a block
                     if (m[start] == '@') AtRule(m, start, p, add);
                     else Selector(m, start, p, add);
-                    add(p, p + 1, TplNames.CssPunct);
+                    add(p, p + 1, ClassificationNames.CssPunct);
                     i = p + 1;
                 }
                 else
@@ -62,7 +68,7 @@ namespace NestLight
             }
         }
 
-        private static void Selector(char[] m, int s, int e, Action<int, int, string> add)
+        private static void Selector(char[] m, int s, int e, TokenSink add)
         {
             int p = s;
             while (p < e)
@@ -73,7 +79,7 @@ namespace NestLight
                 if (c == '"' || c == '\'')
                 {
                     int q = StringEnd(m, p, e);
-                    add(p, q, TplNames.CssString);
+                    add(p, q, ClassificationNames.CssString);
                     p = q;
                     continue;
                 }
@@ -81,7 +87,7 @@ namespace NestLight
                 {
                     int q = p + 1;
                     while (q < e && IsNameChar(m[q])) q++;
-                    add(p, q, TplNames.CssSelectorClass);
+                    add(p, q, ClassificationNames.CssSelectorClass);
                     p = q;
                     continue;
                 }
@@ -90,7 +96,7 @@ namespace NestLight
                     int q = p + 1;
                     if (q < e && m[q] == ':') q++;
                     while (q < e && IsNameChar(m[q])) q++;
-                    add(p, q, TplNames.CssPseudo);
+                    add(p, q, ClassificationNames.CssPseudo);
                     p = q;
                     continue;
                 }
@@ -98,20 +104,20 @@ namespace NestLight
                 while (r < e && !char.IsWhiteSpace(m[r]) && m[r] != '.' && m[r] != '#' && m[r] != ':' &&
                        m[r] != '"' && m[r] != '\'' && !IsCommentStart(m, r, e))
                     r++;
-                add(p, r, TplNames.CssSelector);
+                add(p, r, ClassificationNames.CssSelector);
                 p = r;
             }
         }
 
-        private static void AtRule(char[] m, int s, int e, Action<int, int, string> add)
+        private static void AtRule(char[] m, int s, int e, TokenSink add)
         {
             int q = s + 1;
             while (q < e && IsNameChar(m[q])) q++;
-            add(s, q, TplNames.CssAtRule);
+            add(s, q, ClassificationNames.CssAtRule);
             Value(m, q, e, add);
         }
 
-        private static void Declaration(char[] m, int s, int e, Action<int, int, string> add)
+        private static void Declaration(char[] m, int s, int e, TokenSink add)
         {
             int a = s;
             while (a < e && char.IsWhiteSpace(m[a])) a++;
@@ -152,16 +158,16 @@ namespace NestLight
             if (nameEnd > a)
             {
                 bool custom = nameEnd - a >= 2 && m[a] == '-' && m[a + 1] == '-';
-                add(a, nameEnd, custom ? TplNames.CssCustomProperty : TplNames.CssProperty);
+                add(a, nameEnd, custom ? ClassificationNames.CssCustomProperty : ClassificationNames.CssProperty);
             }
             if (colon >= 0)
             {
-                add(colon, colon + 1, TplNames.CssPunct);
+                add(colon, colon + 1, ClassificationNames.CssPunct);
                 Value(m, colon + 1, b, add);
             }
         }
 
-        private static void Value(char[] m, int s, int e, Action<int, int, string> add)
+        private static void Value(char[] m, int s, int e, TokenSink add)
         {
             int p = s;
             while (p < e)
@@ -172,7 +178,7 @@ namespace NestLight
                 if (c == '"' || c == '\'')
                 {
                     int q = StringEnd(m, p, e);
-                    add(p, q, TplNames.CssString);
+                    add(p, q, ClassificationNames.CssString);
                     p = q;
                     continue;
                 }
@@ -181,7 +187,7 @@ namespace NestLight
                     int q = p + 1;
                     while (q < e && char.IsWhiteSpace(m[q])) q++;
                     while (q < e && IsNameChar(m[q])) q++;
-                    add(p, q, TplNames.CssAtRule); // !important
+                    add(p, q, ClassificationNames.CssAtRule); // !important
                     p = q;
                     continue;
                 }
@@ -189,7 +195,7 @@ namespace NestLight
                 {
                     int q = p + 1;
                     while (q < e && IsNameChar(m[q])) q++;
-                    add(p, q, TplNames.CssNumber); // hex color
+                    add(p, q, ClassificationNames.CssNumber); // hex color
                     p = q;
                     continue;
                 }
@@ -199,7 +205,7 @@ namespace NestLight
                     if (m[q] == '+' || m[q] == '-') q++;
                     while (q < e && (char.IsDigit(m[q]) || m[q] == '.')) q++;
                     while (q < e && (char.IsLetter(m[q]) || m[q] == '%' || m[q] == Mask)) q++;
-                    add(p, q, TplNames.CssNumber);
+                    add(p, q, ClassificationNames.CssNumber);
                     p = q;
                     continue;
                 }
@@ -222,10 +228,10 @@ namespace NestLight
                             for (int j = k; j < q; j++) if (!char.IsLetter(m[j])) { maskUnit = false; break; }
                         }
                     }
-                    string type = maskUnit ? TplNames.CssNumber
-                                : isFn ? TplNames.CssFunction
-                                : (q - p >= 2 && m[p] == '-' && m[p + 1] == '-') ? TplNames.CssCustomProperty
-                                : TplNames.CssValue;
+                    string type = maskUnit ? ClassificationNames.CssNumber
+                                : isFn ? ClassificationNames.CssFunction
+                                : (q - p >= 2 && m[p] == '-' && m[p + 1] == '-') ? ClassificationNames.CssCustomProperty
+                                : ClassificationNames.CssValue;
                     add(p, q, type);
                     p = q;
 
@@ -238,15 +244,15 @@ namespace NestLight
                         {
                             int close = a;
                             while (close < e && m[close] != ')') close++;
-                            add(q, q + 1, TplNames.CssPunct);
-                            add(a, close, TplNames.CssString);
+                            add(q, q + 1, ClassificationNames.CssPunct);
+                            add(a, close, ClassificationNames.CssString);
                             p = close;
                         }
                     }
                     continue;
                 }
 
-                add(p, p + 1, TplNames.CssPunct);
+                add(p, p + 1, ClassificationNames.CssPunct);
                 p++;
             }
         }
@@ -288,10 +294,10 @@ namespace NestLight
             return e;
         }
 
-        private static int Comment(char[] m, int p, int e, Action<int, int, string> add)
+        private static int Comment(char[] m, int p, int e, TokenSink add)
         {
             int end = CommentEnd(m, p, e);
-            add(p, end, TplNames.CssComment);
+            add(p, end, ClassificationNames.CssComment);
             return end;
         }
 

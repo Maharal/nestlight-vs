@@ -1,23 +1,29 @@
-# Parser tests (xUnit)
+# Tests (xUnit)
 
-They cover the parser rules, without depending on the Visual Studio SDK:
+They cover the whole pipeline without depending on the Visual Studio SDK.
 
-| File | What it verifies |
+| Folder / file | What it verifies |
 |---|---|
-| `ScannerTests.cs` | which backticks become templates (html/svg/htm/css, `/* html */`, `/* css */`), ignored comments and strings, escapes, nested `${}`, templates inside expressions, unclosed templates/expressions |
-| `HtmlTokenizerTests.cs` | tags, attributes, `@event` / `.prop` / `?bool`, expressions in any position, comments, `<style>` and `style="..."` as CSS |
-| `CssTokenizerTests.cs` | selectors, pseudo, nesting, properties, `--custom`, numbers/units/colors, functions, `url()`, `!important`, at-rules, comments, incomplete code, expressions |
-| `RobustnessTests.cs` | every prefix/suffix of a file without exceptions or overlaps, tokens inside templates, performance, unique classification names |
+| `Common/MarkerCommentTests.cs` | marker comments (`id`, `language=id`, `lang=id`), tags, the same-line / line-above rule, the languages a host accepts |
+| `Hosts/JavaScriptHostScannerTests.cs`, `JavaScriptMarkersTests.cs` | which template literals are embedded code, `//` and `/* */` markers, every documented id, nesting |
+| `Hosts/CSharpHostScannerTests.cs` | regular, verbatim and raw strings, `$` / `$$` interpolation, escapes, format specifiers, the `json` / `regex` exclusion |
+| `Hosts/PythonHostScannerTests.cs` | quote styles and prefixes, f-strings and t-strings, replacement fields, escapes |
+| `Hosts/CppHostScannerTests.cs` | raw string literals, delimiters and prefixes, digit separators |
+| `Languages/*TokenizerTests.cs` | the tokens of each embedded language (HTML, CSS, SQL, JSON, GraphQL, XML, Markdown, YAML, regex, shaders) |
+| `Highlighting/HighlightEngineTests.cs` | the engine against fake scanners and tokenizers (decoding, masking, mapping back), interpolation tokens per host, nesting at every level |
+| `Highlighting/SnapshotTokenCacheTests.cs` | caching per snapshot, span queries, failures never escaping |
+| `Highlighting/CompositionTests.cs` | the registry, the composition root, every documented id, and that every classification name has a type and a default format in `VisualStudio/` |
+| `Highlighting/RobustnessTests.cs`, `AllHostsRobustnessTests.cs` | every prefix / suffix / single-character deletion of real samples, random noise, deep nesting and performance, for every host and language |
 
 ## How to run
 - Visual Studio: *Test > Test Explorer > Run All* (restore the NuGet packages first).
-- Command line, in this project's folder: `dotnet test`
+- Command line, in this project's folder: `dotnet test` (add `-f net10.0` on a machine without the .NET Framework, such as Linux).
 
-The `Tpl*.cs` files from the `../NestLight` folder are linked into the test project
-(`TplNames`, `TplScanner`, `TplHtmlTokenizer`, `TplCssTokenizer`), so the tests always run
-against the extension's real code. Keep the two folders side by side.
+The project targets `net48` (like the extension) and `net10.0`. The source folders `Common`, `Hosts`, `Languages` and `Highlighting` of `../NestLight` are linked into
+the test project, so the tests always run against the extension's real code. Keep the two folders side by side.
 
 ## How to add a case
-Use `Lexer.H("<html here>")` / `Lexer.C("css here")` to wrap the text in a template and
-`Lexer.Texts(code, TplNames.Type)` to get the ranges of each classification, or
-`Lexer.Seq(code)` for the full `type|text` sequence.
+- A host: `Lexer.Scan(HostLanguage.X, code)` returns the embedded strings (range, language, interpolations, escapes).
+- A language: `Lexer.Language("sql", code)` wraps the code in a JavaScript template and returns `type|text` for each token (backticks and a trailing backslash
+  cannot be written there: use `Lexer.Seq(HostLanguage.Python, ...)` instead).
+- The whole pipeline: `Lexer.Lex(host, code)` / `Lexer.Texts(host, code, type)`.
