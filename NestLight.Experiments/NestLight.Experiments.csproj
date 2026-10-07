@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <!-- net48 to measure on the runtime Visual Studio uses; the numbers are not comparable with other runtimes -->
+    <TargetFramework>net48</TargetFramework>
+    <OutputType>Exe</OutputType>
+    <LangVersion>latest</LangVersion>
+    <IsPackable>false</IsPackable>
+    <RootNamespace>NestLight.Experiments</RootNamespace>
+    <Optimize>true</Optimize>
+  </PropertyGroup>
+
+  <!-- The same shared source the tests compile: everything but VisualStudio\, so the experiments run against the real code. -->
+  <ItemGroup>
+    <Compile Include="..\NestLight\Common\**\*.cs" LinkBase="Source\Common" />
+    <Compile Include="..\NestLight\Hosts\**\*.cs" LinkBase="Source\Hosts" />
+    <Compile Include="..\NestLight\Languages\**\*.cs" LinkBase="Source\Languages" />
+    <Compile Include="..\NestLight\Highlighting\**\*.cs" LinkBase="Source\Highlighting" />
+  </ItemGroup>
+
+</Project>

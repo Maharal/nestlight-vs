@@ -1,0 +1,95 @@
+using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.IO;
+using System.Linq;
+using System.Text;
+
+namespace NestLight.Experiments
+{
+    internal static class Program
+    {
+        private const string Usage = @"NestLight experiments: hypotheses about the performance of the plugin, tested automatically.
+
+  dotnet run -c Release --project NestLight.Experiments -- [options]
+
+  --only E01,E05   run only these experiments
+  --list           list the experiments and exit
+  --quick          smoke run with small sizes (numbers are not worth keeping)
+  --out <dir>      where to write the report (default: docs/reports; with --quick: the temp folder)
+";
+
+        private static int Main(string[] args)
+        {
+            // reports are versioned: the same text on every machine
+            System.Globalization.CultureInfo.DefaultThreadCurrentCulture = System.Globalization.CultureInfo.InvariantCulture;
+            System.Globalization.CultureInfo.CurrentCulture = System.Globalization.CultureInfo.InvariantCulture;
+
+            var settings = new Settings();
+            string only = null, outDir = null;
+            bool list = false;
+            for (int i = 0; i < args.Length; i++)
+            {
+                switch (args[i])
+                {
+                    case "--quick": settings.Quick = true; break;
+                    case "--list": list = true; break;
+                    case "--only" when i + 1 < args.Length: only = args[++i]; break;
+                    case "--out" when i + 1 < args.Length: outDir = args[++i]; break;
+                    default: Console.Error.WriteLine(Usage); return 2;
+                }
+            }
+
+            IList<Experiment> all = Catalog.All();
+            if (list)
+            {
+                foreach (Experiment e in all) Console.WriteLine(e.Id + "  " + e.Title);
+                return 0;
+            }
+
+            IList<Experiment> selected = all;
+            if (only != null)
+            {
+                var ids = new HashSet<string>(only.Split(',').Select(s => s.Trim()), StringComparer.OrdinalIgnoreCase);
+                selected = all.Where(e => ids.Contains(e.Id)).ToList();
+                if (selected.Count == 0) { Console.Error.WriteLine("No experiment matches " + only); return 2; }
+            }
+
+            string repoRoot = FindRepoRoot();
+            RunEnvironment env = RunEnvironment.Detect(repoRoot);
+            if (outDir == null)
+                outDir = settings.Quick ? Path.Combine(Path.GetTempPath(), "nestlight-experiments") : Path.Combine(repoRoot, "docs", "reports");
+
+            Measure.EnableAllocationTracking();
+            var results = new List<Result>();
+            foreach (Experiment e in selected)
+            {
+                Console.Write(e.Id + " " + e.Title + " ... ");
+                var result = new Result { Experiment = e };
+                results.Add(result);
+                var sw = Stopwatch.StartNew();
+                try { result.Outcome = e.Run(settings); }
+                catch (Exception ex) { result.Error = ex.GetType().Name + ": " + ex.Message; }
+                result.Seconds = sw.Elapsed.TotalSeconds;
+                Console.WriteLine(result.Outcome != null ? (result.Outcome.CriterionMet == true ? "criterion met" : result.Outcome.CriterionMet == false ? "criterion not met" : "info") : "FAILED: " + result.Error);
+            }
+
+            string report = ReportWriter.Write(results, env, settings);
+            Directory.CreateDirectory(outDir);
+            string name = string.Format("experiments-{0:yyyy-MM-dd}-{1}{2}{3}.md", env.Utc, env.Commit, env.Dirty ? "-dirty" : "", settings.Quick ? "-quick" : "");
+            string path = Path.Combine(outDir, name);
+            File.WriteAllText(path, report, new UTF8Encoding(false));
+            Console.WriteLine("Report: " + path);
+            return results.Any(r => r.Outcome == null) ? 1 : 0;
+        }
+
+        /// <summary>The folder with the .git entry, looking up from the current folder; the current folder if there is none.</summary>
+        private static string FindRepoRoot()
+        {
+            for (var dir = new DirectoryInfo(Directory.GetCurrentDirectory()); dir != null; dir = dir.Parent)
+                if (Directory.Exists(Path.Combine(dir.FullName, ".git")) || File.Exists(Path.Combine(dir.FullName, ".git")))
+                    return dir.FullName;
+            return Directory.GetCurrentDirectory();
+        }
+    }
+}
