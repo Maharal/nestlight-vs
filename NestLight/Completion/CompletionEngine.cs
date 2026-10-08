@@ -29,9 +29,9 @@ namespace NestLight.Completion
     /// <summary>Where a completion applies: the word under the caret inside an embedded string.</summary>
     internal sealed class CompletionSite
     {
-        public CompletionSite(string languageId, int start, int caret, int end)
+        public CompletionSite(string languageId, int start, int caret, int end, int ownerStart = -1, int ownerEnd = -1)
         {
-            LanguageId = languageId; Start = start; Caret = caret; End = end;
+            LanguageId = languageId; Start = start; Caret = caret; End = end; OwnerStart = ownerStart; OwnerEnd = ownerEnd;
         }
 
         /// <summary>Lower-case id or alias of the embedded language.</summary>
@@ -41,6 +41,9 @@ namespace NestLight.Completion
         public int Caret { get; private set; }
         /// <summary>Index right after the last character of the word, including what follows the caret.</summary>
         public int End { get; private set; }
+        /// <summary>The code of the embedded string the caret is in: [OwnerStart, OwnerEnd). -1 when unknown.</summary>
+        public int OwnerStart { get; private set; }
+        public int OwnerEnd { get; private set; }
 
         /// <summary>What was typed so far: the text of [Start, Caret).</summary>
         public int PrefixLength { get { return Caret - Start; } }
@@ -88,13 +91,16 @@ namespace NestLight.Completion
         private readonly int _fuzzyBelow;
         private readonly int _fuzzyMaxItems;
         private readonly bool _fuzzyFirstLetter;
+        private readonly CompletionFeatures _features;
 
         /// <param name="matcher">Enables the second stage when not null.</param>
         /// <param name="fuzzyBelow">The second stage runs only when the first one returned fewer items than this (1: only when nothing matched).</param>
         /// <param name="fuzzyMaxItems">The most items the second stage adds.</param>
         /// <param name="fuzzyFirstLetter">The first letter of a similar word has to be the one that was typed.</param>
+        /// <param name="features">The context-aware rankings that are on; null: none.</param>
         public CompletionEngine(IHostScanner scanner, int maxItems = DefaultMaxItems, int minWordLength = DefaultMinWordLength,
-            IApproximateMatcher matcher = null, int fuzzyBelow = DefaultFuzzyBelow, int fuzzyMaxItems = DefaultFuzzyMaxItems, bool fuzzyFirstLetter = true)
+            IApproximateMatcher matcher = null, int fuzzyBelow = DefaultFuzzyBelow, int fuzzyMaxItems = DefaultFuzzyMaxItems, bool fuzzyFirstLetter = true,
+            CompletionFeatures features = null)
         {
             if (scanner == null) throw new ArgumentNullException("scanner");
             if (maxItems < 1) throw new ArgumentOutOfRangeException("maxItems");
@@ -106,6 +112,7 @@ namespace NestLight.Completion
             _fuzzyBelow = fuzzyBelow;
             _fuzzyMaxItems = fuzzyMaxItems;
             _fuzzyFirstLetter = fuzzyFirstLetter;
+            _features = features ?? CompletionFeatures.None;
             _maxItems = maxItems;
             _minWordLength = minWordLength;
         }
@@ -136,7 +143,7 @@ namespace NestLight.Completion
             while (end < limit && IsWordChar(id, text[end])) end++;
 
             if (start < caret && !IsWordStart(id, text[start])) return null; // numbers, not words
-            return new CompletionSite(id, start, caret, end);
+            return new CompletionSite(id, start, caret, end, owner.Start, limit);
         }
 
         // ---- what -----------------------------------------------------------------------------------------------
@@ -150,6 +157,19 @@ namespace NestLight.Completion
             var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
             bool upper = Vocabularies.FollowsTypedCase(site.LanguageId) && prefix.Length > 0 && !HasLower(prefix);
+
+            // the words that followed the same word before come first; with the feature off nothing is scanned before the keywords
+            WordScan scan = null;
+            if (_features.PreviousWord)
+            {
+                PreviousContext context = ContextBefore(text, site);
+                if (context.Has)
+                {
+                    scan = ScanWords(text, site, prefix, context);
+                    AddFollowing(text, site, scan, upper, seen, result);
+                }
+            }
+
             foreach (string word in Vocabularies.For(site.LanguageId))
             {
                 if (result.Count >= _maxItems) return result;
@@ -157,7 +177,7 @@ namespace NestLight.Completion
                 if (seen.Add(word)) result.Add(new Suggestion(upper ? word.ToUpperInvariant() : word, SuggestionKind.Keyword));
             }
 
-            foreach (string word in WordsOfDocument(text, site, prefix))
+            foreach (string word in OrderedWords(text, site, scan ?? ScanWords(text, site, prefix, default(PreviousContext))))
             {
                 if (result.Count >= _maxItems) break;
                 if (seen.Add(word)) result.Add(new Suggestion(word, SuggestionKind.Word));
@@ -288,23 +308,84 @@ namespace NestLight.Completion
             return string.CompareOrdinal(sa, a.Start, sb, b.Start, a.Length);
         }
 
-        /// <summary>
-        /// The words of the document that start with the prefix, nearest to the caret first and each one once. The word being typed
-        /// is not a candidate for itself.
-        /// </summary>
-        /// <remarks>
-        /// One pass over the window finds where the matching words are, without creating a string. The matches before and after the
-        /// caret are already in order, so merging them gives the order by distance, and a word is only created when it is about to
-        /// be offered: a caller that stops after the first N words never pays for the other thousands.
-        /// </remarks>
-        private IEnumerable<string> WordsOfDocument(string text, CompletionSite site, string prefix)
+        /// <summary>The matches of one pass over the window of the document.</summary>
+        private sealed class WordScan
         {
+            public readonly List<Match> Before = new List<Match>();
+            public readonly List<Match> After = new List<Match>();
+            /// <summary>The matches that follow the same word and punctuation as the caret does (only with <see cref="CompletionFeatures.PreviousWord"/>).</summary>
+            public readonly List<Match> Follows;
+            public WordScan(bool context) { if (context) Follows = new List<Match>(); }
+        }
+
+        /// <summary>The word before the caret and the punctuation between them: what the words that follow it elsewhere have in common.</summary>
+        private struct PreviousContext
+        {
+            public bool Has;
+            public int Start, Length;
+            /// <summary>The characters between the two words, without blanks and at most <see cref="MaxSeparator"/> of them.</summary>
+            public string Separator;
+        }
+
+        private const int MaxSeparator = 3;
+        /// <summary>The shortest word the previous-word ranking offers.</summary>
+        private const int FollowMinWordLength = 2;
+        private const int ContextReach = 200;
+
+        private static PreviousContext ContextBefore(string text, CompletionSite site)
+        {
+            int floor = Math.Max(site.OwnerStart >= 0 ? site.OwnerStart : 0, site.Start - ContextReach);
+            int i = site.Start;
+            var separator = new char[MaxSeparator];
+            int count = 0;
+            while (i > floor && !IsWordChar(site.LanguageId, text[i - 1]))
+            {
+                char c = text[i - 1];
+                if (!char.IsWhiteSpace(c))
+                {
+                    if (count == MaxSeparator) return default(PreviousContext);
+                    separator[MaxSeparator - 1 - count++] = c;
+                }
+                i--;
+            }
+            int end = i;
+            while (i > floor && IsWordChar(site.LanguageId, text[i - 1])) i--;
+            if (end == i || !IsWordStart(site.LanguageId, text[i])) return default(PreviousContext);
+            return new PreviousContext { Has = true, Start = i, Length = end - i, Separator = new string(separator, MaxSeparator - count, count) };
+        }
+
+        /// <summary>Whether the words at <paramref name="previousStart"/> and then <paramref name="start"/> are the ones of the context, with the same punctuation between.</summary>
+        private static bool Follows(string text, PreviousContext context, int previousStart, int previousLength, int start)
+        {
+            if (previousLength != context.Length) return false;
+            int between = previousStart + previousLength;
+            if (start - between > ContextReach) return false;
+            int k = 0;
+            for (int j = between; j < start; j++)
+            {
+                char c = text[j];
+                if (char.IsWhiteSpace(c)) continue;
+                if (k >= context.Separator.Length || context.Separator[k] != c) return false;
+                k++;
+            }
+            if (k != context.Separator.Length) return false;
+            return string.Compare(text, previousStart, text, context.Start, previousLength, StringComparison.OrdinalIgnoreCase) == 0;
+        }
+
+        /// <summary>
+        /// One pass over the window finds where the words that start with the prefix are, without creating a string.
+        /// The word being typed is not a candidate for itself.
+        /// </summary>
+        private WordScan ScanWords(string text, CompletionSite site, string prefix, PreviousContext context)
+        {
+            var scan = new WordScan(context.Has);
             int from = Math.Max(0, site.Caret - WordScanWindow);
             int to = Math.Min(text.Length, site.Caret + WordScanWindow);
             bool dash = Vocabularies.IsExtraWordChar(site.LanguageId, '-');
 
-            var before = new List<Match>();
-            var after = new List<Match>();
+            // a short word is only worth offering where the context says it belongs (the BY after GROUP)
+            int shortest = context.Has ? Math.Min(_minWordLength, FollowMinWordLength) : _minWordLength;
+            int previousStart = -1, previousLength = 0;
             int i = from;
             while (i < to)
             {
@@ -313,13 +394,49 @@ namespace NestLight.Completion
                 int start = i;
                 while (i < to && (char.IsLetterOrDigit(text[i]) || text[i] == '_' || (dash && text[i] == '-'))) i++;
                 int length = i - start;
+                int beforeStart = previousStart, beforeLength = previousLength;
+                previousStart = start; previousLength = length;
 
-                if (length < _minWordLength || length > MaxWordLength) continue;
+                if (length < shortest || length > MaxWordLength) continue;
                 if (start <= site.Caret && site.Caret <= i) continue; // the word under the caret
                 if (length == prefix.Length) continue; // nothing to add
                 if (string.Compare(text, start, prefix, 0, prefix.Length, StringComparison.OrdinalIgnoreCase) != 0) continue;
-                (start > site.Caret ? after : before).Add(new Match(start, length));
+                var match = new Match(start, length);
+                bool follows = context.Has && beforeStart >= 0 && Follows(text, context, beforeStart, beforeLength, start);
+                if (follows) scan.Follows.Add(match);
+                if (length >= _minWordLength) (start > site.Caret ? scan.After : scan.Before).Add(match);
             }
+            return scan;
+        }
+
+        /// <summary>The words that followed the same word before, the nearest occurrence first; a keyword of the language keeps its own spelling.</summary>
+        private static void AddFollowing(string text, CompletionSite site, WordScan scan, bool upper, HashSet<string> seen, List<Suggestion> result)
+        {
+            int caret = site.Caret;
+            scan.Follows.Sort((x, y) =>
+            {
+                int nx = x.Start > caret ? x.Start - caret : caret - (x.Start + x.Length), ny = y.Start > caret ? y.Start - caret : caret - (y.Start + y.Length);
+                return nx != ny ? nx.CompareTo(ny) : x.Start.CompareTo(y.Start);
+            });
+            foreach (Match m in scan.Follows)
+            {
+                string word = text.Substring(m.Start, m.Length);
+                if (!seen.Add(word)) continue;
+                string keyword = Vocabularies.Find(site.LanguageId, word);
+                result.Add(keyword != null
+                    ? new Suggestion(upper ? keyword.ToUpperInvariant() : keyword, SuggestionKind.Keyword)
+                    : new Suggestion(word, SuggestionKind.Word));
+            }
+        }
+
+        /// <summary>
+        /// The words of the scan, nearest to the caret first and each one once. The matches before and after the caret are already
+        /// in order, so merging them gives the order by distance, and a word is only created when it is about to be offered: a caller
+        /// that stops after the first N words never pays for the other thousands.
+        /// </summary>
+        private IEnumerable<string> OrderedWords(string text, CompletionSite site, WordScan scan)
+        {
+            List<Match> before = scan.Before, after = scan.After;
 
             var emitted = new HashSet<string>(StringComparer.Ordinal);
             var byHash = new Dictionary<int, string>();

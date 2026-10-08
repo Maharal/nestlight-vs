@@ -41,6 +41,28 @@ namespace NestLight.Completion
             return languageId != null && ById.TryGetValue(languageId, out words) ? words : new string[0];
         }
 
+        /// <summary>The keyword of the language that is spelled like the word, ignoring case, in the spelling of the vocabulary; null when there is none.</summary>
+        public static string Find(string languageId, string word)
+        {
+            IReadOnlyList<string> words;
+            if (languageId == null || !ById.TryGetValue(languageId, out words)) return null;
+            Dictionary<string, string> index;
+            lock (Indexes)
+            {
+                if (!Indexes.TryGetValue(words, out index))
+                {
+                    index = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+                    foreach (string w in words) if (!index.ContainsKey(w)) index[w] = w;
+                    Indexes[words] = index;
+                }
+            }
+            string found;
+            return index.TryGetValue(word, out found) ? found : null;
+        }
+
+        private static readonly Dictionary<IReadOnlyList<string>, Dictionary<string, string>> Indexes =
+            new Dictionary<IReadOnlyList<string>, Dictionary<string, string>>();
+
         /// <summary>SQL is case-insensitive, so the keyword follows the case the user is typing.</summary>
         public static bool FollowsTypedCase(string languageId)
         {

@@ -75,6 +75,8 @@ XML, Markdown and regular expressions have no closed vocabulary, so they only ge
 
 **Misspelled words.** When nothing starts with what you typed (3 or more letters), Nestlight offers up to 10 similar keywords and words of the document, after any exact ones: one edit away for 3 to 5 letters, two for 6 or more (an extra letter, a missing one, a wrong one, or two swapped), with the same first letter. `SELCT` offers `SELECT`, `<dvi` offers `div`, `custmer` offers `customerName`. Press **Ctrl+Space** after the mistake: a list opened by typing starts after one letter. When the prefix is right the list is exactly the one above.
 
+**Context.** The words that already followed the same word in the document come first: after `FROM ` the table that followed `FROM` before, after `display: ` the value used after `display:`. A short word such as `BY` is offered where it followed (`GROUP BY`).
+
 ## Install
 
 Download the `.vsix` from [Releases](../../releases), close Visual Studio and double-click the file.

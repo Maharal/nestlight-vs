@@ -154,7 +154,7 @@ namespace NestLight.Experiments
             public int EditAt = -1;
         }
 
-        private static List<KeyValuePair<int, string>> Sample(CorpusFile file, int perFile, int minLength)
+        internal static List<KeyValuePair<int, string>> Sample(CorpusFile file, int perFile, int minLength)
         {
             IHostScanner scanner = NestLightComposition.CreateScanner(file.Host, NestLightComposition.CreateLanguages());
             var all = new List<KeyValuePair<int, string>>();

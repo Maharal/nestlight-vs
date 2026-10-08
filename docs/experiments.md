@@ -63,6 +63,7 @@ All the criteria below were written before the run that decided them, except tho
 | [E25](#e25-does-the-second-stage-get-in-the-way-when-the-prefix-is-right) | Does it get in the way when the prefix is right? | Automated, generated code | Planned | |
 | [E26](#e26-do-the-similar-suggestions-show-up-in-visual-studio) | Do the similar suggestions show up in Visual Studio? | Manual | Planned (needs a build) | |
 | [E27](#e27-completion-with-similar-words-on-incomplete-and-cut-code) | Is completion still robust with the second stage? | Automated | Done | Met: 0 violations |
+| [E28](#e28-does-the-word-before-the-caret-help-to-rank-the-suggestions) | Does the word before the caret help to rank the suggestions? | Automated, generated code | Done | Adopted: criterion met |
 
 ## Latest runs
 
@@ -560,6 +561,38 @@ The first runs were on commit `70e9ffd` (.NET 8 in Release, a 4-core Linux machi
 **Criterion.** Zero violations.
 
 **Result.** Met in the three runs: 0 violations in 86,900 carets, 21,275 similar items checked against the definition.
+
+## Context ranking (E28 to E32)
+
+Until here the list depended only on what was typed: the keywords, then the words of the document nearest to the caret first. These experiments ask whether the list gets better when it also looks at where the caret is. Each idea is a flag of [CompletionFeatures](../NestLight/Completion/CompletionFeatures.cs) and an experiment decides whether it is on in the plugin (`CompletionFeatures.Default`).
+
+They share one harness ([ContextLab](../NestLight.Experiments/Framework/ContextLab.cs)) and one corpus: `SyntheticCorpus.Generate(..., structured: true)`, where SQL strings follow a schema (a `CREATE TABLE` for each table, columns that belong to their table, joins on foreign keys), CSS values belong to their property and HTML attributes belong to their tag. **The structure is put there by the generator.** What these experiments show is that an idea works when code has that structure, not how much real code has it; E20 and E21 have the same limit, and no experiment here ran on real files. A word is typed with 1, 2 or 3 letters, the list is the one the editor gets (100 items, the second stage on), and the measure is the share of cases where the word is within the first 5, over the cases where anything could offer it.
+
+The editor sorts the list by the sort text of each item, which is the text unless told otherwise, so the order of the engine did not reach the screen before: [NestLightCompletionSource](../NestLight/VisualStudio/NestLightCompletionSource.cs) now gives every item its position as sort text. That code has not been compiled or run in this work (it needs the Visual Studio SDK).
+
+## E28: does the word before the caret help to rank the suggestions?
+
+**Status:** Done · **Decision:** Adopted (`CompletionFeatures.PreviousWord`)
+
+**Hypothesis.** The words that already followed the same word (with the same punctuation) elsewhere in the document are the likely ones: after `from ` the word that followed `from` before, after `display: ` the value that followed `display:`, after `group ` the `BY`. Putting them first puts the meant word in the first 5 more often than the order by distance alone.
+
+**Test.** 50 generated files with structure, a sample of the words of the embedded strings typed with 1 to 3 letters (9,564 prefixes, 9,162 reachable), the list the editor gets. The order by distance alone against the previous word first; the same words ordered by the nearest occurrence of the context. Also the start of a session on files of 1,200 to 60,000 lines.
+
+**Criterion.** At least 3 points more within the first 5 over all the reachable cases; no language more than 1 point worse; the session under 16 ms at 60,000 lines in every host.
+
+**Result.** Met. Within the first 5: 72.5% to 85.5% (+13.0 points); the word first: 36.8% to 68.5%; mean reciprocal rank 0.528 to 0.764. By language: SQL 72.7% to 88.1%, HTML 61.1% to 70.7%, CSS 74.3% to 80.7%, GraphQL 88.7% to 90.1%. The gain is largest with one letter typed (39.1% to 67.5%) and fades with three (95.0% to 97.0%). After `from` 39.4% to 86.4%, after `into` 37.8% to 82.2%, after `update` 42.1% to 81.8%. The slowest session is 4.07 ms at 60,000 lines (Python), the same as without the feature.
+
+**What it says.** With one or two letters typed, a keyword or a nearby word usually fills the first places, and what the document did after the same word is a better guess than what is nearest. With three letters the prefix has already narrowed the list, and there is little left to gain.
+
+**Cost.** One more comparison per candidate that passes the prefix test, and a record of the previous word during the pass. On the hot path of E22 (the session with the scan shared, 60,000 lines) the median went from about 1.27 to about 1.40 ms with the feature off, measured against `main` on the same machine in the same session: +10%, above the 5% bound the second stage kept, and still far from a frame.
+
+**Limits.** The words after the same word are found in the whole window, strings and host code alike; E29 asks whether to restrict them. A word shorter than 3 letters is only offered when it follows the context (`BY`).
+
+**Revisit when.** E26 shows how the order looks in the editor, or real files show that the previous word predicts worse than here.
+
+## Notes on the context ranking
+
+- (filled in as the experiments are done)
 
 ## Notes on the second stage
 
