@@ -73,6 +73,8 @@ Inside the code of a marked string, Nestlight adds two kinds of suggestions to t
 
 XML, Markdown and regular expressions have no closed vocabulary, so they only get words from the document. Keywords come first in the list.
 
+**Misspelled words.** When nothing starts with what you typed (3 or more letters), Nestlight offers up to 10 similar keywords and words of the document, after any exact ones: one edit away for 3 to 5 letters, two for 6 or more (an extra letter, a missing one, a wrong one, or two swapped), with the same first letter. `SELCT` offers `SELECT`, `<dvi` offers `div`, `custmer` offers `customerName`. Press **Ctrl+Space** after the mistake: a list opened by typing starts after one letter. When the prefix is right the list is exactly the one above.
+
 ## Install
 
 Download the `.vsix` from [Releases](../../releases), close Visual Studio and double-click the file.
@@ -99,7 +101,7 @@ The code is split by responsibility, and every dependency is injected through a 
 
 | Folder | Holds |
 |---|---|
-| `Completion` | The completion engine and the keywords of each language |
+| `Completion` | The completion engine, the keywords of each language and the distance used for similar words |
 | `Common` | The model (embedded string, interpolation, token), the interfaces everything else depends on, marker rules and text helpers |
 | `Hosts` | One scanner per host language |
 | `Languages` | One tokenizer per embedded language |

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Threading;
 using NestLight.Common;
 
 namespace NestLight.Completion
@@ -16,10 +17,12 @@ namespace NestLight.Completion
     {
         public readonly string Text;
         public readonly SuggestionKind Kind;
+        /// <summary>0 when what was typed is a prefix of the suggestion; otherwise the number of edits that separate them.</summary>
+        public readonly int Distance;
 
-        public Suggestion(string text, SuggestionKind kind)
+        public Suggestion(string text, SuggestionKind kind, int distance = 0)
         {
-            Text = text; Kind = kind;
+            Text = text; Kind = kind; Distance = distance;
         }
     }
 
@@ -48,8 +51,11 @@ namespace NestLight.Completion
         /// <summary>The site of the caret, or null when it is not inside the code of an embedded string.</summary>
         CompletionSite Locate(string text, int caret);
 
-        /// <summary>The suggestions for the site, best first. Never throws on incomplete code.</summary>
-        IReadOnlyList<Suggestion> Suggest(string text, CompletionSite site);
+        /// <summary>
+        /// The suggestions for the site, best first. Never throws on incomplete code; the only exception is the cancellation, which
+        /// returns no partial list.
+        /// </summary>
+        IReadOnlyList<Suggestion> Suggest(string text, CompletionSite site, CancellationToken cancellation = default(CancellationToken));
     }
 
     /// <summary>
@@ -57,10 +63,20 @@ namespace NestLight.Completion
     /// (<see cref="Vocabularies"/>) and the words that already exist in the document, nearest to the caret first
     /// (what Visual Studio Code calls word-based suggestions).
     /// </summary>
+    /// <remarks>
+    /// When a matcher is given and nothing (fewer than <c>fuzzyBelow</c> items) starts with what was typed, a second stage offers
+    /// the keywords and the words of the document that are a few edits away from it, after the exact ones. With no matcher the
+    /// engine is exactly the first stage.
+    /// </remarks>
     internal sealed class CompletionEngine : ICompletionProvider
     {
         public const int DefaultMaxItems = 100;
         public const int DefaultMinWordLength = 3;
+        public const int DefaultFuzzyBelow = 1;
+        public const int DefaultFuzzyMaxItems = 10;
+        /// <summary>The shortest prefix the second stage looks at: with fewer letters nearly every word is "a few edits away".</summary>
+        public const int FuzzyMinPrefix = 3;
+        private const int CancellationStride = 256;
         private const int MaxWordLength = 64;
         /// <summary>Documents larger than this are only scanned for words around the caret.</summary>
         private const int WordScanWindow = 500000;
@@ -68,13 +84,28 @@ namespace NestLight.Completion
         private readonly IHostScanner _scanner;
         private readonly int _maxItems;
         private readonly int _minWordLength;
+        private readonly IApproximateMatcher _matcher;
+        private readonly int _fuzzyBelow;
+        private readonly int _fuzzyMaxItems;
+        private readonly bool _fuzzyFirstLetter;
 
-        public CompletionEngine(IHostScanner scanner, int maxItems = DefaultMaxItems, int minWordLength = DefaultMinWordLength)
+        /// <param name="matcher">Enables the second stage when not null.</param>
+        /// <param name="fuzzyBelow">The second stage runs only when the first one returned fewer items than this (1: only when nothing matched).</param>
+        /// <param name="fuzzyMaxItems">The most items the second stage adds.</param>
+        /// <param name="fuzzyFirstLetter">The first letter of a similar word has to be the one that was typed.</param>
+        public CompletionEngine(IHostScanner scanner, int maxItems = DefaultMaxItems, int minWordLength = DefaultMinWordLength,
+            IApproximateMatcher matcher = null, int fuzzyBelow = DefaultFuzzyBelow, int fuzzyMaxItems = DefaultFuzzyMaxItems, bool fuzzyFirstLetter = true)
         {
             if (scanner == null) throw new ArgumentNullException("scanner");
             if (maxItems < 1) throw new ArgumentOutOfRangeException("maxItems");
             if (minWordLength < 1) throw new ArgumentOutOfRangeException("minWordLength");
+            if (fuzzyBelow < 1) throw new ArgumentOutOfRangeException("fuzzyBelow");
+            if (fuzzyMaxItems < 1) throw new ArgumentOutOfRangeException("fuzzyMaxItems");
             _scanner = scanner;
+            _matcher = matcher;
+            _fuzzyBelow = fuzzyBelow;
+            _fuzzyMaxItems = fuzzyMaxItems;
+            _fuzzyFirstLetter = fuzzyFirstLetter;
             _maxItems = maxItems;
             _minWordLength = minWordLength;
         }
@@ -110,7 +141,7 @@ namespace NestLight.Completion
 
         // ---- what -----------------------------------------------------------------------------------------------
 
-        public IReadOnlyList<Suggestion> Suggest(string text, CompletionSite site)
+        public IReadOnlyList<Suggestion> Suggest(string text, CompletionSite site, CancellationToken cancellation = default(CancellationToken))
         {
             var result = new List<Suggestion>();
             if (text == null || site == null || site.Caret > text.Length) return result;
@@ -131,7 +162,130 @@ namespace NestLight.Completion
                 if (result.Count >= _maxItems) break;
                 if (seen.Add(word)) result.Add(new Suggestion(word, SuggestionKind.Word));
             }
+
+            if (_matcher != null && prefix.Length >= FuzzyMinPrefix && result.Count < _fuzzyBelow && result.Count < _maxItems)
+                AddSimilar(text, site, prefix, upper, seen, result, cancellation);
             return result;
+        }
+
+        // ---- the second stage: similar words ------------------------------------------------------------------
+
+        /// <summary>The number of edits tolerated for a prefix of this length.</summary>
+        public static int ToleranceFor(int prefixLength)
+        {
+            return prefixLength >= 6 ? 2 : 1;
+        }
+
+        /// <summary>A candidate that is close enough: a keyword (a string of the vocabulary) or a word of the text (a range of it).</summary>
+        private sealed class Similar
+        {
+            public string Source;
+            public int Start, Length;
+            public bool Keyword;
+            public int Distance;
+            /// <summary>For a word, the distance from the caret to its nearest occurrence.</summary>
+            public int Near;
+            /// <summary>Same hash, different text (a collision): the chain of the words seen with this hash.</summary>
+            public Similar Next;
+            /// <summary>The word is too far: it is remembered only to skip the next occurrences.</summary>
+            public bool Rejected;
+        }
+
+        private void AddSimilar(string text, CompletionSite site, string prefix, bool upper, HashSet<string> seen, List<Suggestion> result, CancellationToken cancellation)
+        {
+            cancellation.ThrowIfCancellationRequested();
+            int k = ToleranceFor(prefix.Length), n = prefix.Length;
+            char first = char.ToUpperInvariant(prefix[0]);
+            int examined = 0;
+
+            // Only the best few are kept, so thousands of similar words cost a comparison each, not a sort.
+            int capacity = _fuzzyMaxItems + result.Count;
+            var best = new List<Similar>(capacity + 1);
+
+            foreach (string word in Vocabularies.For(site.LanguageId))
+            {
+                if (++examined % CancellationStride == 0) cancellation.ThrowIfCancellationRequested();
+                if (word.Length < n - k) continue;
+                if (_fuzzyFirstLetter && char.ToUpperInvariant(word[0]) != first) continue;
+                int distance = _matcher.Distance(text, site.Start, n, word, 0, word.Length, k);
+                if (distance <= 0) continue; // too far, or an exact prefix (the first stage's business)
+                Keep(best, capacity, new Similar { Source = word, Start = 0, Length = word.Length, Keyword = true, Distance = distance }, text);
+            }
+
+            // the words of the document: one pass, the same window and the same word rules as the first stage
+            int from = Math.Max(0, site.Caret - WordScanWindow);
+            int to = Math.Min(text.Length, site.Caret + WordScanWindow);
+            bool dash = Vocabularies.IsExtraWordChar(site.LanguageId, '-');
+            var known = new Dictionary<int, Similar>();
+            int i = from;
+            while (i < to)
+            {
+                char c = text[i];
+                if (!(char.IsLetter(c) || c == '_' || (dash && c == '-'))) { i++; continue; }
+                int start = i;
+                while (i < to && (char.IsLetterOrDigit(text[i]) || text[i] == '_' || (dash && text[i] == '-'))) i++;
+                int length = i - start;
+
+                if (length < _minWordLength || length > MaxWordLength) continue;
+                if (start <= site.Caret && site.Caret <= i) continue; // the word under the caret
+                if (length < n - k) continue;
+                if (_fuzzyFirstLetter && char.ToUpperInvariant(text[start]) != first) continue;
+
+                int near = start > site.Caret ? start - site.Caret : site.Caret - i;
+                int hash = Hash(text, start, length);
+                Similar entry;
+                known.TryGetValue(hash, out entry);
+                Similar same = entry;
+                while (same != null && !(same.Length == length && string.CompareOrdinal(text, same.Start, text, start, length) == 0)) same = same.Next;
+                if (same != null) { if (near < same.Near) same.Near = near; continue; }
+
+                if (++examined % CancellationStride == 0) cancellation.ThrowIfCancellationRequested();
+                int distance = _matcher.Distance(text, site.Start, n, text, start, length, k);
+                known[hash] = new Similar { Start = start, Length = length, Distance = distance, Near = near, Rejected = distance <= 0, Next = entry };
+            }
+
+            foreach (Similar candidate in known.Values)
+                for (Similar s = candidate; s != null; s = s.Next)
+                    if (!s.Rejected) Keep(best, capacity, s, text);
+
+            cancellation.ThrowIfCancellationRequested();
+            int added = 0;
+            foreach (Similar s in best)
+            {
+                if (added >= _fuzzyMaxItems || result.Count >= _maxItems) break;
+                string word = s.Keyword ? s.Source : text.Substring(s.Start, s.Length);
+                if (!seen.Add(word)) continue;
+                result.Add(new Suggestion(s.Keyword && upper ? word.ToUpperInvariant() : word, s.Keyword ? SuggestionKind.Keyword : SuggestionKind.Word, s.Distance));
+                added++;
+            }
+        }
+
+        /// <summary>Inserts the candidate in the sorted list if it is among the first <paramref name="capacity"/>.</summary>
+        private static void Keep(List<Similar> best, int capacity, Similar candidate, string text)
+        {
+            int lo = 0, hi = best.Count;
+            while (lo < hi)
+            {
+                int mid = (lo + hi) / 2;
+                if (Compare(best[mid], candidate, text) <= 0) lo = mid + 1; else hi = mid;
+            }
+            if (lo >= capacity) return;
+            best.Insert(lo, candidate);
+            if (best.Count > capacity) best.RemoveAt(best.Count - 1);
+        }
+
+        /// <summary>Keywords before words, then the fewer edits, then the nearer to the caret, then the spelling (so that the order is the same every time).</summary>
+        private static int Compare(Similar a, Similar b, string text)
+        {
+            if (a.Keyword != b.Keyword) return a.Keyword ? -1 : 1;
+            if (a.Distance != b.Distance) return a.Distance < b.Distance ? -1 : 1;
+            if (a.Near != b.Near) return a.Near < b.Near ? -1 : 1;
+            string sa = a.Keyword ? a.Source : text, sb = b.Keyword ? b.Source : text;
+            int common = Math.Min(a.Length, b.Length);
+            int c = string.Compare(sa, a.Start, sb, b.Start, common, StringComparison.OrdinalIgnoreCase);
+            if (c != 0) return c;
+            if (a.Length != b.Length) return a.Length < b.Length ? -1 : 1;
+            return string.CompareOrdinal(sa, a.Start, sb, b.Start, a.Length);
         }
 
         /// <summary>

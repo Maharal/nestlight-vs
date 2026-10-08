@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.ComponentModel.Composition;
@@ -6,6 +7,7 @@ using System.Threading.Tasks;
 using Microsoft.VisualStudio.Language.Intellisense.AsyncCompletion;
 using Microsoft.VisualStudio.Language.Intellisense.AsyncCompletion.Data;
 using Microsoft.VisualStudio.Text;
+using Microsoft.VisualStudio.Text.Adornments;
 using Microsoft.VisualStudio.Text.Editor;
 using Microsoft.VisualStudio.Utilities;
 using NestLight.Completion;
@@ -73,6 +75,7 @@ namespace NestLight.VisualStudio
     {
         private const string KindKey = "NestLight.Kind";
         private const string LanguageKey = "NestLight.Language";
+        private const string DistanceKey = "NestLight.Distance";
 
         private readonly ICompletionProvider _completion;
         private readonly SnapshotTextCache<ITextSnapshot> _text;
@@ -109,13 +112,29 @@ namespace NestLight.VisualStudio
             CompletionSite site = _completion.Locate(text, triggerLocation.Position);
             if (site == null) return Task.FromResult(CompletionContext.Empty);
 
-            IReadOnlyList<Suggestion> suggestions = _completion.Suggest(text, site);
+            IReadOnlyList<Suggestion> suggestions;
+            try
+            {
+                suggestions = _completion.Suggest(text, site, token);
+            }
+            catch (OperationCanceledException) when (token.IsCancellationRequested)
+            {
+                return Task.FromCanceled<CompletionContext>(token);
+            }
+
+            string typed = text.Substring(site.Start, site.PrefixLength);
             var items = ImmutableArray.CreateBuilder<CompletionItem>(suggestions.Count);
             foreach (Suggestion suggestion in suggestions)
             {
-                var item = new CompletionItem(suggestion.Text, this);
+                // A similar word does not start with what was typed. The editor filters the list against the text of the span at every
+                // key, so the item is filtered by what was typed, while it shows and inserts the word it suggests.
+                CompletionItem item = suggestion.Distance == 0
+                    ? new CompletionItem(suggestion.Text, this)
+                    : new CompletionItem(suggestion.Text, this, default(ImageElement), ImmutableArray<CompletionFilter>.Empty, string.Empty,
+                        suggestion.Text, suggestion.Text, typed, ImmutableArray<ImageElement>.Empty);
                 item.Properties.AddProperty(KindKey, suggestion.Kind);
                 item.Properties.AddProperty(LanguageKey, site.LanguageId);
+                item.Properties.AddProperty(DistanceKey, suggestion.Distance);
                 items.Add(item);
             }
             return Task.FromResult(new CompletionContext(items.ToImmutable()));
@@ -128,9 +147,12 @@ namespace NestLight.VisualStudio
             if (!item.Properties.TryGetProperty(KindKey, out kind) || !item.Properties.TryGetProperty(LanguageKey, out language))
                 return Task.FromResult<object>(null);
 
+            int distance;
+            if (!item.Properties.TryGetProperty(DistanceKey, out distance)) distance = 0;
+
             string description = kind == SuggestionKind.Keyword
-                ? language + " keyword"
-                : "Word in the document";
+                ? (distance == 0 ? language + " keyword" : "Similar " + language + " keyword")
+                : (distance == 0 ? "Word in the document" : "Similar word in the document");
             return Task.FromResult<object>(description);
         }
     }
