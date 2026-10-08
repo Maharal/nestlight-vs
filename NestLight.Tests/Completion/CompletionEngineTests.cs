@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using NestLight.Completion;
 using NestLight.Highlighting;
 using Xunit;
@@ -364,6 +365,253 @@ namespace NestLight.Tests
             string code = string.Concat(Enumerable.Repeat("const userName = 1; ", 500)) + "const UserName = 2;\nsql`user|`";
             List<string> items = Js(code);
             Assert.Equal(1, items.Count(w => string.Equals(w, "userName", StringComparison.OrdinalIgnoreCase)));
+        }
+
+        // ---- similar words (the second stage) --------------------------------------------------------------------------
+
+        private static CompletionEngine WithMatcher(HostLanguage host, int maxItems = CompletionEngine.DefaultMaxItems, int fuzzyBelow = 1,
+            int fuzzyMaxItems = CompletionEngine.DefaultFuzzyMaxItems, bool firstLetter = true)
+        {
+            return new CompletionEngine(Pipeline.Scanner(host), maxItems, CompletionEngine.DefaultMinWordLength, new BandedPrefixMatcher(), fuzzyBelow, fuzzyMaxItems, firstLetter);
+        }
+
+        private static List<Suggestion> Similar(string codeWithCaret, HostLanguage host = HostLanguage.JavaScript, int fuzzyBelow = 1,
+            int fuzzyMaxItems = CompletionEngine.DefaultFuzzyMaxItems, bool firstLetter = true, int maxItems = CompletionEngine.DefaultMaxItems)
+        {
+            int caret = codeWithCaret.IndexOf('|');
+            string code = codeWithCaret.Remove(caret, 1);
+            CompletionEngine engine = WithMatcher(host, maxItems, fuzzyBelow, fuzzyMaxItems, firstLetter);
+            CompletionSite site = engine.Locate(code, caret);
+            return site == null ? null : engine.Suggest(code, site).ToList();
+        }
+
+        private static List<string> Texts(List<Suggestion> items) { return items.Select(s => s.Text).ToList(); }
+
+        [Fact]
+        public void A_missing_letter_in_a_keyword_still_finds_it()
+        {
+            Assert.Contains("select", Texts(Similar("sql`selct|`")));
+        }
+
+        [Fact]
+        public void The_similar_keyword_follows_the_case_that_was_typed()
+        {
+            Assert.Contains("SELECT", Texts(Similar("sql`SELCT|`")));
+        }
+
+        [Fact]
+        public void Swapped_neighbours_in_a_tag_still_find_it()
+        {
+            Assert.Contains("div", Texts(Similar("html`<dvi|`")));
+        }
+
+        [Fact]
+        public void A_wrong_letter_in_a_css_property_still_finds_it()
+        {
+            Assert.Contains("color", Texts(Similar("css`.a { colr| }`")));
+        }
+
+        [Fact]
+        public void A_word_of_the_document_is_found_with_two_edits_allowed_for_a_long_prefix()
+        {
+            List<Suggestion> items = Similar("const customerName = 1;\nsql`select custmer|`");
+            Assert.Contains("customerName", Texts(items));
+            Assert.Equal(1, items.First(s => s.Text == "customerName").Distance);
+        }
+
+        [Fact]
+        public void The_first_letter_has_to_be_the_one_typed_unless_the_option_is_off()
+        {
+            Assert.DoesNotContain("customerName", Texts(Similar("const customerName = 1;\nsql`select xustomer|`")));
+            Assert.Contains("customerName", Texts(Similar("const customerName = 1;\nsql`select xustomer|`", firstLetter: false)));
+        }
+
+        [Fact]
+        public void With_fewer_than_three_letters_nothing_similar_is_offered()
+        {
+            Assert.Empty(Similar("sql`sl|`"));
+            // the exact word is still offered; only the similar ones need three letters
+            Assert.Empty(Similar("const slot = 1;\nsql`sl|`").Where(s => s.Distance > 0));
+            Assert.Empty(Similar("const select = 1;\nsql`sx|`"));
+        }
+
+        [Fact]
+        public void When_the_prefix_matches_the_result_is_the_one_without_the_second_stage()
+        {
+            const string code = "const selection = 1;\nsql`sel|`";
+            int caret = code.IndexOf('|');
+            string text = code.Remove(caret, 1);
+            var plain = new CompletionEngine(Pipeline.Scanner(HostLanguage.JavaScript));
+            var similar = WithMatcher(HostLanguage.JavaScript);
+            Assert.Equal(plain.Suggest(text, plain.Locate(text, caret)).Select(s => s.Text + "|" + s.Kind).ToList(),
+                         similar.Suggest(text, similar.Locate(text, caret)).Select(s => s.Text + "|" + s.Kind).ToList());
+        }
+
+        [Fact]
+        public void Without_a_matcher_the_engine_is_the_first_stage()
+        {
+            Assert.Empty(At(HostLanguage.JavaScript, "sql`selct|`"));
+        }
+
+        [Fact]
+        public void Exact_suggestions_have_distance_zero_and_similar_ones_at_least_one()
+        {
+            Assert.All(Similar("const selection = 1;\nsql`sel|`"), s => Assert.Equal(0, s.Distance));
+            Assert.All(Similar("sql`selct|`"), s => Assert.InRange(s.Distance, 1, 1));
+            Assert.All(Similar("sql`selcct|`"), s => Assert.InRange(s.Distance, 1, 1));
+            Assert.All(Similar("sql`seleect|`"), s => Assert.InRange(s.Distance, 1, 2));
+        }
+
+        [Fact]
+        public void The_second_stage_can_also_run_below_a_larger_threshold()
+        {
+            // "selctor" starts with what was typed, so the first stage has one item; select is one edit away
+            const string code = "const selctor = 1;\nsql`selct|`";
+            Assert.Equal(new[] { "selctor" }, Texts(Similar(code)));                    // the default: only when nothing matched
+            Assert.Equal(new[] { "selctor" }, Texts(Similar(code, fuzzyBelow: 1)));
+            List<Suggestion> more = Similar(code, fuzzyBelow: 2);
+            Assert.Equal("selctor", more[0].Text);                                       // the exact one is never displaced
+            Assert.Equal(0, more[0].Distance);
+            Assert.Contains("select", Texts(more));
+        }
+
+        [Fact]
+        public void No_more_than_the_limit_of_similar_items_and_the_limit_in_all()
+        {
+            string words = string.Join(" ", Enumerable.Range(0, 26).Select(i => "customer" + (char)('A' + i)).Concat(Enumerable.Range(0, 4).Select(i => "customer" + i)));
+            List<Suggestion> items = Similar("const " + words.Replace(" ", ", ") + ";\nsql`select custmer|`");
+            Assert.Equal(CompletionEngine.DefaultFuzzyMaxItems, items.Count(s => s.Distance > 0));
+            Assert.Equal(3, Similar("const " + words.Replace(" ", ", ") + ";\nsql`select custmer|`", maxItems: 3).Count);
+            Assert.Equal(4, Similar("const " + words.Replace(" ", ", ") + ";\nsql`select custmer|`", fuzzyMaxItems: 4).Count);
+        }
+
+        [Fact]
+        public void A_similar_word_that_is_also_a_keyword_is_offered_once_as_the_keyword()
+        {
+            List<Suggestion> items = Similar("const select = 1;\nsql`selct|`");
+            Assert.Equal(1, items.Count(s => string.Equals(s.Text, "select", StringComparison.OrdinalIgnoreCase)));
+            Assert.Equal(SuggestionKind.Keyword, items.First(s => string.Equals(s.Text, "select", StringComparison.OrdinalIgnoreCase)).Kind);
+        }
+
+        [Fact]
+        public void The_word_being_typed_is_not_similar_to_itself()
+        {
+            Assert.Empty(Similar("sql`zzzqqq|`"));
+            Assert.DoesNotContain("custmer", Texts(Similar("sql`custmer|`")));
+        }
+
+        [Fact]
+        public void Similar_words_come_ordered_keywords_then_fewer_edits_then_nearest_then_alphabetical()
+        {
+            // two edits for the first, one for the others; zebra and apple are as far from the caret as each other in the text
+            List<Suggestion> items = Similar("const customer = 1; const customerZ = 1; const customerA = 1; const customers = 1;\nsql`custmer|`");
+            var similar = items.Where(s => s.Distance > 0).ToList();
+            Assert.True(similar.Count >= 3);
+            for (int i = 1; i < similar.Count; i++)
+            {
+                Suggestion a = similar[i - 1], b = similar[i];
+                if (a.Kind == b.Kind) Assert.True(a.Distance <= b.Distance, a.Text + " before " + b.Text);
+                else Assert.Equal(SuggestionKind.Keyword, a.Kind);
+            }
+            // the same text and the same options give the same list
+            Assert.Equal(Texts(items), Texts(Similar("const customer = 1; const customerZ = 1; const customerA = 1; const customers = 1;\nsql`custmer|`")));
+        }
+
+        [Fact]
+        public void A_cancelled_request_throws_and_returns_no_partial_list()
+        {
+            const string code = "const customerName = 1;\nsql`select custmer`";
+            CompletionEngine engine = WithMatcher(HostLanguage.JavaScript);
+            CompletionSite site = engine.Locate(code, code.Length - 1);
+            var cancelled = new CancellationTokenSource();
+            cancelled.Cancel();
+            Assert.Throws<OperationCanceledException>(() => engine.Suggest(code, site, cancelled.Token));
+            // when the second stage does not run, the first stage has no reason to look at the token
+            const string exact = "const selection = 1;\nsql`sel`";
+            CompletionSite exactSite = engine.Locate(exact, exact.Length - 1);
+            Assert.NotEmpty(engine.Suggest(exact, exactSite, cancelled.Token));
+        }
+
+        [Fact]
+        public void The_second_stage_gives_the_same_answers_from_many_threads()
+        {
+            string code = CorpusLike(HostLanguage.JavaScript, 0.5).Replace("select cust ", "select custmer ");
+            CompletionEngine engine = WithMatcher(HostLanguage.JavaScript);
+            var random = new Random(5);
+            var carets = Enumerable.Range(0, 300).Select(_ => random.Next(code.Length + 1)).ToList();
+            Func<int, string> run = caret =>
+            {
+                CompletionSite site = engine.Locate(code, caret);
+                return site == null ? "-" : string.Join(",", engine.Suggest(code, site).Select(s => s.Text + ":" + s.Distance));
+            };
+            List<string> sequential = carets.Select(run).ToList();
+            List<string> parallel = carets.AsParallel().AsOrdered().WithDegreeOfParallelism(8).Select(run).ToList();
+            Assert.Equal(sequential, parallel);
+        }
+
+        [Fact]
+        public void The_first_stage_of_the_engine_with_a_matcher_is_always_the_engine_without_one()
+        {
+            int compared = 0;
+            foreach (HostLanguage host in new[] { HostLanguage.JavaScript, HostLanguage.CSharp, HostLanguage.Python, HostLanguage.Cpp })
+            {
+                string code = CorpusLike(host, 0.5);
+                var plain = new CompletionEngine(Pipeline.Scanner(host));
+                CompletionEngine similar = WithMatcher(host);
+                var random = new Random(11);
+                for (int attempt = 0; attempt < 500; attempt++)
+                {
+                    int caret = random.Next(code.Length + 1);
+                    CompletionSite site = plain.Locate(code, caret);
+                    if (site == null) continue;
+                    var expected = plain.Suggest(code, site).Select(s => s.Text + "|" + s.Kind).ToList();
+                    var actual = similar.Suggest(code, similar.Locate(code, caret)).ToList();
+                    Assert.Equal(expected, actual.Where(s => s.Distance == 0).Select(s => s.Text + "|" + s.Kind).ToList());
+                    if (expected.Count > 0) Assert.Equal(expected.Count, actual.Count); // something matched: nothing similar is added
+                    compared++;
+                }
+            }
+            Assert.True(compared > 200);
+        }
+
+        [Fact]
+        public void Similar_words_respect_the_invariants_on_cut_and_damaged_code()
+        {
+            int sites = 0, similarItems = 0;
+            foreach (HostLanguage host in new[] { HostLanguage.JavaScript, HostLanguage.CSharp, HostLanguage.Python, HostLanguage.Cpp })
+            {
+                string source = CorpusLike(host, 0.5).Replace("select cust", "selct custmer");
+                CompletionEngine engine = WithMatcher(host);
+                var random = new Random(21);
+                var texts = new List<string>();
+                for (int cut = 0; cut <= source.Length; cut += 53) texts.Add(source.Substring(0, cut));
+                for (int at = 0; at < source.Length; at += 53) texts.Add(source.Remove(at, 1));
+                foreach (string text in texts)
+                    for (int attempt = 0; attempt < 6 && text.Length > 0; attempt++)
+                    {
+                        int caret = attempt == 0 ? text.Length : random.Next(text.Length + 1);
+                        CompletionSite site = engine.Locate(text, caret);
+                        if (site == null) continue;
+                        sites++;
+                        string typed = text.Substring(site.Start, site.PrefixLength);
+                        IReadOnlyList<Suggestion> items = engine.Suggest(text, site);
+                        Assert.True(items.Count <= CompletionEngine.DefaultMaxItems);
+                        Assert.Equal(items.Count, items.Select(s => s.Text.ToLowerInvariant()).Distinct().Count());
+                        foreach (Suggestion s in items)
+                        {
+                            if (s.Distance == 0) Assert.StartsWith(typed, s.Text, StringComparison.OrdinalIgnoreCase);
+                            else
+                            {
+                                similarItems++;
+                                Assert.InRange(s.Distance, 1, CompletionEngine.ToleranceFor(typed.Length));
+                                Assert.True(typed.Length >= CompletionEngine.FuzzyMinPrefix);
+                                Assert.Equal(char.ToUpperInvariant(typed[0]), char.ToUpperInvariant(s.Text[0]));
+                            }
+                        }
+                        Assert.True(items.Count(s => s.Distance > 0) <= CompletionEngine.DefaultFuzzyMaxItems);
+                    }
+            }
+            Assert.True(sites > 200 && similarItems > 20, sites + " sites, " + similarItems + " similar items");
         }
     }
 }

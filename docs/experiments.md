@@ -51,6 +51,18 @@ All the criteria below were written before the run that decided them, except tho
 | [E13](#e13-clip-tokens-without-rescanning-the-interpolations) | Does fixing the quadratic clipping make E07 linear? | Automated | Done | Adopt: criterion met |
 | [E14](#e14-fewer-allocations-in-the-scan) | How much does the scan's allocation fall if comments stop allocating? | Automated | Done | Modest gain; criterion not met |
 | [E15](#e15-why-the-cost-grows-faster-than-the-text-above-400k-characters) | What makes the cost superlinear on very large strings? | Automated | Planned | |
+| [E16](#e16-completion-latency-against-the-size-of-the-file) | Is completion fast on large files? | Automated | Done | Not met above ~1M characters; no change |
+| [E17](#e17-do-the-limits-of-the-completion-change-its-cost) | Do the limits of the completion change its cost? | Automated | Done | Only 10,000 suggestions cost more; defaults kept |
+| [E18](#e18-completion-on-incomplete-and-cut-code) | Can completion be triggered anywhere in a file being edited? | Automated | Closed | Met: 0 violations; replaced by E27 |
+| [E19](#e19-does-the-tokenizer-agree-with-the-vocabulary) | Does the tokenizer agree with the vocabulary? | Automated | Done | Met |
+| [E20](#e20-order-of-the-words-of-the-document) | Is nearest-first the best order for the words of the document? | Automated, generated code | Done | Kept; the advantage depends on the generator |
+| [E21](#e21-where-the-words-come-from-and-how-many-keystrokes-completion-saves) | Which words should completion offer? | Automated, generated code | Done | Inconclusive |
+| [E22](#e22-sharing-the-scan-and-not-creating-the-words-of-the-completion) | Does sharing the scan and not creating the words bring completion under a frame? | Automated | Done | Adopt: criterion met |
+| [E23](#e23-does-the-second-stage-of-the-completion-fit-in-a-frame) | Does the second stage of the completion fit in a frame? | Automated | Done | Inconclusive (borderline in one extreme case) |
+| [E24](#e24-does-the-second-stage-recover-the-word-after-one-mistake-and-which-tie-break-works) | Does the second stage recover the word after one mistake? | Automated, generated code | Planned | |
+| [E25](#e25-does-the-second-stage-get-in-the-way-when-the-prefix-is-right) | Does it get in the way when the prefix is right? | Automated, generated code | Planned | |
+| [E26](#e26-do-the-similar-suggestions-show-up-in-visual-studio) | Do the similar suggestions show up in Visual Studio? | Manual | Planned (needs a build) | |
+| [E27](#e27-completion-with-similar-words-on-incomplete-and-cut-code) | Is completion still robust with the second stage? | Automated | Done | Met: 0 violations |
 
 ## Latest runs
 
@@ -322,3 +334,235 @@ Same session, three runs each, on the code of the experiments (`6797746`) and on
 **Test.** For one marked string of 100k, 400k and 800k characters, time the stages separately (decode, tokenize, map back, sort) and record gen2 collections and bytes allocated per stage. A variant presizes the buffers.
 
 **Criterion.** One stage accounts for the extra cost, so that the superlinear growth can be attributed. Success is a cause, not a speed-up.
+
+## Completion (E16 to E27)
+
+The completion ([NestLight/Completion](../NestLight/Completion)) offers the keywords of the language of the string and the words that already exist in the document. E16 to E25 and E27 test it without Visual Studio (E26 is manual), on the same shared source as the other experiments. E20 and E21 run on **generated code** (`SyntheticCorpus`: 50 files, 4 hosts, SQL / HTML / CSS / GraphQL strings, a pool of 40 names reused as variables, columns, classes and fields, seeded so a run can be repeated). It is not real code: how often a name comes back, and how close to its last use, is set by the generator (`locality`), so those two experiments only say what would happen under that setting. The first full run was on commit `791df35`, .NET 8 in Release on a 4-core Linux machine, three runs; the quality experiments (E18 to E21) give the same numbers in every run. The second stage (E23 to E27) is described after E22.
+
+## E16: completion latency against the size of the file
+
+**Status:** Done · **Decision:** Not met above about 1 million characters; no change for now
+
+**Hypothesis.** Every keystroke in an embedded string scans the host to find the string (`Locate`) and the whole text for words (`Suggest`). That is cheap on a normal file but could be noticeable on a large one, mostly when thousands of distinct words share the prefix.
+
+**Test.** For each host, a file of 1,200, 12,000 and 60,000 lines with the caret at the end of an open `comp` in a marked SQL string. Two shapes: E01's file (typical code) and a file where every line declares a new `compNNNNN` identifier. Time of `Locate` alone and of `Locate` + `Suggest`, without the text copy of the editor (E03).
+
+**Criterion.** `Locate` + `Suggest` under 16 ms at the largest size, in every host and shape.
+
+**Result.** Not met in the three runs, only at the largest size.
+- **60,000 lines (0.9 to 2.1 million characters):** 10 to 22 ms. Python is the slowest in both shapes (17.8 to 22.1 ms); C++ the fastest (9.8 to 15.3 ms). C# with distinct words sits on the line (14.7, 15.9 and 16.1 ms).
+- **12,000 lines (0.2 to 0.4 million characters):** every case 3 to 8 ms.
+- **Where the time goes.** `Locate` alone is a quarter to four fifths of the total at 60,000 lines (Python, typical code: 14.5 to 16.4 ms of 17.8 to 19.2; JavaScript with distinct words: 3.3 to 3.5 ms of 12.6 to 14.2). The word scan is limited to 500,000 characters on each side of the caret, so it stops growing; the scan of the host does not.
+
+**Decision.** At 12,000 lines completion is well inside a frame. Above a million characters it takes more than a frame in some hosts, and the scan of the host (the same work the classifier already did for that snapshot) is the larger part. No change now.
+
+**Revisit when.** E10 shows that typing in large files is already tight, or the classifier exposes the strings of its last scan: then `Locate` can reuse them and the cost falls to the word scan.
+
+**Update (E22, commit `1fa1fbe`).** The classifier and the completion now share one scan per snapshot, and the word pass no longer creates a string per match. E16, unchanged, measures one `Locate` + `Suggest` over a plain scanner: with distinct words the 60,000-line case fell from 12.6 to 16.1 ms (C#) and 14.1 to 22.1 ms (Python) to 5.7 to 9.5 ms; with typical code nothing moved (9.6 to 13.6 ms, and Python 16.9 to 17.6 ms, still above a frame), because there the cost is the scan of the host, which E16 does not share. The criterion is still not met in the three runs, only by Python with typical code. The real session, with the scan shared, is E22.
+
+## E17: do the limits of the completion change its cost?
+
+**Status:** Done · **Decision:** Defaults kept (100 suggestions, 3 characters)
+
+**Hypothesis.** The limit on the number of suggestions (100) and the minimum word length (3) were picked without measuring. If the cost is in the scan, no value of them is a performance lever.
+
+**Test.** The two shapes of E16 at 12,000 lines (JavaScript), with the maximum number of suggestions at 10, 100, 1,000 and 10,000 and the minimum word length at 1, 3 and 5, one knob at a time from the default. Median of 100 runs, against the faster of two measurements of the default (first and last).
+
+**Criterion.** Every combination within 25% of the default, in both shapes.
+
+**Result.** Not met, in all three runs, by one combination: 10,000 suggestions with thousands of distinct matches costs 1.47x to 1.56x (about 2 ms more: it builds ten thousand objects). Everything else is within 10% of the default in most measurements, but single ones jump: in one run the default measured again came out at 1.34x, and in the run of the committed report a minimum length of 1 came out at 1.49x, which no other run repeats. The noise at this scale is occasionally +-30 to 50%. Only the 10,000 limit shows up in every run.
+
+**How the measurement was fixed.** The first version compared everything against a baseline measured once, first. That measurement was often 40 to 50% slower than the same setting measured later, which made the other rows look 30% faster and flipped the verdict between runs. The default is now measured twice (first and last).
+
+**Update (E22).** After the word pass stopped creating a string per match, the default of 100 costs about 2.5 ms and 10,000 suggestions about 7 ms (2.7x in the three runs, against 1.5x before). The absolute cost of 10,000 did not change; the default got cheaper. The verdict is the same and clearer: only a limit that makes the engine create thousands of words costs anything.
+
+**Decision.** The scan is the cost, not the limits; the one setting that matters (10,000) is far from the default of 100. Keep both defaults. The verdict of this experiment is real but narrow, and the noise means a 25% criterion is tight for 4 ms measurements.
+
+## E18: completion on incomplete and cut code
+
+**Status:** Closed (replaced by [E27](#e27-completion-with-similar-words-on-incomplete-and-cut-code)) · **Decision:** Met
+
+**Hypothesis.** Completion runs while code is being typed, so it sees unterminated strings, half-written interpolations and carets anywhere. For every text and caret, `Locate` and `Suggest` must not throw, the site must lie inside the text around the caret with only word characters, and the suggestions must start with the typed prefix, add something to it and not repeat.
+
+**Test.** 50 generated files. Every prefix cut and every single-character deletion at a stride (12,450 texts), the caret at the start, at the end and at 5 seeded random positions (86,900 carets, 16,374 of them inside the code of an embedded string). 6 invariants on each result.
+
+**Criterion.** Zero violations.
+
+**Result.** Met: 0 violations.
+
+**Limit.** The cuts and deletions are at a stride, not at every position, and the files are generated: the real forms of unfinished code (a comment opened in the middle of a template, for example) are only as varied as the generator.
+
+**Closed.** The invariant "every suggestion starts with what was typed" no longer holds once similar words are offered, so the hypothesis changed and, by the rule of this file, the experiment was replaced. The run above stays as the record of the completion without the second stage; the class was removed from the suite.
+
+## E19: does the tokenizer agree with the vocabulary?
+
+**Status:** Done · **Decision:** Met
+
+**Hypothesis.** The words the completion offers and the words the tokenizers color live in two places. SQL, GraphQL, YAML and shader lists reuse the tokenizers' sets, but HTML tags and CSS properties were written by hand. A word the completion offers and the tokenizer then splits, or colors as plain text, shows the plugin does not know what it just offered.
+
+**Test.** Every word of every vocabulary (SQL 154, GraphQL 28, GLSL 215, WGSL 162, JSON 3, YAML 17, HTML 130, CSS 227) in one or more contexts of its language, through the real tokenizer. It checks that one token covers exactly the word and that its type is the expected one (for SQL and YAML: different from the type of an unknown word in the same context).
+
+**Criterion.** Every word is one token, and at least 95% of the words of each language are classified as expected.
+
+**Result.** Met: 100% in every language.
+
+**What the method got wrong the first time.** The first quick run flagged 10 of the 28 GraphQL words (`Int`, `Float`, `ID`, `Boolean`, `on`, `skip`, `include`, `deprecated`...). That was the check, not the tokenizer: GraphQL colors any name after a colon as a type and any `@name` as a directive, so a built-in and an unknown word look the same. The GraphQL check now lists the accepted types and has a `fragment F on Foo` context. The criterion did not change.
+
+**Limit.** For CSS and HTML the second check is weak: any word in a property position is a property to the tokenizer. What they really verify is that no word is split, which is the check that would have caught a typo in the lists.
+
+## E20: order of the words of the document
+
+**Status:** Done · **Decision:** Kept (nearest to the caret first)
+
+**Hypothesis.** Listing the words that already exist in the document nearest to the caret first puts the right word among the first five more often than alphabetical, by frequency or by first appearance.
+
+**Test.** 50 generated files, typed 1, 2 and 3 characters of a sample of the words of the embedded strings (9,651 cases; 95% are reachable: the word exists elsewhere or is a keyword). The position of the right word in five orderings. The same files are generated with locality 0.0, 0.5 and 0.9.
+
+**Criterion.** At locality 0.5, nearest-first within the first 5 at least 5 percentage points above alphabetical.
+
+**Result.** Met. Within the first 5 (keywords first in all rows except the last):
+
+| Order | Locality 0.0 | Locality 0.5 | Locality 0.9 |
+|---|---|---|---|
+| nearest first (the engine) | 68.9% | 72.1% | 76.3% |
+| alphabetical | 64.3% | 64.0% | 65.5% |
+| by frequency | 69.1% | 69.6% | 70.7% |
+| by first appearance | 69.4% | 69.8% | 69.3% |
+| words nearest first, then keywords | 64.7% | 69.2% | 78.4% |
+
+**What it says, and what it does not.**
+- The margin over alphabetical grows with locality (4.6 points at 0.0, 8.1 at 0.5, 10.8 at 0.9). Part of that is built into the generator, which reuses recent names on purpose.
+- With no locality, frequency and first appearance are as good as nearest-first (69.1% and 69.4% against 68.9%). If real code is closer to that than to the generator, nearest-first is not worth more than the simpler orders. Real code was not measured.
+- Putting the words before the keywords is worse with no locality (64.7%) and better with a lot (78.4% within 5; 45.9% against 38.3% for the right word first). It depends on how much the user repeats what they just typed.
+
+**Decision.** Keep the current order. The experiment cannot say it is the best order for real code, only that it is not worse than the others on this generator.
+
+**Revisit when.** There are real files to run it on, or there is a way to see which suggestion users accept.
+
+## E21: where the words come from, and how many keystrokes completion saves
+
+**Status:** Done · **Decision:** Inconclusive
+
+**Hypothesis.** Offering the words of the whole document (host code included, as Visual Studio Code does) saves more keystrokes than offering only the words inside embedded strings, or only those of the string being typed.
+
+**Test.** The corpus of E20 at locality 0.5. 3,217 words typed one character at a time, up to 5. The completion is accepted at the first prefix where the right word is within the first 5; saving = length of the word - characters typed - 1 for the accepting key. Four scopes, always with the keywords except the first.
+
+**Criterion.** The saving of the whole document within 2 percentage points of the best narrower scope, or above it.
+
+**Result.** Not met, by 2.7 points, in the three runs.
+
+| Scope | Right word within 5 after 1 / 2 / 3 characters | Characters saved |
+|---|---|---|
+| keywords only | 35.6% / 49.7% / 49.7% | 17.8% |
+| the string being typed | 39.1% / 60.6% / 62.8% | 32.8% |
+| all embedded strings | 42.8% / 79.9% / 90.1% | **58.0%** |
+| the whole document | 42.1% / 77.2% / 86.7% | 55.3% |
+
+**What it says, and what it does not.** The words are drawn from the embedded strings only, so a word that a user types in a string and that exists only in host code (for example a variable inside an interpolation) is never a target. That favors the narrower scopes and is a bias of the test, not a property of completion. Even so, the two best scopes are within 3 points, and both are far above the string being typed alone (32.8%) and the keywords (17.8%): most of the benefit comes from looking beyond the current string, whichever way it is bounded.
+
+**Decision.** Inconclusive: no change to the scope. A test that also types the names of the host would be fairer, and needs real code.
+
+**Revisit when.** There are real files, or the test types words from interpolations too.
+
+## E22: sharing the scan and not creating the words of the completion
+
+**Status:** Done · **Decision:** Adopt (`1fa1fbe`)
+
+**Hypothesis.** E16 found that completion takes more than a frame above ~1 million characters, mostly the scan of the host. In Visual Studio a session scans the text twice (once to decide whether to open, once to fill the list) after the classifier already did it for the same snapshot, and the word pass created a string and a sort entry for every match. Sharing one scan between the classifier and the completion, and creating a word only when it is offered, brings the worst case under a frame.
+
+**Change.** `CachingHostScanner` remembers the last scan, compared by reference to the text, held weakly. `SnapshotTextCache` gives everything that reads one snapshot the same string instance. The classifier and the completion of a buffer are built over one scanner (`NestLightComposition.CreateForBuffer`). The word pass finds the matches as positions, in one pass and without strings, and merges the matches before and after the caret in order of distance, creating a word (and checking it against the ones already offered by hash) only when it is about to be offered.
+
+**Test.** E16's files. The start of one completion session, as the editor makes it (`Locate`, `Locate` again, `Suggest`) over a new text instance each time, in two cases: nothing shared, and the scan shared (the classifier has already highlighted that text, not timed). Plus `Suggest` alone. Check that nothing changes: 897 unit tests, among them a comparison of the order of the words with the first, straightforward implementation (dictionary and sort) on 4,800 random carets of small generated programs (those inside embedded strings are compared), and a test of two words at the same distance on both sides.
+
+**Criterion.** The session with the scan shared stays under 16 ms at 60,000 lines, in every host and shape.
+
+**Result.** Met in three runs: 2.4 to 2.8 ms in every host and shape at 60,000 lines (0.2 to 2 million characters), the same for typical code and distinct words. Nothing shared: 12 to 32 ms (C++ distinct words 12.1 ms, Python typical code 31.5 to 31.8 ms), the cost of the old wiring, which E16 understated because it counted one `Locate`. `Suggest` alone: 2.2 to 2.6 ms. E20 and E21 give the same numbers as before the change.
+
+**Decision.** Adopt. The change is small, the order of the suggestions is the same, and the session start fell from 12 to 32 ms to under 3 ms at the largest size.
+
+**Limits.**
+- The 2.5 ms assumes the classifier ran on the same snapshot first (or that completion's scan seeds the classifier). The classifier's own cost, about 10 ms at this size (E01), is not new: it was already paid at every edit.
+- A hit needs the same text instance. If a gen2 collection frees the text between the two uses, the next one scans again: slower, never wrong.
+- The Visual Studio part (`NestLightBuffer`, the providers) was written without the VS SDK here and was not compiled or run; the test is the same code over a fake scanner and the real one.
+- Generated files, one machine, .NET 8 (not net48).
+
+**Revisit when.** E10 measures typing in Visual Studio; or the scan itself becomes incremental (E12), which would help the classifier too.
+
+## Second stage: similar words (E23 to E27)
+
+The second stage ([BandedPrefixMatcher](../NestLight/Completion/ApproximateMatcher.cs) and the end of [CompletionEngine](../NestLight/Completion/CompletionEngine.cs)) runs only when fewer than `FuzzyBelow` (1) items start with what was typed, the typed text has 3 or more letters, and a matcher was given. It offers the keywords and the words of the document that are at most 1 edit away (3 to 5 letters) or 2 (6 or more) from some prefix of them: an extra letter, a missing one, a wrong one or two swapped neighbours. Only the first `FuzzyMaxItems` (10) are added, after the exact ones. The first letter has to be the one typed. `SELCT` offers `SELECT`, `<dvi` offers `div`, `custmer` offers `customerName`.
+
+The first runs were on commit `70e9ffd` (.NET 8 in Release, a 4-core Linux machine), three runs for the experiments that were run. **E24 and E25 have not been run in full**: their criteria are proposals that were left to be confirmed before the first run, and a run fixes them. A smoke run (`--quick`, numbers not kept) only checked that they work.
+
+## E23: does the second stage of the completion fit in a frame?
+
+**Status:** Done · **Decision:** Inconclusive (borderline in one extreme case)
+
+**Hypothesis.** The second stage compares what was typed with every distinct word of the document that passes two cheap filters (the first letter, the length) and keeps the best few. Even forced to run in every session, with thousands of words one edit away, a session still fits in the 16 ms of a frame.
+
+**Test.** E22's files and session (the scan shared, a new text instance each time), 4 hosts, typical code and distinct words, 1,200 / 12,000 / 60,000 lines, with the second stage forced (asked for below any number of items). Two typed texts: `comp` (everything is compared, nothing new is found) and `cmop` (in the distinct-words file all 60,000 words are one edit away). Also the same session with the second stage off, and the bytes allocated.
+
+**Criterion.** Under 16 ms at 60,000 lines in every host, shape and typed text.
+
+**Result.** Not met in two runs and met in one, so the verdict flips (the same behavior as E09).
+- **One case decides it:** Python, distinct words, `cmop`: 18.7, 15.4 and 16.1 ms. The other distinct-words cases with `cmop` are 11.6 to 13.9 ms in every run.
+- **Typical code:** 4.1 to 4.6 ms forced, against 2.1 to 2.9 ms with the stage off. Typing `comp` costs nothing in the distinct-words file (2.2 to 2.6 ms, as with the stage off): no word is one edit away that is not already a prefix match.
+- **Allocation:** in typical code the stage allocates 1 KB more. In the worst case it allocates 3.2 to 3.7 MB: one small record per distinct word that passed the filters (60,000 of them), and the 10 strings that are offered. No string is created for a word that is too far or too similar to matter.
+
+**What it says.** The worst case is artificial: 60,000 distinct words that all start with the same letter and are all one edit from the typed text. With real names the first-letter filter removes most of them. In that case the cost is the comparison of each word (about 60,000 small matrices) plus the dictionary of distinct words.
+
+**Decision.** Not changed. The stage keeps the order of remedies that the design set: a cache of the distinct words per text (as `CachingHostScanner` does for the scan) and a smaller window first, and a trie only if those do not fit. Neither helps the first request on a new text, which is the case measured here.
+
+**Revisit when.** E26 shows the feature is used on large files, or real files have as many near-identical distinct words as this one.
+
+## E24: does the second stage recover the word after one mistake, and which tie-break works?
+
+**Status:** Planned (the criterion is a proposal to confirm before the first run)
+
+**Hypothesis.** When the typed text has one edit (an extra letter, a missing one, a wrong one, two swapped) in a prefix of 4 to 8 letters, the meant word is among the first 5 suggestions in most cases. Among words the same number of edits away, the nearest to the caret is no worse a tie-break than the most frequent.
+
+**Test.** The corpus of E20 (50 generated files, locality 0.5). A sample of the words of the embedded strings is typed as a prefix of 4 to 8 letters with one edit of each kind at a random place over the prefix (the first letter included). Only the reachable cases count (the word exists elsewhere in the document or is a keyword). The list is also reordered inside each group of the same kind and distance: nearest first (the engine), most frequent first, most frequent and then nearest.
+
+**Criterion.** The meant word within the first 5 in at least 70% of the reachable cases with the best of the three tie-breaks; if more than one reaches 70%, the best result enters, and on a tie the nearest stays.
+
+**Limits already known.** A mistake in the first letter cannot be recovered with the first letter required; with the mistake uniform over the prefix that is about one case in five or six, which caps the result well under 100%. The corpus is generated and the mistakes are not the way people mistype.
+
+## E25: does the second stage get in the way when the prefix is right?
+
+**Status:** Planned (the criterion is a proposal to confirm before the first run)
+
+**Hypothesis.** If the second stage ran whenever the first found few items, a correct prefix would often get a list with words that are only similar by chance. Running it only when nothing matched (`FuzzyBelow` = 1) keeps that rare.
+
+**Test.** The corpus of E20. A sample of the words of the embedded strings typed correctly, 3 to 8 letters, with the rest of the word removed. The engine with `FuzzyBelow` = 1, 3 and 5; the cases where similar items are added are counted, apart for those where the first stage found something and those where it found nothing.
+
+**Criterion.** With `FuzzyBelow` = 1, similar items are added in at most 5% of the cases. The default is chosen among the values that meet it.
+
+## E26: do the similar suggestions show up in Visual Studio?
+
+**Status:** Planned (manual, needs a build in Visual Studio 2022 and 2026)
+
+**Hypothesis.** The item manager of the editor filters the list at every key against the text of the span. A similar item is created with a filter text equal to what was typed, and shows and inserts the word it suggests, so the manager keeps it. The documentation does not say whether the default filter tolerates this.
+
+**Test (manual).** In a marked string, type a word of 6 letters with a mistake, press Ctrl+Space, and keep typing.
+
+**Criterion.** The meant word is in the list at the first step.
+
+**If not met.** Limit the feature to the explicit invocation and say so in the README. Nothing of the Visual Studio side of this feature (`NestLightCompletionSource`) has been compiled or run in this work.
+
+## E27: completion with similar words on incomplete and cut code
+
+**Status:** Done · **Decision:** Met (replaces E18)
+
+**Hypothesis.** Completion runs while code is being typed. For every text and caret, `Suggest` must not throw; the site must lie inside the text with only word characters; the exact suggestions must start with the typed text; the similar ones must be at the distance they claim (as the definition computes it), between 1 and the tolerance, with the first letter typed, after the exact ones, keywords before words and fewer edits first; nothing repeats; and the limits hold.
+
+**Test.** E18's: 50 generated files, every prefix cut and every single-character deletion at a stride (12,450 texts), the caret at the start, at the end and at 5 random places (86,900 carets, about 16,000 of them inside embedded code); plus, at each of those, the same text with a one-letter mistake put in the word under the caret. The distance of every similar item is recomputed with the whole matrix.
+
+**Criterion.** Zero violations.
+
+**Result.** Met in the three runs: 0 violations in 86,900 carets, 21,275 similar items checked against the definition.
+
+## Notes on the second stage
+
+- **RNF2, the hot path** (E22 re-run on this commit, against the same file measured three times on the previous commit): the median of the 24 cells is 4% lower for the session with the scan shared, 4% lower for `Suggest` alone and 1.5% lower for the session with nothing shared. One cell, at 60,000 lines, is 7% higher, which is within the difference between identical runs; the bound of 5% holds as a median, not in every cell.
+- **Tests:** 932 unit tests, among them the comparison of the banded distance with the definition on 200,000 random pairs (small alphabets, letters whose case changes in surprising ways, ranges inside longer strings), the same from 8 threads, the equality of the first stage with the engine without a matcher on 2,000 carets, cancellation, and the order of the similar words.
+
