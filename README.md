@@ -3,7 +3,7 @@
 > Syntax highlighting for languages embedded in strings.
 > For **Visual Studio 2022 / 2026**. Not for VS Code.
 
-Nestlight recognizes code embedded in string literals from a tag or a marker comment, colors it as its own language, and leaves interpolated expressions to the host code. It only provides colors and never edits your code.
+Nestlight recognizes code embedded in string literals from a tag or a marker comment, colors it as its own language, and leaves interpolated expressions to the host code. It colors the embedded code and completes it as you type; it never changes your code on its own.
 
 <!-- TODO: add a screenshot, e.g. docs/screenshot.png -->
 
@@ -64,6 +64,15 @@ In C#, strings marked `json` or `regex` are left to Visual Studio's built-in sup
 
 Interpolations are never colored as embedded code in any language. Templates nested in an interpolation are highlighted at every level, and incomplete code never breaks the editor.
 
+## Completion
+
+Inside the code of a marked string, Nestlight adds two kinds of suggestions to the list Visual Studio shows while you type (or on **Ctrl+Space**). Outside embedded code the host language keeps its own completion, and nothing is offered inside an interpolation.
+
+- **Keywords of the language**: SQL keywords, CSS properties and values, HTML and SVG tags, GraphQL keywords, `true` / `false` / `null` in JSON and YAML, and the keywords, types and built-ins of GLSL and WGSL. SQL keywords follow the case you type (`SEL` offers `SELECT`).
+- **Words already in the document**, as Visual Studio Code does: identifiers of at least 3 characters that start with what you typed, nearest to the caret first. They come from the whole file, host code included, so a column or class name you already wrote is one keystroke away.
+
+XML, Markdown and regular expressions have no closed vocabulary, so they only get words from the document. Keywords come first in the list.
+
 ## Install
 
 Download the `.vsix` from [Releases](../../releases), close Visual Studio and double-click the file.
@@ -90,11 +99,12 @@ The code is split by responsibility, and every dependency is injected through a 
 
 | Folder | Holds |
 |---|---|
+| `Completion` | The completion engine and the keywords of each language |
 | `Common` | The model (embedded string, interpolation, token), the interfaces everything else depends on, marker rules and text helpers |
 | `Hosts` | One scanner per host language |
 | `Languages` | One tokenizer per embedded language |
-| `Highlighting` | The engine, the registry, the snapshot cache and the composition root, the only place that knows the concrete classes |
-| `VisualStudio` | The only code that touches the editor: classifier providers and the classification types and default colors |
+| `Highlighting` | The engine, the registry, the snapshot and scan caches (the classifier and the completion of a buffer share one scan per snapshot) and the composition root, the only place that knows the concrete classes |
+| `VisualStudio` | The only code that touches the editor: classifier and completion providers, and the classification types and default colors |
 
 Everything but `VisualStudio` is free of the Visual Studio SDK, so the tests run it as is.
 

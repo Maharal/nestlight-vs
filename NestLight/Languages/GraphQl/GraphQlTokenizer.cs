@@ -13,10 +13,10 @@ namespace NestLight.Languages
     {
         private static readonly string[] GraphQlIds = { "graphql", "gql" };
 
-        private static readonly HashSet<string> Operations = new HashSet<string> { "query", "mutation", "subscription", "fragment" };
-        private static readonly HashSet<string> TypeDefinitions = new HashSet<string> { "type", "interface", "input", "enum", "scalar", "union" };
-        private static readonly HashSet<string> OtherKeywords = new HashSet<string> { "schema", "extend", "directive", "implements", "repeatable" };
-        private static readonly HashSet<string> Literals = new HashSet<string> { "true", "false", "null" };
+        internal static readonly HashSet<string> Operations = new HashSet<string> { "query", "mutation", "subscription", "fragment" };
+        internal static readonly HashSet<string> TypeDefinitions = new HashSet<string> { "type", "interface", "input", "enum", "scalar", "union" };
+        internal static readonly HashSet<string> OtherKeywords = new HashSet<string> { "schema", "extend", "directive", "implements", "repeatable" };
+        internal static readonly HashSet<string> Literals = new HashSet<string> { "true", "false", "null" };
 
         public IReadOnlyList<string> Ids { get { return GraphQlIds; } }
 
