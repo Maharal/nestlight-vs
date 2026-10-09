@@ -12,7 +12,7 @@ import os
 import sys
 
 NAMES = {"sql": "SQL", "css": "CSS", "html": "HTML", "graphql": "GraphQL", "json": "JSON", "yaml": "YAML", "glsl": "GLSL", "wgsl": "WGSL"}
-ICON = {"G": "✅ Bom", "M": "⚠️ Razoável, com ressalva", "B": "❌ Ruim"}
+ICON = {"G": "✅ Good", "M": "⚠️ Mixed", "B": "❌ Bad"}
 MARK = {"keyword": "", "word": " [a]", "similar": " [~]"}
 
 
@@ -36,38 +36,38 @@ def top_block(items):
         left = cells[i] if i < len(cells) else ""
         right = cells[i + 10] if i + 10 < len(cells) else ""
         rows.append((left.ljust(width) + right).rstrip())
-    return "\n".join(r for r in rows if r) or "(nenhuma sugestão)"
+    return "\n".join(r for r in rows if r) or "(no suggestions)"
 
 
 def meant(case):
     if case["rank"]:
-        where = "em 1º lugar" if case["rank"] == 1 else f"em {case['rank']}º lugar de {case['total']}"
-        return f"`{case['intended']}`: aparece {where}" + ("" if case["rank"] <= 20 else " (fora dos 20 primeiros mostrados)")
+        where = "first" if case["rank"] == 1 else f"number {case['rank']} of {case['total']}"
+        return f"`{case['intended']}`: appears {where}" + ("" if case["rank"] <= 20 else " (outside the first 20 shown)")
     if not case["reachable"]:
-        return f"`{case['intended']}`: a palavra não existe em outro lugar do arquivo nem no vocabulário, então nenhuma sugestão poderia acertá-la"
-    return f"`{case['intended']}`: **não aparece** na lista ({case['total']} itens)"
+        return f"`{case['intended']}`: the word is not written anywhere else in the file and is not in the vocabulary, so no suggestion could get it right"
+    return f"`{case['intended']}`: **does not appear** in the list ({case['total']} items)"
 
 
 def kind_text(case):
     c = case["category"]
     if c.startswith("typing: "):
         n = c.split(": ")[1].split(" ")[0]
-        return f"digitando ({n} letra{'' if n == '1' else 's'} já digitada{'' if n == '1' else 's'})"
+        return f"typing ({n} letter{'' if n == '1' else 's'} typed)"
     if c.startswith("explicit"):
-        return "pedido explícito (Ctrl+Espaço), nada digitado ainda"
+        return "explicit request (Ctrl+Space), nothing typed yet"
     if "swapped" in c:
-        return "erro de digitação: duas letras trocadas"
-    return "erro de digitação: uma letra faltando"
+        return "typo: two letters swapped"
+    return "typo: a letter missing"
 
 
 def short_kind(case):
     c = case["category"]
     if c.startswith("typing: "):
         n = c.split(": ")[1].split(" ")[0]
-        return n + (" letra" if n == "1" else " letras")
+        return n + (" letter" if n == "1" else " letters")
     if c.startswith("explicit"):
-        return "Ctrl+Espaço"
-    return "erro: trocadas" if "swapped" in c else "erro: faltando"
+        return "Ctrl+Space"
+    return "typo: swapped" if "swapped" in c else "typo: missing"
 
 
 def write_language(lang, data, verdicts, out_dir):
@@ -77,63 +77,63 @@ def write_language(lang, data, verdicts, out_dir):
     for c in cases:
         counts[verdicts[c["id"]][0]] += 1
 
-    lines = [f"# {name}: 100 exemplos", ""]
-    lines.append(f"Resultado: ✅ {counts['G']} bons · ⚠️ {counts['M']} razoáveis com ressalva · ❌ {counts['B']} ruins.")
+    lines = [f"# {name}: 100 examples", ""]
+    lines.append(f"Result: ✅ {counts['G']} good · ⚠️ {counts['M']} mixed · ❌ {counts['B']} bad.")
     lines.append("")
-    lines.append("Como ler: em cada exemplo, `▮` marca onde está o cursor. A lista é o que o plugin mostraria (as 20 primeiras). "
-                 "`[a]` = palavra que já existe no arquivo; `[~]` = sugestão \"parecida\" (corrige erro de digitação); sem marca = palavra-chave da linguagem. "
-                 "O veredito e o comentário são a minha análise. \"Lugar na gramática\" é o nome interno da regra de posição que o plugin aplicou "
-                 "(`sql:table`, `css:value:display`...); `(no rule)` quer dizer que o plugin não tem regra para aquele lugar e usa só o que foi digitado.")
+    lines.append("How to read: in each example, `▮` marks the caret. The list is what the plugin would show (the first 20). "
+                 "`[a]` = a word that already exists in the file; `[~]` = a \"similar\" suggestion (corrects a typo); no mark = a keyword of the language. "
+                 "The verdict and the comment are the reviewer's analysis. \"Place in the grammar\" is the internal name of the position rule the plugin applied "
+                 "(`sql:table`, `css:value:display`...); `(no rule)` means the plugin has no rule for that place and uses only what was typed.")
     lines.append("")
-    lines.append("## Índice (para varrer rápido)")
+    lines.append("## Index (to scan quickly)")
     lines.append("")
-    lines.append("| # | Situação | Digitado | Palavra procurada | Posição | Lugar na gramática | Veredito |")
+    lines.append("| # | Situation | Typed | Word sought | Position | Place in the grammar | Verdict |")
     lines.append("|---|---|---|---|---|---|---|")
     for c in cases:
-        pos = str(c["rank"]) if c["rank"] else ("—" if not c["reachable"] else "fora")
+        pos = str(c["rank"]) if c["rank"] else ("—" if not c["reachable"] else "out")
         kind = verdicts[c["id"]][0]
         short = {"G": "✅", "M": "⚠️", "B": "❌"}[kind]
-        typed = f"`{c['typed']}`" if c["typed"] else "(nada)"
-        situacao = short_kind(c)
-        lines.append(f"| [{c['id']}](#{lang}-{c['id']}) | {situacao} | {typed} | `{c['intended']}` | {pos} | `{c['place']}` | {short} |")
+        typed = f"`{c['typed']}`" if c["typed"] else "(nothing)"
+        situation = short_kind(c)
+        lines.append(f"| [{c['id']}](#{lang}-{c['id']}) | {situation} | {typed} | `{c['intended']}` | {pos} | `{c['place']}` | {short} |")
     lines.append("")
-    lines.append("Posição: lugar da palavra procurada na lista; `—` = a palavra não existe em outro lugar do arquivo; `fora` = existe mas não está na lista.")
+    lines.append("Position: place of the word sought in the list; `—` = the word is not written anywhere else in the file; `out` = it exists but is not in the list.")
     lines.append("")
-    lines.append("## Os arquivos usados como entrada")
+    lines.append("## The files used as input")
     lines.append("")
-    lines.append("Escritos à mão como um desenvolvedor escreveria (código JavaScript com strings da linguagem). Nada foi gerado pelo gerador dos experimentos.")
+    lines.append("Written by hand the way a developer would write them (JavaScript code with strings of the language). Nothing here was made by the generator of the experiments.")
     lines.append("")
     for i, doc in enumerate(data["documents"], 1):
-        lines.append(f"### Documento D{i}")
+        lines.append(f"### Document D{i}")
         lines.append("")
         lines.append("```js")
         lines.append(doc)
         lines.append("```")
         lines.append("")
-    lines.append("## Os exemplos")
+    lines.append("## The examples")
     lines.append("")
     for c in cases:
         kind, comment = verdicts[c["id"]]
         lines.append(f"### {name}-{c['id']}")
         lines.append(f'<a id="{lang}-{c["id"]}"></a>')
         lines.append("")
-        lines.append(f"**Situação:** {kind_text(c)} · **documento** D{c['doc']}, linha {c['line']} · **lugar na gramática:** `{c['place']}`")
+        lines.append(f"**Situation:** {kind_text(c)} · **document** D{c['doc']}, line {c['line']} · **place in the grammar:** `{c['place']}`")
         lines.append("")
-        lines.append("**Entrada** (a string onde está o cursor):")
+        lines.append("**Input** (the string the caret is in):")
         lines.append("")
         lines.append("```text")
         lines.append(c["input"])
         lines.append("```")
         lines.append("")
-        lines.append(f"**Palavra que a pessoa ia digitar:** {meant(c)}")
+        lines.append(f"**The word the person meant to type:** {meant(c)}")
         lines.append("")
-        lines.append("**Saída** (as 20 primeiras sugestões):")
+        lines.append("**Output** (the first 20 suggestions):")
         lines.append("")
         lines.append("```text")
         lines.append(top_block(c["top"]))
         lines.append("```")
         lines.append("")
-        lines.append(f"**Veredito:** {ICON[kind]}. {comment}")
+        lines.append(f"**Verdict:** {ICON[kind]}. {comment}")
         lines.append("")
         lines.append("---")
         lines.append("")
