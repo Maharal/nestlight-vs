@@ -31,6 +31,8 @@ namespace NestLight.Experiments
                 new E29_SameLanguageWords(),
                 new E30_GrammarPosition(),
                 new E31_SqlSchema(),
+                new E32_CountAndDistance(),
+                new E33_ContextRobustness(),
             };
         }
     }

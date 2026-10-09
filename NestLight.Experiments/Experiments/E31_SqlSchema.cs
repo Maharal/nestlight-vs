@@ -53,8 +53,8 @@ namespace NestLight.Experiments
             var places = new[] { "sql:table", "sql:member", "sql:expression" };
             double worstPlace = places.Select(place => c.Rate(2, p => p.Place == place, 5) - c.Rate(1, p => p.Place == place, 5)).Min();
             outcome.CriterionMet = gain >= 1 && worstPlace >= 0 && worst < 16;
-            outcome.Headline = "within the first 5: " + ContextLab.Pct(c.Rate(1, p => true, 5)) + " to " + ContextLab.Pct(c.Rate(2, p => true, 5)) + " (" + gain.ToString("+0.0;-0.0") + " points); worst session " + Measure.Ms(worst);
-            outcome.Analysis.Add("The schema alone moves the share within the first 5 from " + ContextLab.Pct(c.Rate(0, p => true, 5)) + " to " + ContextLab.Pct(c.Rate(3, p => true, 5)) + "; added to the rest, " + gain.ToString("+0.0;-0.0") + " points; the worst of the table, member and expression places changes by " + worstPlace.ToString("+0.0;-0.0") + " points.");
+            outcome.Headline = "within the first 5: " + ContextLab.Pct(c.Rate(1, p => true, 5)) + " to " + ContextLab.Pct(c.Rate(2, p => true, 5)) + " (" + ContextLab.Signed(gain) + " points); worst session " + Measure.Ms(worst);
+            outcome.Analysis.Add("The schema alone moves the share within the first 5 from " + ContextLab.Pct(c.Rate(0, p => true, 5)) + " to " + ContextLab.Pct(c.Rate(3, p => true, 5)) + "; added to the rest, " + ContextLab.Signed(gain) + " points; the worst of the table, member and expression places changes by " + ContextLab.Signed(worstPlace) + " points.");
             outcome.Analysis.Add("The slowest session with the schema at the largest size is " + worstCase + ": " + Measure.Ms(worst) + " (the frame budget is 16 ms). Every SQL string in the window of 500,000 characters around the caret is read at each request.");
             outcome.Analysis.Add("The corpus is generated with a schema in mind: every column belongs to one table, a CREATE TABLE exists for each, and the aliases are reused with a different table in every statement. Real code with no CREATE TABLE in the same file has only what its queries reveal.");
             return outcome;

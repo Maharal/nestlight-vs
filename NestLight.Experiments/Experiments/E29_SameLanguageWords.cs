@@ -39,8 +39,8 @@ namespace NestLight.Experiments
             double worstLanguage = c.Probes.Where(p => p.Reachable).Select(p => p.LanguageId).Distinct()
                 .Select(id => c.Rate(3, p => p.LanguageId == id, 5) - c.Rate(2, p => p.LanguageId == id, 5)).Min();
             outcome.CriterionMet = gain >= 2 && worstLanguage >= -1 && worst < 16;
-            outcome.Headline = "within the first 5: previous word " + ContextLab.Pct(c.Rate(2, p => true, 5)) + ", with the language " + ContextLab.Pct(c.Rate(3, p => true, 5)) + " (" + gain.ToString("+0.0;-0.0") + " points); worst session " + Measure.Ms(worst);
-            outcome.Analysis.Add("The words of the language alone move the share within the first 5 from " + ContextLab.Pct(c.Rate(0, p => true, 5)) + " to " + ContextLab.Pct(c.Rate(1, p => true, 5)) + "; added to the previous word, " + gain.ToString("+0.0;-0.0") + " points; the worst language changes by " + worstLanguage.ToString("+0.0;-0.0") + " points.");
+            outcome.Headline = "within the first 5: previous word " + ContextLab.Pct(c.Rate(2, p => true, 5)) + ", with the language " + ContextLab.Pct(c.Rate(3, p => true, 5)) + " (" + ContextLab.Signed(gain) + " points); worst session " + Measure.Ms(worst);
+            outcome.Analysis.Add("The words of the language alone move the share within the first 5 from " + ContextLab.Pct(c.Rate(0, p => true, 5)) + " to " + ContextLab.Pct(c.Rate(1, p => true, 5)) + "; added to the previous word, " + ContextLab.Signed(gain) + " points; the worst language changes by " + ContextLab.Signed(worstLanguage) + " points.");
             outcome.Analysis.Add("The slowest session with both at the largest size is " + worstCase + ": " + Measure.Ms(worst) + " (the frame budget is 16 ms).");
             outcome.Analysis.Add("The corpus is generated: its host variables are named after the same nouns as the tables, so a host word with the same first letters is common by construction. How often real code has that is not measured.");
             return outcome;

@@ -1,5 +1,16 @@
 namespace NestLight.Completion
 {
+    /// <summary>How the words of the document are ordered among themselves.</summary>
+    internal enum WordOrder
+    {
+        /// <summary>The nearest occurrence to the caret first.</summary>
+        Nearest,
+        /// <summary>The most frequent first, the nearest among equals.</summary>
+        Frequency,
+        /// <summary><c>ln(1 + count) - weight * ln(1 + distance)</c>: a word used often counts, a word used far away counts less.</summary>
+        Blend
+    }
+
     /// <summary>
     /// The context-aware ways of ranking the suggestions, each one on its own so that an experiment can turn it on or off. With
     /// none of them the engine ranks only by what was typed: the keywords, then the words of the document nearest to the caret first.
@@ -38,8 +49,17 @@ namespace NestLight.Completion
         /// </summary>
         public readonly bool Schema;
 
-        public CompletionFeatures(bool previousWord = false, bool sameLanguageWords = false, bool grammar = false, bool schema = false)
+        /// <summary>The order of the words of the document among themselves (and of the words that followed the context).</summary>
+        public readonly WordOrder Order;
+
+        /// <summary>For <see cref="WordOrder.Blend"/>: how much the distance weighs against the count (0: the count alone).</summary>
+        public readonly double BlendWeight;
+
+        public CompletionFeatures(bool previousWord = false, bool sameLanguageWords = false, bool grammar = false, bool schema = false,
+            WordOrder order = WordOrder.Nearest, double blendWeight = 0.5)
         {
+            Order = order;
+            BlendWeight = blendWeight;
             PreviousWord = previousWord;
             SameLanguageWords = sameLanguageWords;
             Grammar = grammar;

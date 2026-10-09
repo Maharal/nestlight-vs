@@ -67,6 +67,8 @@ All the criteria below were written before the run that decided them, except tho
 | [E29](#e29-do-the-words-of-the-same-language-come-first) | Do the words of the same language come first? | Automated, generated code | Done | Adopted: criterion met |
 | [E30](#e30-does-the-place-in-the-grammar-help-to-rank-the-suggestions) | Does the place in the grammar help to rank the suggestions? | Automated, generated code | Done | Adopted: criterion met |
 | [E31](#e31-does-the-schema-read-from-the-sql-of-the-document-help) | Does the schema read from the SQL of the document help? | Automated, generated code | Done | Not adopted: criterion not met |
+| [E32](#e32-do-the-words-used-most-often-come-before-the-nearest-ones) | Do the words used most often come before the nearest ones? | Automated, generated code | Done | Not adopted: criterion not met |
+| [E33](#e33-completion-with-the-context-rankings-on-incomplete-and-cut-code) | Is completion robust with the context rankings on? | Automated | Done | Met: 0 violations |
 
 ## Latest runs
 
@@ -565,7 +567,7 @@ The first runs were on commit `70e9ffd` (.NET 8 in Release, a 4-core Linux machi
 
 **Result.** Met in the three runs: 0 violations in 86,900 carets, 21,275 similar items checked against the definition.
 
-## Context ranking (E28 to E32)
+## Context ranking (E28 to E33)
 
 Until here the list depended only on what was typed: the keywords, then the words of the document nearest to the caret first. These experiments ask whether the list gets better when it also looks at where the caret is. Each idea is a flag of [CompletionFeatures](../NestLight/Completion/CompletionFeatures.cs) and an experiment decides whether it is on in the plugin (`CompletionFeatures.Default`).
 
@@ -587,7 +589,7 @@ The editor sorts the list by the sort text of each item, which is the text unles
 
 **What it says.** With one or two letters typed, a keyword or a nearby word usually fills the first places, and what the document did after the same word is a better guess than what is nearest. With three letters the prefix has already narrowed the list, and there is little left to gain.
 
-**Cost.** One more comparison per candidate that passes the prefix test, and a record of the previous word during the pass. On the hot path of E22 (the session with the scan shared, 60,000 lines) the median went from about 1.27 to about 1.40 ms with the feature off, measured against `main` on the same machine in the same session: +10%, above the 5% bound the second stage kept, and still far from a frame.
+**Cost.** One more comparison per candidate that passes the prefix test, and a record of the previous word during the pass. The hot path with the features off was measured two ways. In one process, alternating the engine of `main` and this one on the same 60,000-line Python text, 40 calls each, four rounds: 0.87 to 1.07 ms against 0.87 to 1.05 ms, no difference. E22 run on `main` and on each commit of this work, three runs each: 1.20 ms on `main`, then 1.44, 1.65, 1.62 and 1.60 ms, a rise of about a third that the first measure does not show; a pass restored to the original loop did not change it, and the cause was not found. Taken together: the code of the first stage costs the same, and the E22 harness reads about 0.4 ms more on these builds for a reason outside the engine (the cell is a median of 25 calls in a process that has also loaded the new experiments). With the three features of the plugin on, the start of a session at 60,000 lines is about 5 ms against about 4 ms for distance alone (E28 to E30).
 
 **Limits.** The words after the same word are found in the whole window, strings and host code alike; E29 puts the words of the language first. A word shorter than 3 letters is only offered when it follows the context (`BY`).
 
@@ -651,9 +653,43 @@ The editor sorts the list by the sort text of each item, which is the text unles
 
 **Revisit when.** The schema of a text is kept between requests (a cache next to the scan, so a keystroke does not read the file again), or real files turn out to have few repeated queries and a `CREATE TABLE` close by.
 
+## E32: do the words used most often come before the nearest ones?
+
+**Status:** Done · **Decision:** Not adopted (`WordOrder` stays in the code, `Nearest` is the default)
+
+**Hypothesis.** The order by distance alone sends to the end a word that is used all over the file and is not close to the caret, while the nearest word may have been used once. A blend, `ln(1 + count) - weight * ln(1 + distance)`, puts the meant word in the first 5 more often, whatever the locality of the code. The engine has no edit history, so how near an occurrence is to the caret stands for how recently the word was used; real recency (the words accepted or typed last) would need the editor to tell the engine and is not done here.
+
+**Test.** E28's probes on files of three localities (0, 0.5, 0.9), 50 each, with the previous word, the language and the grammar on. Five orders of the words of the document and of the words that followed the context: distance alone, count alone, and the blend with a weight of 1, 0.5 and 0.25. Also, apart from the criterion, the same orders with no other feature, and the start of a session.
+
+**Criterion.** The best of the four other orders at least 1.5 points better within the first 5 than distance alone at locality 0.5; at no locality worse by more than 1 point; no language worse by more than 1 point; the session under 16 ms at 60,000 lines.
+
+**Result.** Not met: no order is better. At locality 0.5: distance alone 97.2%, count alone 97.0%, the blends 97.2%, 97.2% and 97.1%. At locality 0 the five orders are within 0.1 points (96.7% to 96.8%), at 0.9 distance alone is the best (97.5% against 97.2% to 97.4%). With no other feature the picture is the same: distance alone 72.5%, count alone 71.4%, the blends 72.5%, 72.3% and 71.9%; counting without looking at the distance is the only order clearly behind (1.1 points). The session costs the same with every order (about 5 ms at 60,000 lines).
+
+**What it says.** E20 had already found the nearest first better than the alphabetical order; this finds that adding the count does not improve on it, in code that repeats names by construction. With the previous word, the language and the grammar in front, a word that the context does not settle is a tie between a few near candidates, and the count does not break it better than the distance. It is not a result about real code, where a name used 30 times in the file is probably a better guess than one used once next to the caret; the generator draws its names from a pool of 40 and cannot say.
+
+**Decision.** `Nearest` stays the default. The blend is kept as an option with its 7 tests, because it costs nothing when off and the answer may change with real files.
+
+**Revisit when.** There are real files to measure on, or the editor can tell the engine which words the user accepted last.
+
+## E33: completion with the context rankings on incomplete and cut code
+
+**Status:** Done · **Decision:** Met
+
+**Hypothesis.** E27 again with every context feature on (the previous word, the words of the language, the grammar of SQL, CSS and HTML, the schema of the SQL, the blend of count and distance), over the structured files that have the statements, rules and tags those features read. The look-behind of the grammar and of the schema, the pointers into the ranges of the strings, the ranked words and the short words offered after a context must not throw on a text cut anywhere, repeat a word, break the limits, or offer an exact suggestion that does not start with what was typed.
+
+**Test.** E27's: every prefix cut at a stride and every single-character deletion at a stride (12,269 texts), the caret at the start, at the end and at 5 random places (85,633 carets, 35,116 of them inside embedded code), and the same position with a mistake in the word (16,841), with every feature of `CompletionFeatures` on, schema and blend included.
+
+**Criterion.** Zero violations.
+
+**Result.** Met: 0 violations, 29,786 similar items checked against the definition.
+
 ## Notes on the context ranking
 
-- (filled in as the experiments are done)
+- **What the plugin runs with** (`CompletionFeatures.Default`): the previous word (E28), the words of the language (E29) and the grammar (E30). Within the first 5, on the generated files: 72.5% with the order by distance alone, 85.5% with the previous word, 88.1% with the language, 97.2% with the grammar. The schema (E31) and the order by count (E32) stay in the code, off.
+- **What the numbers are not.** Every context experiment ran on code made by a generator that was written with the same structure the features look for (a schema for the SQL, a value table for the CSS, an attribute table for the HTML). The gains say that the ideas work on code that has that structure. How much real code does is the open question, and the first thing to measure with files from real projects. The hit rate of 97% is a ceiling that real code will not reach.
+- **The order reaches the screen** only through the sort text of each item (`NestLightCompletionSource`), which has not been compiled or run in this work.
+- **Cost:** the start of a session at 60,000 lines goes from about 4.0 ms (distance alone) to about 5.1 ms with the three features on; with the schema it would be 6.4 to 22 ms (the spread between runs is large). The words of the language need the scan of the strings, which the completion gets from the cache it shares with the classifier; on a scan that is not cached one more scan is paid (about 12 ms at 60,000 lines).
+- **Tests:** 1,025 unit tests, among them the places of the grammar (80 cases), the schema (15), the previous word, the scope and the order of the words (22), and every cut of a text for the look-behind of the grammar and of the schema; E33 runs 85,633 carets with every feature on and finds no violation.
 
 ## Notes on the second stage
 

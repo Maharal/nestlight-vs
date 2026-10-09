@@ -182,5 +182,69 @@ namespace NestLight.Tests
             Assert.Equal(300, words.Count(w => w.StartsWith("col")));
             Assert.DoesNotContain("t5", words);
         }
+
+        // ---- frequency and distance ---------------------------------------------------------------------------------------
+
+        private static readonly CompletionFeatures ByCount = new CompletionFeatures(order: WordOrder.Frequency);
+        private static CompletionFeatures Blend(double weight) { return new CompletionFeatures(order: WordOrder.Blend, blendWeight: weight); }
+
+        private const string Often = "const usersList = 1, usersList2 = usersList + usersList + usersList + usersList;\nconst usersAdmin = 1;\nsql`select us|`";
+
+        [Fact]
+        public void By_count_the_word_used_most_comes_before_the_nearer_one()
+        {
+            string code = "const usersList = 1; usersList; usersList; usersList;\nconst usersAdmin = 1;\nsql`select us|`";
+            Assert.Equal(new[] { "usersAdmin", "usersList" }, Words(code, CompletionFeatures.None).Take(2).ToArray());
+            Assert.Equal(new[] { "usersList", "usersAdmin" }, Words(code, ByCount).Take(2).ToArray());
+        }
+
+        [Fact]
+        public void The_blend_goes_from_the_count_alone_to_the_distance_alone_as_the_weight_grows()
+        {
+            string code = "const usersList = 1; usersList; usersList; usersList;\nconst usersAdmin = 1;\nsql`select us|`";
+            Assert.Equal("usersList", Words(code, Blend(0))[0]);
+            Assert.Equal("usersAdmin", Words(code, Blend(100))[0]);
+        }
+
+        [Fact]
+        public void A_tie_in_the_count_goes_to_the_nearer_word_and_a_tie_in_both_to_the_earlier()
+        {
+            const string code = "const usersFar = 1;\nconst usersNear = 1;\nsql`select us|`";
+            Assert.Equal(new[] { "usersNear", "usersFar" }, Words(code, ByCount).ToArray());
+            Assert.Equal(new[] { "usersNear", "usersFar" }, Words(code, Blend(0.5)).ToArray());
+        }
+
+        [Fact]
+        public void The_order_changes_the_ranking_and_not_the_set_of_suggestions()
+        {
+            foreach (CompletionFeatures features in new[] { ByCount, Blend(0.5), new CompletionFeatures(order: WordOrder.Blend, previousWord: true, sameLanguageWords: true, grammar: true) })
+                Assert.Equal(Texts(Run(Often, CompletionFeatures.None, 100000)).OrderBy(w => w).Where(w => w.StartsWith("users")), Texts(Run(Often, features, 100000)).OrderBy(w => w).Where(w => w.StartsWith("users")));
+        }
+
+        [Fact]
+        public void The_words_that_followed_the_context_are_ordered_by_count_too()
+        {
+            const string code = "sql`select a from rare; select a from usual; select b from usual; select c from usual; select d from rare2;`;\nsql`select e from |`";
+            Assert.Equal("rare2", Words(code, PreviousWord)[0]);
+            CompletionFeatures both = new CompletionFeatures(previousWord: true, order: WordOrder.Frequency);
+            Assert.Equal("usual", Words(code, both)[0]);
+        }
+
+        [Fact]
+        public void The_words_of_the_language_still_come_before_the_other_words_with_any_order()
+        {
+            const string code = "sql`select usersList from t`;\nconst usersAdmin = 1; usersAdmin; usersAdmin; usersAdmin;\nsql`select us|`";
+            CompletionFeatures features = new CompletionFeatures(sameLanguageWords: true, order: WordOrder.Frequency);
+            Assert.Equal(new[] { "usersList", "usersAdmin" }, Words(code, features).Take(2).ToArray());
+        }
+
+        [Fact]
+        public void The_ranked_order_handles_a_word_repeated_many_times()
+        {
+            string code = string.Concat(Enumerable.Repeat("const customerId = 1; const customerName = 2; const customerNote = 3;\n", 400)) + "const customerRare = 1;\nsql`select cu|`";
+            List<string> words = Words(code, ByCount);
+            // 400 uses each: the nearer first; the word used once is last although it is the nearest
+            Assert.Equal(new[] { "customerNote", "customerName", "customerId", "customerRare" }, words.Take(4).ToArray());
+        }
     }
 }

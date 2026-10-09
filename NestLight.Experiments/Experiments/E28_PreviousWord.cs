@@ -33,8 +33,8 @@ namespace NestLight.Experiments
             double worstLanguage = c.Probes.Where(p => p.Reachable).Select(p => p.LanguageId).Distinct()
                 .Select(id => c.Rate(1, p => p.LanguageId == id, 5) - c.Rate(0, p => p.LanguageId == id, 5)).Min();
             outcome.CriterionMet = gain >= 3 && worstLanguage >= -1 && worst < 16;
-            outcome.Headline = "within the first 5: " + ContextLab.Pct(c.Rate(0, p => true, 5)) + " to " + ContextLab.Pct(c.Rate(1, p => true, 5)) + " (" + gain.ToString("+0.0;-0.0") + " points); worst session " + Measure.Ms(worst);
-            outcome.Analysis.Add("The gain over all the reachable cases is " + gain.ToString("+0.0;-0.0") + " points within the first 5; the worst language changes by " + worstLanguage.ToString("+0.0;-0.0") + " points.");
+            outcome.Headline = "within the first 5: " + ContextLab.Pct(c.Rate(0, p => true, 5)) + " to " + ContextLab.Pct(c.Rate(1, p => true, 5)) + " (" + ContextLab.Signed(gain) + " points); worst session " + Measure.Ms(worst);
+            outcome.Analysis.Add("The gain over all the reachable cases is " + ContextLab.Signed(gain) + " points within the first 5; the worst language changes by " + ContextLab.Signed(worstLanguage) + " points.");
             outcome.Analysis.Add("The slowest session with the previous word at the largest size is " + worstCase + ": " + Measure.Ms(worst) + " (the frame budget is 16 ms).");
             outcome.Analysis.Add("The corpus is generated. It has the structure the idea looks for (the values of a property, the table after `from`), because the generator was written with it; real code may repeat its structure more or less than that.");
             return outcome;

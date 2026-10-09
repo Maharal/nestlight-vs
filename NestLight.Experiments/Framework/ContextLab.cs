@@ -259,6 +259,12 @@ namespace NestLight.Experiments
             return table;
         }
 
+        /// <summary>A difference in points with its sign; a difference that rounds to zero has none.</summary>
+        public static string Signed(double value)
+        {
+            return (Math.Round(value, 1) + 0.0).ToString("+0.0;-0.0;0.0");
+        }
+
         public static string Pct(double value) { return value.ToString("F1") + "%"; }
     }
 }

@@ -10,6 +10,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - Context ranking: the words found in the code of strings of the same language come before the words of the host code and of other languages, and the previous-word context is taken from them (experiment E29, +2.6 points within the first 5 on top of E28).
 - Context ranking by the place in the grammar of SQL, CSS and HTML: a table after `FROM`, `BY` after `GROUP`, the values of a property after its colon, the attributes of a tag inside `<button `; what does not belong comes last, nothing is dropped (experiment E30, 88.1% to 97.2% within the first 5 on generated code). Selectors in CSS now offer the HTML tags.
 - A reader of the schema of the SQL in the document (`CREATE TABLE`, `FROM` / `JOIN` and aliases, `INSERT` and `UPDATE` columns) behind `CompletionFeatures.Schema`, **off**: experiment E31 gave +0.3 points within the first 5 on top of the rest and a session of 6-16 ms at 60,000 lines, so it did not meet its criterion.
+- An order of the words by count and distance (`WordOrder.Frequency` and `WordOrder.Blend`), **off**: experiment E32 found no gain over the nearest first.
 - Similar words in the completion: when nothing starts with what was typed (3 or more letters), the keywords and the words of the document that are one or two edits away are offered after the exact ones (`SELCT` offers `SELECT`). Experiments E23 to E27; E27 replaces E18.
 - Completion inside embedded strings: keywords of the language of the string (SQL, CSS, HTML / SVG, GraphQL, JSON, YAML, GLSL, WGSL) and words that already exist in the document, nearest to the caret first.
 
@@ -17,6 +18,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - The classifier and the completion share one scan per snapshot, and the completion creates a word only when it offers it: the start of a session on a 60,000-line file falls from 12-32 ms to under 3 ms (E22).
 
 ### Experiments
+- E28 to E33 for the context rankings (previous word, language, grammar, SQL schema, count and distance, robustness) and a generated corpus with structure.
 - E16 to E22 for the completion (latency, limits, robustness, vocabulary against tokenizers, order and scope of the words) and a seeded generator of code for them.
 
 ## [0.1.0] - 2026-10-06
