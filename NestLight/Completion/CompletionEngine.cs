@@ -168,22 +168,59 @@ namespace NestLight.Completion
                 AddFollowing(text, site, scan, upper, seen, result);
             }
 
+            // what the grammar expects at the caret, then (where the place says so) the words of the document, then the other keywords
+            Position position = _features.Grammar ? Positions.At(text, site) : null;
+            if (position != null) AddExpected(position, site, prefix, upper, seen, result);
+            bool wordsFirst = position != null && position.WordsFirst;
+            if (wordsFirst) AddWords(text, site, prefix, context, scope, ref scan, seen, result);
+
+            List<string> unlikely = null;
             foreach (string word in Vocabularies.For(site.LanguageId))
             {
                 if (result.Count >= _maxItems) return result;
                 if (!StartsWithIgnoreCase(word, prefix) || word.Length == prefix.Length) continue;
+                if (position != null && position.Unlikely != null && position.Unlikely(word))
+                {
+                    (unlikely ?? (unlikely = new List<string>())).Add(word);
+                    continue;
+                }
                 if (seen.Add(word)) result.Add(new Suggestion(upper ? word.ToUpperInvariant() : word, SuggestionKind.Keyword));
             }
 
-            foreach (string word in OrderedWords(text, site, scan ?? ScanWords(text, site, prefix, context, scope)))
-            {
-                if (result.Count >= _maxItems) break;
-                if (seen.Add(word)) result.Add(new Suggestion(word, SuggestionKind.Word));
-            }
+            if (!wordsFirst) AddWords(text, site, prefix, context, scope, ref scan, seen, result);
+
+            if (unlikely != null)
+                foreach (string word in unlikely)
+                {
+                    if (result.Count >= _maxItems) break;
+                    if (seen.Add(word)) result.Add(new Suggestion(upper ? word.ToUpperInvariant() : word, SuggestionKind.Keyword));
+                }
 
             if (_matcher != null && prefix.Length >= FuzzyMinPrefix && result.Count < _fuzzyBelow && result.Count < _maxItems)
                 AddSimilar(text, site, prefix, upper, seen, result, cancellation);
             return result;
+        }
+
+        private void AddWords(string text, CompletionSite site, string prefix, PreviousContext context, int[] scope, ref WordScan scan,
+            HashSet<string> seen, List<Suggestion> result)
+        {
+            if (scan == null) scan = ScanWords(text, site, prefix, context, scope);
+            foreach (string word in OrderedWords(text, site, scan))
+            {
+                if (result.Count >= _maxItems) break;
+                if (seen.Add(word)) result.Add(new Suggestion(word, SuggestionKind.Word));
+            }
+        }
+
+        private void AddExpected(Position position, CompletionSite site, string prefix, bool upper, HashSet<string> seen, List<Suggestion> result)
+        {
+            foreach (string expected in position.Expected)
+            {
+                if (result.Count >= _maxItems) return;
+                if (!StartsWithIgnoreCase(expected, prefix) || expected.Length == prefix.Length) continue;
+                string word = Vocabularies.Find(site.LanguageId, expected) ?? expected;
+                if (seen.Add(word)) result.Add(new Suggestion(upper ? word.ToUpperInvariant() : word, SuggestionKind.Keyword));
+            }
         }
 
         // ---- the second stage: similar words ------------------------------------------------------------------

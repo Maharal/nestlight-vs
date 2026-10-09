@@ -65,6 +65,7 @@ All the criteria below were written before the run that decided them, except tho
 | [E27](#e27-completion-with-similar-words-on-incomplete-and-cut-code) | Is completion still robust with the second stage? | Automated | Done | Met: 0 violations |
 | [E28](#e28-does-the-word-before-the-caret-help-to-rank-the-suggestions) | Does the word before the caret help to rank the suggestions? | Automated, generated code | Done | Adopted: criterion met |
 | [E29](#e29-do-the-words-of-the-same-language-come-first) | Do the words of the same language come first? | Automated, generated code | Done | Adopted: criterion met |
+| [E30](#e30-does-the-place-in-the-grammar-help-to-rank-the-suggestions) | Does the place in the grammar help to rank the suggestions? | Automated, generated code | Done | Adopted: criterion met |
 
 ## Latest runs
 
@@ -608,6 +609,26 @@ The editor sorts the list by the sort text of each item, which is the text unles
 **Cost.** About 1 ms at 60,000 lines (the strings of the language are taken from the shared scan and merged into ranges, and the matches go into two lists). With the features off nothing of it runs.
 
 **Limits.** The second stage (similar words) does not use the scope. A string whose language the plugin does not know has no words of its own language to prefer, and its words are ranked as before.
+
+## E30: does the place in the grammar help to rank the suggestions?
+
+**Status:** Done · **Decision:** Adopted (`CompletionFeatures.Grammar`)
+
+**Hypothesis.** What belongs at the caret can be told from a few characters of look-behind ([Positions](../NestLight/Completion/Positions.cs), no parser): a table after `FROM`, a column after `SELECT`, `BY` after `GROUP`, the properties inside the braces of CSS and the values of the property after its colon, the attributes of the tag inside `<button `. Putting what belongs first and what does not last (nothing is dropped) puts the meant word in the first 5 more often than the previous word and the language alone, and fits in a frame.
+
+**Test.** E28's probes, four variants: the order by distance alone; the grammar; the previous word and the language (what the plugin ran with before); all three. Reported by the place of the caret. Also the start of a session on files of 1,200 to 60,000 lines.
+
+**Criterion.** Adding the grammar to the previous word and the language is at least 2 points better within the first 5; SQL, CSS and HTML each do not fall; the session under 16 ms at 60,000 lines in every host.
+
+**Result.** Met. Within the first 5: 72.5% (distance alone), 87.8% (grammar alone), 88.1% (previous word and language), **97.2%** (all three): +9.2 points. By language with all three: SQL 99.4% (from 89.8%), HTML 91.2% (77.4%), CSS 88.0% (81.8%), GraphQL unchanged at 96.0% (it has no grammar). The word first: 70.6% to 83.0%. The slowest session is 5.15 ms at 60,000 lines, the same as without the grammar (it reads at most 4,000 characters behind the caret).
+- **Where it is weak:** `css:selector` 50.6% and `html:tag` 82.0% (tag names are a closed list and the words typed there are classes and ids that the rules do not cover), `css:property` 86.5%.
+- **Where the two ideas overlap:** after `from` the previous word already reached 92.0%; the grammar adds the cases the document has not seen yet (a first `JOIN`, a `GROUP BY` never written).
+
+**What it says.** The grammar gives a large gain, but read the corpus before the number: the same person wrote the generator and the tables of attributes, values and continuations, and the generator follows them. 97% is what the rules do on code that obeys them. Real code has attributes, values and clauses that the tables do not know; the rules then put nothing first and the list is the one of E29, so the cost of an incomplete table is a smaller gain, not a wrong order. Where the rules say something wrong (`Unlikely` words pushed after the words of the document) is not measured by this corpus.
+
+**Limits.** The grammar covers SQL, CSS and HTML / SVG. A place the rules do not recognize (inside `url(`, a language without rules) is ranked as before. The tables are short: about 150 attributes, 40 properties with values, 60 SQL continuations.
+
+**Revisit when.** Real files give a hit rate to compare with this one, or a table turns out to hide a word people use (watch `Unlikely`).
 
 ## Notes on the context ranking
 

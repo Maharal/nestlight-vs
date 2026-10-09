@@ -107,7 +107,7 @@ namespace NestLight.Completion
               svg path circle rect line polyline polygon ellipse g defs use symbol text tspan linearGradient radialGradient stop
               clipPath mask filter");
 
-        private static readonly IReadOnlyList<string> CssWords = Words(
+        private static readonly IReadOnlyList<string> CssPropertyWords = Words(
             @"align-content align-items align-self all animation animation-delay animation-direction animation-duration
               animation-fill-mode animation-iteration-count animation-name animation-play-state animation-timing-function
               aspect-ratio backdrop-filter backface-visibility background background-attachment background-blend-mode
@@ -134,8 +134,145 @@ namespace NestLight.Completion
               text-indent text-overflow text-shadow text-transform top touch-action transform transform-origin
               transform-style transition transition-delay transition-duration transition-property
               transition-timing-function translate unicode-bidi user-select vertical-align visibility white-space widows
-              width will-change word-break word-spacing word-wrap writing-mode z-index
-              inherit initial unset revert none auto block inline inline-block flex grid absolute relative fixed sticky
+              width will-change word-break word-spacing word-wrap writing-mode z-index");
+
+        private static readonly IReadOnlyList<string> CssValueWords = Words(
+            @"inherit initial unset revert none auto block inline inline-block flex grid absolute relative fixed sticky
               hidden visible solid dashed dotted center transparent currentColor");
+
+        private static readonly IReadOnlyList<string> CssWords = CssPropertyWords.Concat(CssValueWords).ToList();
+
+        // ---- places in the grammar: what belongs where (see Positions) ---------------------------------------------------
+
+        private static readonly HashSet<string> CssPropertySet = new HashSet<string>(CssPropertyWords, StringComparer.OrdinalIgnoreCase);
+        private static readonly HashSet<string> CssValueSet = new HashSet<string>(CssValueWords, StringComparer.OrdinalIgnoreCase);
+
+        /// <summary>The properties of CSS, sorted.</summary>
+        public static IReadOnlyList<string> CssProperties { get { return CssPropertyWords; } }
+
+        /// <summary>Whether the word is a value and not also a property (<c>none</c>, but not <c>flex</c>).</summary>
+        public static bool IsCssValueOnly(string word)
+        {
+            return CssValueSet.Contains(word) && !CssPropertySet.Contains(word);
+        }
+
+        private const string ColorNames = "transparent currentColor red green blue white black gray grey yellow orange purple pink brown";
+
+        private static readonly Dictionary<string, IReadOnlyList<string>> CssValues = BuildCssValues();
+
+        private static Dictionary<string, IReadOnlyList<string>> BuildCssValues()
+        {
+            var map = new Dictionary<string, IReadOnlyList<string>>(StringComparer.OrdinalIgnoreCase);
+            Action<string, string> add = (properties, values) => { foreach (string p in Words(properties)) map[p] = Words(values); };
+            add("display", "block inline inline-block flex inline-flex grid inline-grid none contents table");
+            add("position", "static relative absolute fixed sticky");
+            add("overflow overflow-x overflow-y", "visible hidden scroll auto clip");
+            add("cursor", "pointer default text move wait not-allowed grab crosshair help");
+            add("text-align", "left right center justify start end");
+            add("flex-direction", "row row-reverse column column-reverse");
+            add("flex-wrap", "nowrap wrap wrap-reverse");
+            add("justify-content", "flex-start flex-end center space-between space-around space-evenly start end");
+            add("align-items align-self align-content", "stretch flex-start flex-end center baseline start end");
+            add("color background-color border-color outline-color fill stroke caret-color", ColorNames);
+            add("background", "none " + ColorNames);
+            add("border-style outline-style border-top-style border-bottom-style border-left-style border-right-style", "none solid dashed dotted double groove ridge inset outset hidden");
+            add("visibility", "visible hidden collapse");
+            add("float", "left right none");
+            add("clear", "both left right none");
+            add("white-space", "normal nowrap pre pre-wrap pre-line");
+            add("font-weight", "normal bold bolder lighter");
+            add("font-style", "normal italic oblique");
+            add("text-decoration", "none underline overline line-through");
+            add("text-transform", "none uppercase lowercase capitalize");
+            add("box-sizing", "content-box border-box");
+            add("object-fit", "fill contain cover none scale-down");
+            add("pointer-events", "auto none");
+            add("user-select", "none auto text all");
+            add("list-style-type", "none disc circle square decimal");
+            add("resize", "none both horizontal vertical");
+            add("word-break", "normal break-all keep-all break-word");
+            add("flex", "none auto initial");
+            add("grid-auto-flow", "row column dense");
+            add("vertical-align", "baseline top middle bottom text-top text-bottom sub super");
+            add("transition-property will-change", string.Join(" ", CssPropertyWords));
+            return map;
+        }
+
+        /// <summary>The values that belong to the property; the values of CSS in general when the property is not known.</summary>
+        public static IReadOnlyList<string> CssValuesOf(string property)
+        {
+            IReadOnlyList<string> values;
+            return property != null && CssValues.TryGetValue(property, out values) ? values : CssValueWords;
+        }
+
+        private static readonly string[] HtmlGlobalAttributes = Words(
+            @"class id style title lang dir hidden tabindex role draggable contenteditable accesskey slot spellcheck translate
+              aria-label aria-hidden aria-expanded aria-labelledby aria-describedby aria-live");
+
+        private static readonly Dictionary<string, string[]> HtmlAttributes = BuildHtmlAttributes();
+
+        private static Dictionary<string, string[]> BuildHtmlAttributes()
+        {
+            var map = new Dictionary<string, string[]>(StringComparer.OrdinalIgnoreCase);
+            Action<string, string> add = (tags, attributes) => { foreach (string t in Words(tags)) map[t] = Words(attributes); };
+            add("a", "href target rel download hreflang type");
+            add("img", "src alt width height loading srcset sizes");
+            add("input", "type name value placeholder required disabled checked readonly min max step pattern maxlength autocomplete autofocus");
+            add("button", "type disabled name value form onclick");
+            add("form", "action method enctype novalidate target autocomplete");
+            add("label", "for form");
+            add("select", "name multiple required disabled size");
+            add("option", "value selected disabled label");
+            add("textarea", "name rows cols placeholder required readonly disabled maxlength");
+            add("td th", "colspan rowspan headers scope align");
+            add("tr", "align");
+            add("link", "rel href type media as crossorigin");
+            add("meta", "name content charset http-equiv");
+            add("script", "src type async defer crossorigin integrity");
+            add("iframe", "src width height allow sandbox loading");
+            add("video", "src controls autoplay loop muted poster preload width height");
+            add("audio", "src controls autoplay loop muted preload");
+            add("source", "src type srcset media sizes");
+            add("ol", "start reversed type");
+            add("li", "value");
+            add("svg", "viewBox xmlns width height fill stroke preserveAspectRatio");
+            add("path", "d fill stroke stroke-width");
+            add("circle", "cx cy r fill stroke");
+            add("rect", "x y width height rx ry fill stroke");
+            add("line", "x1 y1 x2 y2 stroke");
+            add("g", "transform fill stroke");
+            add("text", "x y fill font-size");
+            return map;
+        }
+
+        /// <summary>The attributes of the tag first, then the ones every tag has.</summary>
+        public static IReadOnlyList<string> HtmlAttributesOf(string tag)
+        {
+            string[] own;
+            var list = new List<string>();
+            if (tag != null && HtmlAttributes.TryGetValue(tag, out own)) list.AddRange(own);
+            foreach (string g in HtmlGlobalAttributes) if (!list.Contains(g)) list.Add(g);
+            return list;
+        }
+
+        private static readonly Dictionary<string, string[]> HtmlValues = new Dictionary<string, string[]>(StringComparer.OrdinalIgnoreCase)
+        {
+            { "input:type", Words("text password email number checkbox radio submit button reset file date hidden search tel url") },
+            { "button:type", Words("submit button reset") },
+            { "target", Words("_blank _self _parent _top") },
+            { "rel", Words("stylesheet noopener noreferrer nofollow icon preload") },
+            { "method", Words("get post") },
+            { "loading", Words("lazy eager") },
+            { "dir", Words("ltr rtl auto") },
+        };
+
+        /// <summary>The values that belong to the attribute of the tag; empty when they are not a closed list (a class, an id).</summary>
+        public static IReadOnlyList<string> HtmlValuesOf(string tag, string attribute)
+        {
+            string[] values;
+            if (attribute == null) return new string[0];
+            if (HtmlValues.TryGetValue(tag + ":" + attribute, out values) || HtmlValues.TryGetValue(attribute, out values)) return values;
+            return new string[0];
+        }
     }
 }

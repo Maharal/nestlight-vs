@@ -10,7 +10,7 @@ namespace NestLight.Completion
         public static readonly CompletionFeatures None = new CompletionFeatures();
 
         /// <summary>The features the plugin runs with: the ones whose experiment met its criterion.</summary>
-        public static readonly CompletionFeatures Default = new CompletionFeatures(previousWord: true, sameLanguageWords: true);
+        public static readonly CompletionFeatures Default = new CompletionFeatures(previousWord: true, sameLanguageWords: true, grammar: true);
 
         /// <summary>
         /// The words that already followed the same word (and the same punctuation) elsewhere in the document come first:
@@ -25,10 +25,17 @@ namespace NestLight.Completion
         /// </summary>
         public readonly bool SameLanguageWords;
 
-        public CompletionFeatures(bool previousWord = false, bool sameLanguageWords = false)
+        /// <summary>
+        /// The place of the caret in the grammar decides what comes first: after <c>FROM</c> a table, after <c>display:</c> its values,
+        /// inside <c>&lt;button </c> its attributes, and the words that do not belong there come last (see <see cref="Positions"/>).
+        /// </summary>
+        public readonly bool Grammar;
+
+        public CompletionFeatures(bool previousWord = false, bool sameLanguageWords = false, bool grammar = false)
         {
             PreviousWord = previousWord;
             SameLanguageWords = sameLanguageWords;
+            Grammar = grammar;
         }
     }
 }

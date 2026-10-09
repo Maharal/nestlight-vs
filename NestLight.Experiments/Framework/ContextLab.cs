@@ -18,6 +18,8 @@ namespace NestLight.Experiments
         public int Prefix;
         /// <summary>The word before the one typed, with the punctuation between them ("from", "display:", "u."); empty when there is none.</summary>
         public string Previous = "";
+        /// <summary>The place of the caret in the grammar (<c>sql:table</c>, <c>css:value</c>, <c>html:attribute</c>); "(none)" where the language has no grammar or the place says nothing.</summary>
+        public string Place = "(none)";
         /// <summary>Whether anything can offer the word: it is a keyword or it exists elsewhere in the document. Set by <see cref="ContextLab.MarkReachable"/>.</summary>
         public bool Reachable;
     }
@@ -43,10 +45,18 @@ namespace NestLight.Experiments
                         string text = file.Text.Remove(w.Key + k, w.Value.Length - k);
                         CompletionSite site = locator.Locate(text, w.Key + k);
                         if (site == null) continue;
-                        probes.Add(new RankProbe { Host = file.Host, LanguageId = site.LanguageId, Text = text, Caret = w.Key + k, Word = w.Value, Prefix = k, Previous = PreviousOf(file.Text, w.Key, site.OwnerStart) });
+                        probes.Add(new RankProbe { Host = file.Host, LanguageId = site.LanguageId, Text = text, Caret = w.Key + k, Word = w.Value, Prefix = k, Previous = PreviousOf(file.Text, w.Key, site.OwnerStart), Place = PlaceOf(text, site) });
                     }
             }
             return probes;
+        }
+
+        private static string PlaceOf(string text, CompletionSite site)
+        {
+            Position position = Positions.At(text, site);
+            if (position == null) return "(none)";
+            string[] parts = position.Name.Split(':');
+            return parts.Length > 2 && (parts[1] == "value" || parts[1] == "attribute") ? parts[0] + ":" + parts[1] : position.Name;
         }
 
         private static string PreviousOf(string text, int wordStart, int floor)
@@ -143,7 +153,7 @@ namespace NestLight.Experiments
 
         // ---- the tables every ranking experiment reports ----------------------------------------------------------------------
 
-        public static void AddTables(Outcome outcome, Comparison c, string subject, int previousWords = 8)
+        public static void AddTables(Outcome outcome, Comparison c, string subject, int previousWords = 8, bool byPlace = false)
         {
             var all = new Func<RankProbe, bool>(p => true);
             var overall = new Table(subject + ": " + c.Probes.Count + " typed prefixes, " + c.Cases + " reachable (" + (100.0 * c.Cases / Math.Max(1, c.Probes.Count)).ToString("F1") + "%)",
@@ -167,6 +177,17 @@ namespace NestLight.Experiments
                 byPrefix.Add(new object[] { k, c.Count(p => p.Prefix == letters) }.Concat(Enumerable.Range(0, c.Names.Length).Select(v => (object)Pct(c.Rate(v, p => p.Prefix == letters, 5)))).ToArray());
             }
             outcome.Tables.Add(byPrefix);
+
+            if (byPlace)
+            {
+                var places = new Table("Within the first 5, by the place of the caret in the grammar", new[] { "Place", "Cases" }.Concat(c.Names).ToArray());
+                foreach (string place in c.Probes.Where(p => p.Reachable).GroupBy(p => p.Place).OrderByDescending(g => g.Count()).Select(g => g.Key))
+                {
+                    string where = place;
+                    places.Add(new object[] { "`" + place + "`", c.Count(p => p.Place == where) }.Concat(Enumerable.Range(0, c.Names.Length).Select(v => (object)Pct(c.Rate(v, p => p.Place == where, 5)))).ToArray());
+                }
+                outcome.Tables.Add(places);
+            }
 
             var byPrevious = new Table("Within the first 5, by the word before the one typed (the most frequent)", new[] { "Before", "Cases" }.Concat(c.Names).ToArray());
             foreach (string previous in c.Probes.Where(p => p.Reachable && p.Previous.Length > 0).GroupBy(p => p.Previous).OrderByDescending(g => g.Count()).Take(previousWords).Select(g => g.Key))

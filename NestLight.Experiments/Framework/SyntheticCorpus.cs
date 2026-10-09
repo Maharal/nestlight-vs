@@ -60,7 +60,7 @@ namespace NestLight.Experiments
             { "div", new[] { "role", "title", "tabindex", "hidden" } },
             { "span", new[] { "title", "role", "hidden", "lang" } },
             { "section", new[] { "role", "title", "hidden", "lang" } },
-            { "ul", new[] { "role", "title", "hidden", "start" } },
+            { "ul", new[] { "role", "title", "hidden", "lang" } },
             { "p", new[] { "title", "hidden", "lang", "dir" } },
             { "h2", new[] { "title", "hidden", "lang", "dir" } },
         };
