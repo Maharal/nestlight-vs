@@ -79,14 +79,14 @@ namespace NestLight.Experiments
             var sb = new StringBuilder();
             sb.Append("using System.Collections.Generic;\n\nnamespace NestLight.Completion\n{\n");
             sb.Append("    /// <summary>\n    /// The keywords of each language from the most used to the least used, learned from the corpus of generated code of the experiments\n");
-            sb.Append("    /// (NestLight.Experiments, <c>--priors</c>): a starting point, not what real projects use. Only the first ones matter: the rest are alphabetical.\n    /// </summary>\n");
+            sb.Append("    /// (NestLight.Experiments, <c>--priors</c>): a starting point, not what real projects use. Only the first ones matter: the rest are alphabetical.\n");
+            sb.Append("    /// This is only the data. A language reads its own list (see <see cref=\"ICompletionLanguage.CompletionWordsByUse\"/>), under the first of its ids\n    /// that has one, so an alias or the id of a sibling (<c>svg</c> for <c>html</c>) needs no entry.\n    /// </summary>\n");
             sb.Append("    internal static class KeywordUse\n    {\n        public static readonly IReadOnlyDictionary<string, IReadOnlyList<string>> Default = new Dictionary<string, IReadOnlyList<string>>(System.StringComparer.OrdinalIgnoreCase)\n        {\n");
             foreach (string language in RealisticCorpus.Languages)
             {
                 var documents = RealisticCorpus.Documents(language, RealisticCorpus.SnippetsPerLanguage, 1);
                 var priors = CorpusProbes.Priors(documents, language).Take(80).ToList();
                 sb.Append("            { \"").Append(language).Append("\", new[] { ").Append(string.Join(", ", priors.Select(w => "\"" + w + "\""))).Append(" } },\n");
-                if (language == "html") sb.Append("            { \"svg\", new[] { ").Append(string.Join(", ", priors.Select(w => "\"" + w + "\""))).Append(" } },\n");
             }
             sb.Append("        };\n    }\n}\n");
             File.WriteAllText(path, sb.ToString(), new UTF8Encoding(false));

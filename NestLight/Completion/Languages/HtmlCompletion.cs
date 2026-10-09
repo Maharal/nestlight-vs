@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using NestLight.Common;
+using NestLight.EmbeddedLanguages;
 
 namespace NestLight.Completion
 {
@@ -14,28 +15,30 @@ namespace NestLight.Completion
 
         // ---- the CSS inside ------------------------------------------------------------------------------------
 
+        // Where the CSS is has one definition: the one of the tokenizer, which colors it. The completion asks it on the text of the string
+        // with the interpolations masked, as the highlighter does, so the offsets are the ones of the document.
+
         public bool TryRegionAt(string text, EmbeddedString owner, int caret, out NestedRegion region)
         {
-            HtmlStyleRegions.CssRange css;
-            if (HtmlStyleRegions.TryCssAt(text, owner, caret, out css))
-            {
-                region = Region(css);
-                return true;
-            }
+            foreach (NestedRegion r in RegionsIn(text, owner))
+                if (r.Start <= caret && caret <= r.End) { region = r; return true; }
             region = default(NestedRegion);
             return false;
         }
 
         public IReadOnlyList<NestedRegion> RegionsIn(string text, EmbeddedString owner)
         {
-            var regions = new List<NestedRegion>();
-            foreach (HtmlStyleRegions.CssRange r in HtmlStyleRegions.CssIn(text, owner)) regions.Add(Region(r));
-            return regions;
-        }
+            int start = owner.Start, end = Math.Min(owner.End, text.Length);
+            if (end <= start) return new NestedRegion[0];
+            var masked = new char[end - start];
+            text.CopyTo(start, masked, 0, masked.Length);
+            foreach (Interpolation x in owner.Interpolations)
+                for (int k = Math.Max(x.Start, start); k < Math.Min(x.End, end); k++) masked[k - start] = TextUtil.Mask;
 
-        private static NestedRegion Region(HtmlStyleRegions.CssRange css)
-        {
-            return new NestedRegion { EmbeddedLanguageId = CssCompletion.Id, Start = css.Start, End = css.End, InlineDeclarations = css.Attribute };
+            IReadOnlyList<NestedRegion> found = HtmlTokenizer.Regions(masked, 0, masked.Length);
+            var regions = new List<NestedRegion>(found.Count);
+            foreach (NestedRegion r in found) regions.Add(new NestedRegion { EmbeddedLanguageId = r.EmbeddedLanguageId, Start = r.Start + start, End = r.End + start, InlineDeclarations = r.InlineDeclarations });
+            return regions;
         }
 
         // ---- the grammar --------------------------------------------------------------------------------------

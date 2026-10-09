@@ -59,6 +59,14 @@ namespace NestLight.Completion
         private static readonly string[] AfterGroup = { "having", "order", "limit", "union", "offset" };
         private static readonly string[] AfterAlterTable = { "add", "drop", "alter", "rename" };
 
+        // the continuations by the clause the caret is in; a clause that is not here has no rule
+        private static readonly Dictionary<string, string[]> AfterClause = new Dictionary<string, string[]>
+        {
+            { "select", AfterSelectList }, { "from", AfterFrom }, { "join", AfterJoin }, { "update", AfterUpdate }, { "set", AfterSet },
+            { "limit", AfterLimit }, { "into", AfterInto }, { "group", AfterGroup }, { "order", AfterOrder },
+            { "where", AfterCondition }, { "on", AfterCondition }, { "having", AfterCondition }
+        };
+
         private static readonly string[] SqlTypes =
             { "int", "integer", "bigint", "smallint", "serial", "bigserial", "text", "varchar", "char", "boolean", "bool", "date", "timestamp", "timestamptz", "time", "numeric", "decimal", "float", "double", "real", "uuid", "json", "jsonb", "blob", "bytea" };
         private static readonly string[] SqlConstraints = { "not", "null", "primary", "key", "unique", "default", "references", "check", "constraint", "auto_increment", "generated", "collate" };
@@ -214,20 +222,7 @@ namespace NestLight.Completion
             if (!isWord || FindKeyword(last) == null || tail == ')')
             {
                 string[] continuation;
-                switch (clause)
-                {
-                    case "select": continuation = AfterSelectList; break;
-                    case "from": continuation = AfterFrom; break;
-                    case "join": continuation = AfterJoin; break;
-                    case "update": continuation = AfterUpdate; break;
-                    case "set": continuation = AfterSet; break;
-                    case "limit": continuation = AfterLimit; break;
-                    case "into": continuation = AfterInto; break;
-                    case "group": continuation = AfterGroup; break;
-                    case "order": continuation = AfterOrder; break;
-                    case "where": case "on": case "having": continuation = AfterCondition; break;
-                    default: return null;
-                }
+                if (clause == null || !AfterClause.TryGetValue(clause, out continuation)) return null;
                 return new Position("sql:continue-" + clause, continuation);
             }
             return null;

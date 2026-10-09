@@ -34,8 +34,8 @@ namespace NestLight.Experiments
             }
 
             // the engine as it was when the experiment was written: the plugin default now has the two-letter tier on
-            var features = new CompletionFeatures(previousWord: true, sameLanguageWords: true, grammar: true, wordsBeforeKeywords: true, keywordPriors: KeywordUse.Default, headKeywords: 12);
-            var shortLast = new CompletionFeatures(previousWord: true, sameLanguageWords: true, grammar: true, wordsBeforeKeywords: true, keywordPriors: KeywordUse.Default, headKeywords: 12, shortWordsLast: true);
+            var features = new CompletionFeatures(previousWord: true, sameLanguageWords: true, grammar: true, wordsBeforeKeywords: true, keywordPriority: true, headKeywords: 12);
+            var shortLast = new CompletionFeatures(previousWord: true, sameLanguageWords: true, grammar: true, wordsBeforeKeywords: true, keywordPriority: true, headKeywords: 12, shortWordsLast: true);
             var variants = new Func<IHostScanner, CompletionEngine>[]
             {
                 scanner => new CompletionEngine(scanner, matcher: new BandedPrefixMatcher(), features: features),

@@ -14,7 +14,7 @@ namespace NestLight.Experiments
         public override string Method { get { return "For each host, a file of increasing size with the caret at the end of an open `comp` in a marked SQL string. Two shapes: typical code (EA01's file, a few distinct words) and a file whose every line declares a new `compNNNNN` identifier (thousands of distinct matches). Time of Locate alone and of Locate + Suggest, without the text copy of the editor (EA03)."; } }
         public override string Criterion { get { return "Locate + Suggest stay under 16 ms (one frame) at the largest size, in every host and shape."; } }
         public override string IfMet { get { return "Completion is not a latency risk; the cache of the scan between the classifier and the completion is not needed."; } }
-        public override string IfNotMet { get { return "Reuse the scan of the classifier, lower the window of the word scan, or index the words incrementally."; } }
+        public override string IfNotMet { get { return "Reuse the scan of the classifier (EA15), lower the window of the word scan, or scan the host incrementally (EA33). Keeping the words in memory was tried and dropped: see the document of this experiment."; } }
 
         private static string Tail(HostLanguage host)
         {

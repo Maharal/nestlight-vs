@@ -185,8 +185,8 @@ namespace NestLight.Tests
 
         // ---- frequency and distance ---------------------------------------------------------------------------------------
 
-        private static readonly CompletionFeatures ByCount = new CompletionFeatures(order: WordOrder.Frequency);
-        private static CompletionFeatures Blend(double weight) { return new CompletionFeatures(order: WordOrder.Blend, blendWeight: weight); }
+        private static readonly CompletionFeatures ByCount = new CompletionFeatures(ranker: WordRankers.Frequency);
+        private static CompletionFeatures Blend(double weight) { return new CompletionFeatures(ranker: WordRankers.Blend(weight)); }
 
         private const string Often = "const usersList = 1, usersList2 = usersList + usersList + usersList + usersList;\nconst usersAdmin = 1;\nsql`select us|`";
 
@@ -217,7 +217,7 @@ namespace NestLight.Tests
         [Fact]
         public void The_order_changes_the_ranking_and_not_the_set_of_suggestions()
         {
-            foreach (CompletionFeatures features in new[] { ByCount, Blend(0.5), new CompletionFeatures(order: WordOrder.Blend, previousWord: true, sameLanguageWords: true, grammar: true) })
+            foreach (CompletionFeatures features in new[] { ByCount, Blend(0.5), new CompletionFeatures(ranker: WordRankers.Blend(0.5), previousWord: true, sameLanguageWords: true, grammar: true) })
                 Assert.Equal(Texts(Run(Often, CompletionFeatures.None, 100000)).OrderBy(w => w).Where(w => w.StartsWith("users")), Texts(Run(Often, features, 100000)).OrderBy(w => w).Where(w => w.StartsWith("users")));
         }
 
@@ -226,7 +226,7 @@ namespace NestLight.Tests
         {
             const string code = "sql`select a from rare; select a from usual; select b from usual; select c from usual; select d from rare2;`;\nsql`select e from |`";
             Assert.Equal("rare2", Words(code, PreviousWord)[0]);
-            CompletionFeatures both = new CompletionFeatures(previousWord: true, order: WordOrder.Frequency);
+            CompletionFeatures both = new CompletionFeatures(previousWord: true, ranker: WordRankers.Frequency);
             Assert.Equal("usual", Words(code, both)[0]);
         }
 
@@ -234,7 +234,7 @@ namespace NestLight.Tests
         public void The_words_of_the_language_still_come_before_the_other_words_with_any_order()
         {
             const string code = "sql`select usersList from t`;\nconst usersAdmin = 1; usersAdmin; usersAdmin; usersAdmin;\nsql`select us|`";
-            CompletionFeatures features = new CompletionFeatures(sameLanguageWords: true, order: WordOrder.Frequency);
+            CompletionFeatures features = new CompletionFeatures(sameLanguageWords: true, ranker: WordRankers.Frequency);
             Assert.Equal(new[] { "usersList", "usersAdmin" }, Words(code, features).Take(2).ToArray());
         }
 

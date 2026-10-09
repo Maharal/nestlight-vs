@@ -25,6 +25,8 @@ Tools > Options > Environment > Fonts and Colors > "Text Editor" > items "Templa
    A test fails until every name has both.
 3. Write its completion strategy in `Completion/Languages/` (derive from `CompletionLanguage`, give it the same ids as the tokenizer) and add it to `CompletionLanguages`.
    A language with no grammar overrides nothing but its words. A test fails until every tokenizer has a strategy with the same ids.
+   The order its words are used in comes from `Completion/KeywordUse.cs` under any of its ids (`UseOrder` can be overridden); the engine never looks at an id.
+   If its code holds code of another language, implement `INestingTokenizer` in the tokenizer (where the nested code is has one definition, there) and `INestedLanguages` in the strategy, which asks the tokenizer.
 
 ## Adding a host
 1. Write a scanner in `Hosts/` (`IHostScanner`) and add a `HostLanguage` value and a case in `NestLightComposition.CreateScanner`.

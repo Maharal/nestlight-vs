@@ -5,6 +5,8 @@ using System.ComponentModel.Composition;
 using System.Globalization;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.VisualStudio.Core.Imaging;
+using Microsoft.VisualStudio.Imaging;
 using Microsoft.VisualStudio.Language.Intellisense.AsyncCompletion;
 using Microsoft.VisualStudio.Language.Intellisense.AsyncCompletion.Data;
 using Microsoft.VisualStudio.Text;
@@ -74,6 +76,22 @@ namespace NestLight.VisualStudio
     /// </summary>
     internal sealed class NestLightCompletionSource : IAsyncCompletionSource
     {
+        // The icons of the list: one for what the suggestion is, and a small one beside it for a suggestion that is only close to what was typed.
+        private static readonly ImageElement KeywordIcon = new ImageElement(KnownMonikers.IntellisenseKeyword.ToImageId(), "Keyword");
+        private static readonly ImageElement WordIcon = new ImageElement(KnownMonikers.TextBlock.ToImageId(), "Word in the document");
+        private static readonly ImmutableArray<ImageElement> SimilarIcon = ImmutableArray.Create(new ImageElement(KnownMonikers.SpellCheck.ToImageId(), "Similar to what was typed"));
+
+        private static ImageElement IconOf(Suggestion suggestion)
+        {
+            SuggestionIcon icon = SuggestionIcons.Of(suggestion);
+            switch (icon)
+            {
+                case SuggestionIcon.Keyword: return KeywordIcon;
+                case SuggestionIcon.Word: return WordIcon;
+                default: throw new ArgumentOutOfRangeException("suggestion", icon, "no icon for this kind of suggestion");
+            }
+        }
+
         private const string KindKey = "NestLight.Kind";
         private const string LanguageKey = "NestLight.Language";
         private const string DistanceKey = "NestLight.Distance";
@@ -134,8 +152,8 @@ namespace NestLight.VisualStudio
                 // typed, while it shows and inserts the word it suggests.
                 string sortText = (rank++).ToString("D5", CultureInfo.InvariantCulture);
                 string filterText = suggestion.Distance == 0 ? suggestion.Text : typed;
-                CompletionItem item = new CompletionItem(suggestion.Text, this, default(ImageElement), ImmutableArray<CompletionFilter>.Empty, string.Empty,
-                    suggestion.Text, sortText, filterText, ImmutableArray<ImageElement>.Empty);
+                CompletionItem item = new CompletionItem(suggestion.Text, this, IconOf(suggestion), ImmutableArray<CompletionFilter>.Empty, string.Empty,
+                    suggestion.Text, sortText, filterText, SuggestionIcons.IsSimilar(suggestion) ? SimilarIcon : ImmutableArray<ImageElement>.Empty);
                 item.Properties.AddProperty(KindKey, suggestion.Kind);
                 item.Properties.AddProperty(LanguageKey, site.EmbeddedLanguageId);
                 item.Properties.AddProperty(DistanceKey, suggestion.Distance);

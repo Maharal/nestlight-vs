@@ -23,6 +23,10 @@ namespace NestLight.Completion
         private readonly IReadOnlyList<string> _keywords;
         private readonly object _gate = new object();
         private IReadOnlyList<string> _completionWords;
+        private IReadOnlyList<string> _completionWordsByUse;
+        private IReadOnlyList<string> _byUse;
+        private IReadOnlyList<string> _learned;
+        private readonly Dictionary<IReadOnlyList<string>, IReadOnlyList<string>> _ordered = new Dictionary<IReadOnlyList<string>, IReadOnlyList<string>>();
         private Dictionary<string, string> _index;
 
         /// <param name="ids">Ids and aliases, lower case.</param>
@@ -55,6 +59,81 @@ namespace NestLight.Completion
                     return _completionWords = list;
                 }
             }
+        }
+
+        /// <summary>
+        /// The words of the language from the most used to the least used. By default, the list <see cref="KeywordUse"/> learned for the
+        /// first id of the language that has one; a language overrides it to say something else.
+        /// </summary>
+        protected virtual IReadOnlyList<string> UseOrder
+        {
+            get
+            {
+                IReadOnlyList<string> list;
+                foreach (string id in _ids)
+                    if (KeywordUse.Default.TryGetValue(id, out list)) return list;
+                return new string[0];
+            }
+        }
+
+        public IReadOnlyList<string> CompletionWordsByUse
+        {
+            get
+            {
+                IReadOnlyList<string> words = CompletionWords;
+                lock (_gate)
+                {
+                    if (_completionWordsByUse != null) return _completionWordsByUse;
+                    return _completionWordsByUse = PutFirst(UsePriority(), words);
+                }
+            }
+        }
+
+        public IReadOnlyList<string> OrderByUse(IReadOnlyList<string> words)
+        {
+            if (words == null) throw new ArgumentNullException("words");
+            lock (_gate)
+            {
+                IReadOnlyList<string> prior = UsePriority();
+                if (prior.Count == 0) return words;
+                IReadOnlyList<string> ordered;
+                // the lists of a grammar are static, so the order is kept by list
+                if (!_ordered.TryGetValue(words, out ordered)) _ordered[words] = ordered = PutFirst(prior, words);
+                return ordered;
+            }
+        }
+
+        private IReadOnlyList<string> UsePriority()
+        {
+            return _byUse ?? (_byUse = _learned ?? UseOrder ?? new string[0]);
+        }
+
+        /// <summary>
+        /// Replaces the order by use of this instance with one learned elsewhere (the experiments learn it from the training half of a corpus
+        /// and measure it on the other half). The plugin never calls it.
+        /// </summary>
+        internal void LearnUseOrder(IReadOnlyList<string> order)
+        {
+            lock (_gate)
+            {
+                _learned = order;
+                _byUse = null;
+                _completionWordsByUse = null;
+                _ordered.Clear();
+            }
+        }
+
+        /// <summary>The words that <paramref name="prior"/> lists first, in its order and spelled as in <paramref name="words"/>, then the others in their order.</summary>
+        private static IReadOnlyList<string> PutFirst(IReadOnlyList<string> prior, IReadOnlyList<string> words)
+        {
+            if (prior.Count == 0) return words;
+            var spelled = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            foreach (string w in words) if (!spelled.ContainsKey(w)) spelled[w] = w;
+            var list = new List<string>(words.Count);
+            var placed = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (string word in prior) if (spelled.ContainsKey(word) && placed.Add(word)) list.Add(spelled[word]);
+            foreach (string word in words) if (placed.Add(word)) list.Add(word);
+            return list;
         }
 
         public string FindKeyword(string word)

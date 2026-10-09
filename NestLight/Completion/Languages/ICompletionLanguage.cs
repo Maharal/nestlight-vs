@@ -20,6 +20,18 @@ namespace NestLight.Completion
         /// <summary>The words the completion offers: <see cref="Keywords"/> and the ones the tokenizer does not color (<c>main</c>), sorted.</summary>
         IReadOnlyList<string> CompletionWords { get; }
 
+        /// <summary>
+        /// <see cref="CompletionWords"/> from the most used to the least used in the code people write in the language, the rest alphabetically
+        /// (see <see cref="KeywordUse"/>). The same list as <see cref="CompletionWords"/> when the language has no such order. The same list every time.
+        /// </summary>
+        IReadOnlyList<string> CompletionWordsByUse { get; }
+
+        /// <summary>
+        /// A list of words of the language that is long and alphabetical (the properties of CSS) with the most used first and the rest in
+        /// their order. The words that are not in the use order of the language stay where they are; a repeated word is placed once.
+        /// </summary>
+        IReadOnlyList<string> OrderByUse(IReadOnlyList<string> words);
+
         /// <summary>The keyword spelled like the word, ignoring case, in the spelling of the vocabulary; null when there is none.</summary>
         string FindKeyword(string word);
 
@@ -60,15 +72,6 @@ namespace NestLight.Completion
 
         /// <summary>The nested regions of the string, in order of appearance.</summary>
         IReadOnlyList<NestedRegion> RegionsIn(string text, EmbeddedString owner);
-    }
-
-    /// <summary>A part of a string that is code of another embedded language.</summary>
-    internal struct NestedRegion
-    {
-        public string EmbeddedLanguageId;
-        public int Start, End;
-        /// <summary>The region is a list of declarations, not a whole style sheet (a <c>style</c> attribute).</summary>
-        public bool InlineDeclarations;
     }
 
     /// <summary>The languages the completion knows, by id.</summary>

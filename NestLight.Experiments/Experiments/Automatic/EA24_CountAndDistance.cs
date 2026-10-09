@@ -21,10 +21,10 @@ namespace NestLight.Experiments
             var orders = new[]
             {
                 new CompletionFeatures(previousWord: true, sameLanguageWords: true, grammar: true),
-                new CompletionFeatures(previousWord: true, sameLanguageWords: true, grammar: true, order: WordOrder.Frequency),
-                new CompletionFeatures(previousWord: true, sameLanguageWords: true, grammar: true, order: WordOrder.Blend, blendWeight: 1),
-                new CompletionFeatures(previousWord: true, sameLanguageWords: true, grammar: true, order: WordOrder.Blend, blendWeight: 0.5),
-                new CompletionFeatures(previousWord: true, sameLanguageWords: true, grammar: true, order: WordOrder.Blend, blendWeight: 0.25),
+                new CompletionFeatures(previousWord: true, sameLanguageWords: true, grammar: true, ranker: WordRankers.Frequency),
+                new CompletionFeatures(previousWord: true, sameLanguageWords: true, grammar: true, ranker: WordRankers.Blend(1)),
+                new CompletionFeatures(previousWord: true, sameLanguageWords: true, grammar: true, ranker: WordRankers.Blend(0.5)),
+                new CompletionFeatures(previousWord: true, sameLanguageWords: true, grammar: true, ranker: WordRankers.Blend(0.25)),
             };
             var factories = orders.Select(ContextLab.Plugin).ToArray();
 
@@ -46,8 +46,8 @@ namespace NestLight.Experiments
             ContextLab.AddTables(outcome, middle, "Locality 0.5: the word typed with 1 to 3 letters", 4);
 
             // not part of the criterion: the same orders with no other feature, where EA13 found the order by distance 8 points ahead of the alphabetical one
-            var alone = new[] { CompletionFeatures.None, new CompletionFeatures(order: WordOrder.Frequency), new CompletionFeatures(order: WordOrder.Blend, blendWeight: 1),
-                                new CompletionFeatures(order: WordOrder.Blend, blendWeight: 0.5), new CompletionFeatures(order: WordOrder.Blend, blendWeight: 0.25) };
+            var alone = new[] { CompletionFeatures.None, new CompletionFeatures(ranker: WordRankers.Frequency), new CompletionFeatures(ranker: WordRankers.Blend(1)),
+                                new CompletionFeatures(ranker: WordRankers.Blend(0.5)), new CompletionFeatures(ranker: WordRankers.Blend(0.25)) };
             ContextLab.Comparison bare = ContextLab.Compare(middle.Probes, names, alone.Select(ContextLab.Plugin).ToArray());
             var bareTable = new Table("The same orders with no other feature (locality 0.5), within the first 5", "Order", "Within the first 5", "Mean reciprocal rank");
             for (int v = 0; v < names.Length; v++) bareTable.Add(names[v], ContextLab.Pct(bare.Rate(v, p => true, 5)), bare.Mrr(v, p => true).ToString("F3"));
