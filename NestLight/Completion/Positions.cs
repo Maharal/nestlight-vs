@@ -23,22 +23,25 @@ namespace NestLight.Completion
         public readonly Func<string, bool> Unlikely;
         /// <summary>The keywords of the language do not belong here at all (a class name, a JSON key, a string): only the lists above and the words of the document are offered.</summary>
         public readonly bool OnlyWords;
+        /// <summary>The list in <see cref="Expected"/> is long and alphabetical (the properties of CSS): the most used come first.</summary>
+        public readonly bool PriorOrder;
         /// <summary>What the place asks of the schema of the document (SQL only): a table, a column of the tables in the statement, a member of a qualifier.</summary>
         public readonly PlaceRole Role;
         /// <summary>For <see cref="PlaceRole.Member"/>, the word before the dot (an alias or a table).</summary>
         public readonly string Qualifier;
 
         public Position(string name, IEnumerable<string> expected = null, bool wordsFirst = false, Func<string, bool> unlikely = null,
-            PlaceRole role = PlaceRole.None, string qualifier = null, bool onlyWords = false, IEnumerable<string> secondary = null)
+            PlaceRole role = PlaceRole.None, string qualifier = null, bool onlyWords = false, IEnumerable<string> secondary = null, bool priorOrder = false)
         {
             Name = name;
-            Expected = expected == null ? new string[0] : expected.ToList();
-            Secondary = secondary == null ? new string[0] : secondary.ToList();
+            Expected = expected == null ? new string[0] : expected as IReadOnlyList<string> ?? expected.ToList(); // a list that is already one is kept (the order by use is cached by it)
+            Secondary = secondary == null ? new string[0] : secondary as IReadOnlyList<string> ?? secondary.ToList();
             WordsFirst = wordsFirst;
             Unlikely = unlikely;
             Role = role;
             Qualifier = qualifier;
             OnlyWords = onlyWords;
+            PriorOrder = priorOrder;
         }
     }
 
@@ -363,7 +366,7 @@ namespace NestLight.Completion
             }
 
             if (colon < 0)
-                return new Position("css:property", Vocabularies.CssProperties, unlikely: w => Vocabularies.IsCssValueOnly(w));
+                return new Position("css:property", Vocabularies.CssProperties, unlikely: w => Vocabularies.IsCssValueOnly(w), priorOrder: true);
 
             if (before == '#') return new Position("css:hex", onlyWords: true);
             if (before == '!') return new Position("css:important", new[] { "important" }, onlyWords: true);

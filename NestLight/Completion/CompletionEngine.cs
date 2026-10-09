@@ -200,7 +200,7 @@ namespace NestLight.Completion
             if (schema != null && place.Role == PlaceRole.Table) AddCandidates(schema, prefix, seen, result);
 
             // what the grammar expects at the caret, then (where the place says so) the words of the document, then the other keywords
-            if (position != null) AddExpected(position.Expected, site, prefix, upper, seen, result);
+            if (position != null) AddExpected(position.PriorOrder ? _features.OrderByUse(site.LanguageId, position.Expected) : position.Expected, site, prefix, upper, seen, result);
             bool wordsFirst = position != null ? position.WordsFirst : _features.WordsBeforeKeywords;
             if (wordsFirst && position == null && _features.HeadKeywords > 0)
             {

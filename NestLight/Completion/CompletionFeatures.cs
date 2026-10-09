@@ -111,6 +111,27 @@ namespace NestLight.Completion
             }
         }
 
+        private readonly Dictionary<IReadOnlyList<string>, IReadOnlyList<string>> _byUse = new Dictionary<IReadOnlyList<string>, IReadOnlyList<string>>();
+
+        /// <summary>A list of words of the language (the properties of CSS) with the ones in <see cref="KeywordPriors"/> first, in that order; the rest keep their order.</summary>
+        public IReadOnlyList<string> OrderByUse(string languageId, IReadOnlyList<string> words)
+        {
+            IReadOnlyList<string> prior;
+            if (KeywordPriors == null || languageId == null || !KeywordPriors.TryGetValue(languageId, out prior)) return words;
+            lock (_byUse)
+            {
+                IReadOnlyList<string> ordered;
+                if (_byUse.TryGetValue(words, out ordered)) return ordered;
+                var set = new HashSet<string>(words, StringComparer.OrdinalIgnoreCase);
+                var list = new List<string>();
+                var placed = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                foreach (string word in prior) if (set.Contains(word) && placed.Add(word)) list.Add(words.First(w => string.Equals(w, word, StringComparison.OrdinalIgnoreCase)));
+                foreach (string word in words) if (placed.Add(word)) list.Add(word);
+                _byUse[words] = list;
+                return list;
+            }
+        }
+
         public CompletionFeatures(bool previousWord = false, bool sameLanguageWords = false, bool grammar = false, bool schema = false,
             WordOrder order = WordOrder.Nearest, double blendWeight = 0.5, bool wordsBeforeKeywords = false,
             IReadOnlyDictionary<string, IReadOnlyList<string>> keywordPriors = null, int headKeywords = 0,

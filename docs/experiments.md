@@ -776,6 +776,29 @@ The review of 800 suggestions listed words the plugin never offered. They are no
 
 On the 800 suggestions of the review the 15 cases of this kind that had no answer now have one: [GLSL-1](suggestion-review/glsl.md#glsl-1) `es`, [GLSL-15](suggestion-review/glsl.md#glsl-15) `main`, [GLSL-98](suggestion-review/glsl.md#glsl-98) `gl_FragColor`, [WGSL-19](suggestion-review/wgsl.md#wgsl-19) `builtin`, [WGSL-25](suggestion-review/wgsl.md#wgsl-25) `vertex`, [WGSL-64](suggestion-review/wgsl.md#wgsl-64) `read`, [HTML-63](suggestion-review/html.md#html-63) `region`, [HTML-85](suggestion-review/html.md#html-85) `currentColor`... They are not experiments: a word either exists or not, and the 58 tests of the places check each one.
 
+## CSS in general
+
+A pass over the CSS of the plugin, with a battery of tricky style sheets read token by token and in the completion.
+
+**The tokenizer** ([CssTokenizer](../NestLight/Languages/Css/CssTokenizer.cs), it colors `css`, `<style>` and `style=""`):
+- A selector no longer paints its punctuation as a name: `,`, `>`, `+`, `~`, parentheses and brackets are punctuation.
+- `:not(.a, #b)`, `:is()`, `:where()`, `:has()` hold selectors, and `:nth-child(2n+1)` holds a formula (numbers), instead of one blob in the color of a tag.
+- `input[type="text" i]`, `a[href^=http]`, `[disabled]`: the brackets and the operator are punctuation, the attribute is named, the value is a string or a word.
+- The condition of an at-rule: `(min-width: 600px)`, `(width > 600px)`, `(hover)`, `@supports (display: grid)`, `@container card (min-width: 400px)` name the feature like a property (it was a value). A function in a prelude (`url()`, `layer()`) is still a function.
+- Keyframe percentages (`50%`) are numbers; `1e3ms` and `2.5E-2` are one number each.
+
+**The completion:**
+- After `@` the at-rule names (`media`, `supports`, `keyframes`, `font-face`, `container`, `layer`...); inside `@supports (` the properties, inside `@container (` the size features; after `!` the word `important`.
+- After a number the units: `10|` and `10r|` offer `px`, `rem`... (a hex color, a keyframe percentage and the `2n` of `:nth-child` are not units).
+- All 148 named colors for the properties that take a color, and after the values of the shorthands that can have one (`border: 1px solid salm|`).
+- 200 modern properties (`margin-inline`, `padding-block`, `container-type`, `accent-color`, `scrollbar-gutter`, `text-wrap`, the SVG ones), 360 in all; and the values of more of them.
+- An attribute selector offers the attributes most tested (`type`, `href`, `disabled`...).
+- **The properties come in the order of use** (the order of the keywords by use of E35, learned from generated code) and the rest alphabetically. The longer list made the alphabetical one worse: before the order, `display` was 71st in an empty property position and `box-sizing` 31st after `bo`; with it, 5th and 5th.
+
+On the 800 suggestions of the review: the word first in 348 cases (345 before this pass), among the first five in 464 (456), among the first twenty in 494 (486); `display`, `color`, `border-radius` and `font-weight` in an empty property position went from 71st, 62nd, 41st and 92nd to 5th, 2nd, 10th and 9th. E35 rerun on the generated corpus: +5.4 points on the test files (it was +3.0), because the order by use also applies to the properties; that gain is fitted to the generator, and the hand-written files give +12.6.
+
+Not done: the order by use applies to the properties only; the values of a property are still in the order of their table.
+
 ## CSS inside HTML
 
 The highlighter has always colored the CSS of a `<style>` element and of a `style="..."` attribute as CSS; the completion saw only the string as a whole, so inside them it completed as HTML (words of the text and, with a mistake, tag names: `clipPath`, `main`, `map`). Now [NestedLanguages](../NestLight/Completion/NestedLanguages.cs) finds the CSS inside an HTML or SVG string (it skips comments and the interpolations of the host, so a `>` inside `${a => a > 1}` does not end a tag), and `Locate` gives a site of language `css` there: every rule of the CSS applies (properties, values, `:hover`, `@media`, `@keyframes`, functions, the words of the style sheets of the file). A style attribute starts inside a declaration list, with no selectors. An unfinished `<style>` or `style="` runs to the end of the string, which is how it is while typing.

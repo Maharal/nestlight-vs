@@ -131,5 +131,18 @@ namespace NestLight.Tests
             Assert.Equal("href", Texts("css`a[hr|`")[0]);
             Assert.Equal("disabled", Texts("css`button[disa|`")[0]);
         }
+
+        [Fact]
+        public void The_properties_come_in_the_order_of_use_and_the_rest_alphabetically()
+        {
+            List<string> items = Texts("css`.a { | }`");
+            IReadOnlyList<string> prior = KeywordUse.Default["css"];
+            string[] firstProperties = prior.Where(w => Vocabularies.CssProperties.Contains(w, System.StringComparer.OrdinalIgnoreCase)).Take(5).ToArray();
+            Assert.Equal(firstProperties, items.Take(5).ToArray());
+            Assert.True(items.IndexOf("zoom") > items.IndexOf("display")); // one nobody has written comes last
+            List<string> a = Texts("css`.a { bo| }`");
+            Assert.Equal(a.OrderBy(w => w).Count(), a.Count);
+            Assert.Equal(Texts("css`.a { bo| }`"), Texts("css`.a { bo| }`")); // the same every time (the order is cached)
+        }
     }
 }
