@@ -17,7 +17,7 @@ namespace NestLight.Tests
             public IReadOnlyList<EmbeddedString> Scan(string text) { return _strings; }
         }
 
-        private sealed class FakeTokenizer : ILanguageTokenizer
+        private sealed class FakeTokenizer : IEmbeddedLanguageTokenizer
         {
             public readonly List<string> Received = new List<string>();
             public Action<char[], int, int, TokenSink> Behavior;
@@ -30,12 +30,12 @@ namespace NestLight.Tests
             }
         }
 
-        private sealed class FakeRegistry : ILanguageRegistry
+        private sealed class FakeRegistry : IEmbeddedLanguageRegistry
         {
-            private readonly ILanguageTokenizer _tokenizer;
-            public FakeRegistry(ILanguageTokenizer tokenizer) { _tokenizer = tokenizer; }
+            private readonly IEmbeddedLanguageTokenizer _tokenizer;
+            public FakeRegistry(IEmbeddedLanguageTokenizer tokenizer) { _tokenizer = tokenizer; }
             public bool IsKnown(string id) { return id == "fake"; }
-            public ILanguageTokenizer Find(string id) { return id == "fake" ? _tokenizer : null; }
+            public IEmbeddedLanguageTokenizer Find(string id) { return id == "fake" ? _tokenizer : null; }
         }
 
         private static EmbeddedString Fake(int start, int end)

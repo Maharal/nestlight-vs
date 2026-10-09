@@ -28,7 +28,7 @@ namespace NestLight.Experiments
                 for (int factor = 1; factor <= 8; factor *= 2)
                 {
                     string text = SyntheticCode.ByChars(host, baseChars * factor, 1);
-                    ILanguageRegistry languages = NestLightComposition.CreateLanguages();
+                    IEmbeddedLanguageRegistry languages = NestLightComposition.CreateEmbeddedLanguages();
                     IHostScanner scanner = NestLightComposition.CreateScanner(host, languages);
                     var engine = new HighlightEngine(scanner, languages);
                     int count = scanner.Scan(text).Count;

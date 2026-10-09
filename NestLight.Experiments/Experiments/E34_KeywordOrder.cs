@@ -81,7 +81,7 @@ namespace NestLight.Experiments
             var scored = new List<Scored>();
             foreach (var pair in probes)
             {
-                var engines = variants.Select(v => v(NestLightComposition.CreateScanner(HostLanguage.JavaScript, NestLightComposition.CreateLanguages()))).ToArray();
+                var engines = variants.Select(v => v(NestLightComposition.CreateScanner(HostLanguage.JavaScript, NestLightComposition.CreateEmbeddedLanguages()))).ToArray();
                 foreach (CorpusProbe probe in pair.Value)
                     scored.Add(new Scored { Probe = probe, Ranks = engines.Select(e => CorpusProbes.Rank(e, probe)).ToArray() });
             }

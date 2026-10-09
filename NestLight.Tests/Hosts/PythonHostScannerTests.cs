@@ -44,7 +44,7 @@ namespace NestLight.Tests
         {
             string code = "# language=html\nx = " + literal;
             var s = Scan(code).Single();
-            Assert.Equal("html", s.LanguageId);
+            Assert.Equal("html", s.EmbeddedLanguageId);
             Assert.Equal("<b/>", Body(code, s));
             Assert.Equal(code.IndexOf(literal), s.OuterStart);
             Assert.Equal(code.Length, s.OuterEnd);
@@ -93,7 +93,7 @@ namespace NestLight.Tests
         {
             var s = Scan(code);
             if (id == null) Assert.Empty(s);
-            else Assert.Equal(id, s.Single().LanguageId);
+            else Assert.Equal(id, s.Single().EmbeddedLanguageId);
         }
 
         [Fact]
@@ -191,7 +191,7 @@ namespace NestLight.Tests
         public void Marked_string_nested_in_a_triple_quoted_field_is_found()
         {
             string code = "# html\nx = f\"\"\"<ul>{ \"\".join(\n  # css\n  f'<li>{i}</li>' for i in xs) }</ul>\"\"\"";
-            Assert.Equal(new[] { "html", "css" }, Scan(code).Select(s => s.LanguageId).ToArray());
+            Assert.Equal(new[] { "html", "css" }, Scan(code).Select(s => s.EmbeddedLanguageId).ToArray());
         }
 
         [Fact]

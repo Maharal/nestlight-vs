@@ -27,7 +27,7 @@ namespace NestLight.Experiments
                 foreach (int markedEvery in new[] { 0, 10 })
                 {
                     string text = SyntheticCode.ByLines(host, lines, markedEvery);
-                    ILanguageRegistry languages = NestLightComposition.CreateLanguages();
+                    IEmbeddedLanguageRegistry languages = NestLightComposition.CreateEmbeddedLanguages();
                     IHostScanner scanner = NestLightComposition.CreateScanner(host, languages);
                     var engine = new HighlightEngine(scanner, languages);
 

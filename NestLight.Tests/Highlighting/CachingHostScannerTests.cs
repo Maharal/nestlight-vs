@@ -91,7 +91,7 @@ namespace NestLight.Tests
         {
             var counting = new CountingScanner();
             var cache = new CachingHostScanner(counting);
-            ILanguageRegistry languages = NestLightComposition.CreateLanguages();
+            IEmbeddedLanguageRegistry languages = NestLightComposition.CreateEmbeddedLanguages();
             var highlighter = new HighlightEngine(cache, languages);
             var completion = new CompletionEngine(cache);
 

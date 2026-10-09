@@ -18,7 +18,7 @@ namespace NestLight.Tests
     /// <summary>The real pipeline, built by the composition root, without depending on Visual Studio.</summary>
     internal static class Pipeline
     {
-        public static readonly ILanguageRegistry Languages = NestLightComposition.CreateLanguages();
+        public static readonly IEmbeddedLanguageRegistry Languages = NestLightComposition.CreateEmbeddedLanguages();
 
         public static IHostScanner Scanner(HostLanguage host)
         {
@@ -53,7 +53,7 @@ namespace NestLight.Tests
         /// <summary>The canonical id of the language of the string (svg and htm are html).</summary>
         public static string Family(EmbeddedString s)
         {
-            return Pipeline.Languages.Find(s.LanguageId).Ids[0];
+            return Pipeline.Languages.Find(s.EmbeddedLanguageId).Ids[0];
         }
 
         // ---- highlighting ----

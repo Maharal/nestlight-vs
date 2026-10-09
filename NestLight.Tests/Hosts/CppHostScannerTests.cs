@@ -30,7 +30,7 @@ namespace NestLight.Tests
         {
             string code = "// language=html\nauto a = " + literal + ";";
             var s = Scan(code).Single();
-            Assert.Equal("html", s.LanguageId);
+            Assert.Equal("html", s.EmbeddedLanguageId);
             Assert.Equal(body, Body(code, s));
             Assert.Equal(literal, code.Substring(s.OuterStart, s.OuterEnd - s.OuterStart));
         }
@@ -63,7 +63,7 @@ namespace NestLight.Tests
         {
             var s = Scan(code);
             if (id == null) Assert.Empty(s);
-            else Assert.Equal(id, s.Single().LanguageId);
+            else Assert.Equal(id, s.Single().EmbeddedLanguageId);
         }
 
         [Fact]

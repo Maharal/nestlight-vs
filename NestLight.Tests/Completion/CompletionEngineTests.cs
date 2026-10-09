@@ -66,7 +66,7 @@ namespace NestLight.Tests
             Assert.Equal(code.IndexOf("fro_m"), site.Start);
             Assert.Equal(code.IndexOf(" x"), site.End);
             Assert.Equal(3, site.PrefixLength);
-            Assert.Equal("sql", site.LanguageId);
+            Assert.Equal("sql", site.EmbeddedLanguageId);
         }
 
         [Fact]
@@ -115,8 +115,8 @@ namespace NestLight.Tests
         {
             foreach (string id in new[] { "xml", "markdown", "regex" })
                 Assert.DoesNotContain("select", Js(id + "`sel|`"));
-            Assert.Empty(Vocabularies.For("xml"));
-            Assert.Empty(Vocabularies.For(null));
+            Assert.Empty(CompletionLanguages.Default.Find("xml").Keywords);
+            Assert.Empty(CompletionLanguages.Default.Find(null).Keywords);
         }
 
         [Fact]
@@ -125,7 +125,7 @@ namespace NestLight.Tests
             List<string> items = Js("sql`SEL|`");
             Assert.Contains("SELECT", items);
             List<string> lower = Js("sql`in|`");
-            var keywords = lower.Where(w => Vocabularies.For("sql").Contains(w)).ToList();
+            var keywords = lower.Where(w => CompletionLanguages.Default.Find("sql").Keywords.Contains(w)).ToList();
             Assert.True(keywords.Count > 1);
             Assert.Equal(keywords.OrderBy(w => w, System.StringComparer.OrdinalIgnoreCase).ToList(), keywords);
         }
@@ -273,7 +273,7 @@ namespace NestLight.Tests
         private static List<string> ReferenceWords(string text, CompletionSite site, int minWordLength)
         {
             string prefix = text.Substring(site.Start, site.PrefixLength);
-            bool dash = Vocabularies.IsExtraWordChar(site.LanguageId, '-');
+            bool dash = CompletionLanguages.Default.Find(site.EmbeddedLanguageId).IsExtraWordChar('-');
             Func<char, bool> isStart = c => char.IsLetter(c) || c == '_' || (dash && c == '-');
             Func<char, bool> isChar = c => char.IsLetterOrDigit(c) || c == '_' || (dash && c == '-');
             int from = Math.Max(0, site.Caret - 500000), to = Math.Min(text.Length, site.Caret + 500000);
@@ -320,7 +320,7 @@ namespace NestLight.Tests
                         if (site == null) continue;
                         List<string> actual = engine.Suggest(code, site).Where(s => s.Kind == SuggestionKind.Word).Select(s => s.Text).ToList();
                         List<string> expected = ReferenceWords(code, site, CompletionEngine.DefaultMinWordLength)
-                            .Where(w => !Vocabularies.For(site.LanguageId).Contains(w, StringComparer.OrdinalIgnoreCase)).ToList();
+                            .Where(w => !CompletionLanguages.Default.Find(site.EmbeddedLanguageId).Keywords.Contains(w, StringComparer.OrdinalIgnoreCase)).ToList();
                         Assert.Equal(expected, actual);
                         compared++;
                     }

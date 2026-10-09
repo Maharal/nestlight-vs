@@ -43,7 +43,7 @@ namespace NestLight.Completion
 
         /// <summary>
         /// The place of the caret in the grammar decides what comes first: after <c>FROM</c> a table, after <c>display:</c> its values,
-        /// inside <c>&lt;button </c> its attributes, and the words that do not belong there come last (see <see cref="Positions"/>).
+        /// inside <c>&lt;button </c> its attributes, and the words that do not belong there come last (see <see cref="ICompletionLanguage.PositionAt"/>).
         /// </summary>
         public readonly bool Grammar;
 
@@ -93,20 +93,20 @@ namespace NestLight.Completion
         private readonly Dictionary<string, IReadOnlyList<string>> _ordered = new Dictionary<string, IReadOnlyList<string>>(StringComparer.OrdinalIgnoreCase);
 
         /// <summary>The keywords of the language in the order they are offered.</summary>
-        public IReadOnlyList<string> OrderKeywords(string languageId, IReadOnlyList<string> alphabetical)
+        public IReadOnlyList<string> OrderKeywords(string embeddedLanguageId, IReadOnlyList<string> alphabetical)
         {
             IReadOnlyList<string> prior;
-            if (KeywordPriors == null || languageId == null || !KeywordPriors.TryGetValue(languageId, out prior)) return alphabetical;
+            if (KeywordPriors == null || embeddedLanguageId == null || !KeywordPriors.TryGetValue(embeddedLanguageId, out prior)) return alphabetical;
             lock (_ordered)
             {
                 IReadOnlyList<string> ordered;
-                if (_ordered.TryGetValue(languageId, out ordered)) return ordered;
+                if (_ordered.TryGetValue(embeddedLanguageId, out ordered)) return ordered;
                 var set = new HashSet<string>(alphabetical, StringComparer.OrdinalIgnoreCase);
                 var list = new List<string>();
                 var placed = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
                 foreach (string word in prior) if (set.Contains(word) && placed.Add(word)) list.Add(alphabetical.First(w => string.Equals(w, word, StringComparison.OrdinalIgnoreCase)));
                 foreach (string word in alphabetical) if (placed.Add(word)) list.Add(word);
-                _ordered[languageId] = list;
+                _ordered[embeddedLanguageId] = list;
                 return list;
             }
         }
@@ -114,10 +114,10 @@ namespace NestLight.Completion
         private readonly Dictionary<IReadOnlyList<string>, IReadOnlyList<string>> _byUse = new Dictionary<IReadOnlyList<string>, IReadOnlyList<string>>();
 
         /// <summary>A list of words of the language (the properties of CSS) with the ones in <see cref="KeywordPriors"/> first, in that order; the rest keep their order.</summary>
-        public IReadOnlyList<string> OrderByUse(string languageId, IReadOnlyList<string> words)
+        public IReadOnlyList<string> OrderByUse(string embeddedLanguageId, IReadOnlyList<string> words)
         {
             IReadOnlyList<string> prior;
-            if (KeywordPriors == null || languageId == null || !KeywordPriors.TryGetValue(languageId, out prior)) return words;
+            if (KeywordPriors == null || embeddedLanguageId == null || !KeywordPriors.TryGetValue(embeddedLanguageId, out prior)) return words;
             lock (_byUse)
             {
                 IReadOnlyList<string> ordered;

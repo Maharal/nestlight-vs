@@ -33,7 +33,7 @@ namespace NestLight.Tests
             string code;
             CompletionSite site = Site(codeWithCaret, out code);
             if (site == null) return "(no site)";
-            Position position = Positions.At(code, site);
+            Position position = CompletionLanguages.Default.Find(site.EmbeddedLanguageId).PositionAt(code, site);
             return position == null ? null : position.Name;
         }
 
@@ -119,8 +119,8 @@ namespace NestLight.Tests
             Assert.Equal("scrollbar-gutter", Texts("css`.a { scrollbar-g|}`")[0]);
             Assert.Equal("text-wrap", Texts("css`.a { text-wra|}`")[0]);
             Assert.Equal("stroke-linecap", Texts("css`.a { stroke-linec|}`")[0]);
-            Assert.True(Vocabularies.CssProperties.Count > 300);
-            Assert.Equal(Vocabularies.CssProperties.OrderBy(w => w, System.StringComparer.OrdinalIgnoreCase), Vocabularies.CssProperties);
+            Assert.True(CssCompletion.Properties.Count > 300);
+            Assert.Equal(CssCompletion.Properties.OrderBy(w => w, System.StringComparer.OrdinalIgnoreCase), CssCompletion.Properties);
         }
 
         [Fact]
@@ -137,7 +137,7 @@ namespace NestLight.Tests
         {
             List<string> items = Texts("css`.a { | }`");
             IReadOnlyList<string> prior = KeywordUse.Default["css"];
-            string[] firstProperties = prior.Where(w => Vocabularies.CssProperties.Contains(w, System.StringComparer.OrdinalIgnoreCase)).Take(5).ToArray();
+            string[] firstProperties = prior.Where(w => CssCompletion.Properties.Contains(w, System.StringComparer.OrdinalIgnoreCase)).Take(5).ToArray();
             Assert.Equal(firstProperties, items.Take(5).ToArray());
             Assert.True(items.IndexOf("zoom") > items.IndexOf("display")); // one nobody has written comes last
             List<string> a = Texts("css`.a { bo| }`");

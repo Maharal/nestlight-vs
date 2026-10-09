@@ -11,7 +11,7 @@ namespace NestLight.Experiments
     internal sealed class RankProbe
     {
         public HostLanguage Host;
-        public string LanguageId;
+        public string EmbeddedLanguageId;
         public string Text;
         public int Caret;
         public string Word;
@@ -45,7 +45,7 @@ namespace NestLight.Experiments
                         string text = file.Text.Remove(w.Key + k, w.Value.Length - k);
                         CompletionSite site = locator.Locate(text, w.Key + k);
                         if (site == null) continue;
-                        probes.Add(new RankProbe { Host = file.Host, LanguageId = site.LanguageId, Text = text, Caret = w.Key + k, Word = w.Value, Prefix = k, Previous = PreviousOf(file.Text, w.Key, site.OwnerStart), Place = PlaceOf(text, site) });
+                        probes.Add(new RankProbe { Host = file.Host, EmbeddedLanguageId = site.EmbeddedLanguageId, Text = text, Caret = w.Key + k, Word = w.Value, Prefix = k, Previous = PreviousOf(file.Text, w.Key, site.OwnerStart), Place = PlaceOf(text, site) });
                     }
             }
             return probes;
@@ -53,7 +53,7 @@ namespace NestLight.Experiments
 
         private static string PlaceOf(string text, CompletionSite site)
         {
-            Position position = Positions.At(text, site);
+            Position position = CompletionLanguages.Default.Find(site.EmbeddedLanguageId).PositionAt(text, site);
             if (position == null) return "(none)";
             string[] parts = position.Name.Split(':');
             return parts.Length > 2 && (parts[1] == "value" || parts[1] == "attribute") ? parts[0] + ":" + parts[1] : position.Name;
@@ -91,7 +91,7 @@ namespace NestLight.Experiments
         public static int[] Ranks(List<RankProbe> probes, Func<IHostScanner, CompletionEngine> factory)
         {
             var engines = new Dictionary<HostLanguage, CompletionEngine>();
-            foreach (HostLanguage h in SyntheticCode.Hosts) engines[h] = factory(NestLightComposition.CreateScanner(h, NestLightComposition.CreateLanguages()));
+            foreach (HostLanguage h in SyntheticCode.Hosts) engines[h] = factory(NestLightComposition.CreateScanner(h, NestLightComposition.CreateEmbeddedLanguages()));
             var ranks = new int[probes.Count];
             for (int i = 0; i < probes.Count; i++)
             {
@@ -163,10 +163,10 @@ namespace NestLight.Experiments
             outcome.Tables.Add(overall);
 
             var byLanguage = new Table("Within the first 5, by language of the string", new[] { "Language", "Cases" }.Concat(c.Names).ToArray());
-            foreach (string id in c.Probes.Where(p => p.Reachable).Select(p => p.LanguageId).Distinct().OrderBy(x => x))
+            foreach (string id in c.Probes.Where(p => p.Reachable).Select(p => p.EmbeddedLanguageId).Distinct().OrderBy(x => x))
             {
                 string language = id;
-                byLanguage.Add(new object[] { id, c.Count(p => p.LanguageId == language) }.Concat(Enumerable.Range(0, c.Names.Length).Select(v => (object)Pct(c.Rate(v, p => p.LanguageId == language, 5)))).ToArray());
+                byLanguage.Add(new object[] { id, c.Count(p => p.EmbeddedLanguageId == language) }.Concat(Enumerable.Range(0, c.Names.Length).Select(v => (object)Pct(c.Rate(v, p => p.EmbeddedLanguageId == language, 5)))).ToArray());
             }
             outcome.Tables.Add(byLanguage);
 
@@ -233,7 +233,7 @@ namespace NestLight.Experiments
                     var row = new List<object> { host, lines, baseText.Length };
                     for (int v = 0; v < factories.Length; v++)
                     {
-                        ILanguageRegistry languages = NestLightComposition.CreateLanguages();
+                        IEmbeddedLanguageRegistry languages = NestLightComposition.CreateEmbeddedLanguages();
                         var scanner = new CachingHostScanner(NestLightComposition.CreateScanner(host, languages));
                         var highlighter = new HighlightEngine(scanner, languages);
                         CompletionEngine engine = factories[v](scanner);

@@ -33,14 +33,14 @@ namespace NestLight.Tests
         {
             string code;
             CompletionSite site = Site(codeWithCaret, out code);
-            return site == null ? null : site.LanguageId;
+            return site == null ? null : site.EmbeddedLanguageId;
         }
 
         private static string Place(string codeWithCaret)
         {
             string code;
             CompletionSite site = Site(codeWithCaret, out code);
-            Position position = Positions.At(code, site);
+            Position position = CompletionLanguages.Default.Find(site.EmbeddedLanguageId).PositionAt(code, site);
             return position == null ? null : position.Name;
         }
 

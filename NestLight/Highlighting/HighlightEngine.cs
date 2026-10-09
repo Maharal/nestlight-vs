@@ -11,9 +11,9 @@ namespace NestLight.Highlighting
     internal sealed class HighlightEngine : IHighlighter
     {
         private readonly IHostScanner _scanner;
-        private readonly ILanguageRegistry _languages;
+        private readonly IEmbeddedLanguageRegistry _languages;
 
-        public HighlightEngine(IHostScanner scanner, ILanguageRegistry languages)
+        public HighlightEngine(IHostScanner scanner, IEmbeddedLanguageRegistry languages)
         {
             if (scanner == null) throw new ArgumentNullException("scanner");
             if (languages == null) throw new ArgumentNullException("languages");
@@ -27,7 +27,7 @@ namespace NestLight.Highlighting
             IReadOnlyList<EmbeddedString> strings = _scanner.Scan(text);
             foreach (EmbeddedString s in strings)
             {
-                ILanguageTokenizer tokenizer = _languages.Find(s.LanguageId);
+                IEmbeddedLanguageTokenizer tokenizer = _languages.Find(s.EmbeddedLanguageId);
                 if (tokenizer == null) continue;
                 EmitInterpolations(s, strings, tokens);
                 EmitLanguage(text, s, tokenizer, tokens);
@@ -38,7 +38,7 @@ namespace NestLight.Highlighting
 
         // ---- the code of the embedded language --------------------------------------------------------------
 
-        private static void EmitLanguage(string text, EmbeddedString s, ILanguageTokenizer tokenizer, List<Token> output)
+        private static void EmitLanguage(string text, EmbeddedString s, IEmbeddedLanguageTokenizer tokenizer, List<Token> output)
         {
             int[] map;
             char[] decoded = Decode(text, s, out map);

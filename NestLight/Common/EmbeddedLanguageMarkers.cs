@@ -4,12 +4,12 @@ using System.Collections.Generic;
 namespace NestLight.Common
 {
     /// <summary>The languages a host accepts: the known ones, minus those the host leaves to the IDE.</summary>
-    internal sealed class HostLanguages
+    internal sealed class AcceptedEmbeddedLanguages
     {
-        private readonly ILanguageRegistry _registry;
+        private readonly IEmbeddedLanguageRegistry _registry;
         private readonly HashSet<string> _excluded;
 
-        public HostLanguages(ILanguageRegistry registry, IEnumerable<string> excluded = null)
+        public AcceptedEmbeddedLanguages(IEmbeddedLanguageRegistry registry, IEnumerable<string> excluded = null)
         {
             if (registry == null) throw new ArgumentNullException("registry");
             _registry = registry;
@@ -91,11 +91,11 @@ namespace NestLight.Common
     /// </summary>
     internal sealed class MarkerTracker
     {
-        private readonly HostLanguages _languages;
+        private readonly AcceptedEmbeddedLanguages _languages;
         private string _id;
         private int _commentEnd;
 
-        public MarkerTracker(HostLanguages languages)
+        public MarkerTracker(AcceptedEmbeddedLanguages languages)
         {
             _languages = languages;
         }

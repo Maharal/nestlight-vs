@@ -68,7 +68,7 @@ namespace NestLight.Experiments
                         }, settings.Warmup, settings.Runs);
 
                         // the scan shared: the classifier highlights the text first (not timed), then the session starts
-                        ILanguageRegistry languages = NestLightComposition.CreateLanguages();
+                        IEmbeddedLanguageRegistry languages = NestLightComposition.CreateEmbeddedLanguages();
                         var scanner = new CachingHostScanner(NestLightComposition.CreateScanner(host, languages));
                         var highlighter = new HighlightEngine(scanner, languages);
                         var shared = new CompletionEngine(scanner);

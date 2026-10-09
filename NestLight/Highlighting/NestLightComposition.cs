@@ -2,7 +2,7 @@ using System;
 using NestLight.Common;
 using NestLight.Completion;
 using NestLight.Hosts;
-using NestLight.Languages;
+using NestLight.EmbeddedLanguages;
 
 namespace NestLight.Highlighting
 {
@@ -17,9 +17,9 @@ namespace NestLight.Highlighting
         /// <summary>Strings marked json or regex in C# are left to the built-in support of Visual Studio.</summary>
         private static readonly string[] LeftToVisualStudio = { "json", "regex", "regexp" };
 
-        public static ILanguageRegistry CreateLanguages()
+        public static IEmbeddedLanguageRegistry CreateEmbeddedLanguages()
         {
-            return new LanguageRegistry(registry => new ILanguageTokenizer[]
+            return new EmbeddedLanguageRegistry(registry => new IEmbeddedLanguageTokenizer[]
             {
                 new HtmlTokenizer(registry),
                 new CssTokenizer(),
@@ -37,21 +37,21 @@ namespace NestLight.Highlighting
             });
         }
 
-        public static IHostScanner CreateScanner(HostLanguage host, ILanguageRegistry languages)
+        public static IHostScanner CreateScanner(HostLanguage host, IEmbeddedLanguageRegistry languages)
         {
             switch (host)
             {
-                case HostLanguage.JavaScript: return new JavaScriptHostScanner(new HostLanguages(languages));
-                case HostLanguage.CSharp: return new CSharpHostScanner(new HostLanguages(languages, LeftToVisualStudio));
-                case HostLanguage.Python: return new PythonHostScanner(new HostLanguages(languages));
-                case HostLanguage.Cpp: return new CppHostScanner(new HostLanguages(languages));
+                case HostLanguage.JavaScript: return new JavaScriptHostScanner(new AcceptedEmbeddedLanguages(languages));
+                case HostLanguage.CSharp: return new CSharpHostScanner(new AcceptedEmbeddedLanguages(languages, LeftToVisualStudio));
+                case HostLanguage.Python: return new PythonHostScanner(new AcceptedEmbeddedLanguages(languages));
+                case HostLanguage.Cpp: return new CppHostScanner(new AcceptedEmbeddedLanguages(languages));
                 default: throw new ArgumentOutOfRangeException("host");
             }
         }
 
         public static IHighlighter CreateHighlighter(HostLanguage host)
         {
-            ILanguageRegistry languages = CreateLanguages();
+            IEmbeddedLanguageRegistry languages = CreateEmbeddedLanguages();
             return new HighlightEngine(CreateScanner(host, languages), languages);
         }
 
@@ -61,7 +61,7 @@ namespace NestLight.Highlighting
         /// </summary>
         public static BufferAnalysis CreateForBuffer(HostLanguage host)
         {
-            ILanguageRegistry languages = CreateLanguages();
+            IEmbeddedLanguageRegistry languages = CreateEmbeddedLanguages();
             IHostScanner scanner = new CachingHostScanner(CreateScanner(host, languages));
             return new BufferAnalysis(new HighlightEngine(scanner, languages), new CompletionEngine(scanner, matcher: new BandedPrefixMatcher(), features: CompletionFeatures.Default));
         }

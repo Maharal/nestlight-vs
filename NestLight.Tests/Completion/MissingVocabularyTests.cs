@@ -21,7 +21,7 @@ namespace NestLight.Tests
             int caret = codeWithCaret.IndexOf('|');
             string code = codeWithCaret.Remove(caret, 1);
             CompletionSite site = Engine(Grammar).Locate(code, caret);
-            Position position = Positions.At(code, site);
+            Position position = CompletionLanguages.Default.Find(site.EmbeddedLanguageId).PositionAt(code, site);
             return position == null ? null : position.Name;
         }
 
@@ -38,15 +38,15 @@ namespace NestLight.Tests
         [Fact]
         public void The_words_that_are_offered_but_not_colored_stay_out_of_the_vocabulary_the_tokenizers_share()
         {
-            Assert.DoesNotContain("main", Vocabularies.For("glsl"));
-            Assert.DoesNotContain("gl_FragColor", Vocabularies.For("glsl"));
-            Assert.Contains("main", Vocabularies.ForCompletion("glsl"));
-            Assert.Contains("gl_FragColor", Vocabularies.ForCompletion("glsl"));
-            Assert.Contains("main", Vocabularies.ForCompletion("wgsl"));
-            Assert.Equal(Vocabularies.For("sql"), Vocabularies.ForCompletion("sql")); // a language without extras is unchanged
-            Assert.Equal("gl_FragColor", Vocabularies.FindInCompletion("GLSL", "GL_FRAGCOLOR"));
-            Assert.Null(Vocabularies.Find("glsl", "main"));
-            Assert.Equal(Vocabularies.ForCompletion("glsl").OrderBy(w => w, System.StringComparer.OrdinalIgnoreCase), Vocabularies.ForCompletion("glsl"));
+            Assert.DoesNotContain("main", CompletionLanguages.Default.Find("glsl").Keywords);
+            Assert.DoesNotContain("gl_FragColor", CompletionLanguages.Default.Find("glsl").Keywords);
+            Assert.Contains("main", CompletionLanguages.Default.Find("glsl").CompletionWords);
+            Assert.Contains("gl_FragColor", CompletionLanguages.Default.Find("glsl").CompletionWords);
+            Assert.Contains("main", CompletionLanguages.Default.Find("wgsl").CompletionWords);
+            Assert.Equal(CompletionLanguages.Default.Find("sql").Keywords, CompletionLanguages.Default.Find("sql").CompletionWords); // a language without extras is unchanged
+            Assert.Equal("gl_FragColor", CompletionLanguages.Default.Find("GLSL").FindCompletionWord("GL_FRAGCOLOR"));
+            Assert.Null(CompletionLanguages.Default.Find("glsl").FindKeyword("main"));
+            Assert.Equal(CompletionLanguages.Default.Find("glsl").CompletionWords.OrderBy(w => w, System.StringComparer.OrdinalIgnoreCase), CompletionLanguages.Default.Find("glsl").CompletionWords);
         }
 
         [Fact]

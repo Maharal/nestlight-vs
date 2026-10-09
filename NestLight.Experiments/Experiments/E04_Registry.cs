@@ -8,7 +8,7 @@ namespace NestLight.Experiments
         public override string Id { get { return "E04"; } }
         public override string Title { get { return "The language registry built per buffer"; } }
         public override string Hypothesis { get { return "CreateHighlighter builds all the tokenizers again for every open file, and that cost adds up when many files are open."; } }
-        public override string Method { get { return "Time and allocation of CreateLanguages(), and of 100 consecutive CreateHighlighter calls (100 buffers) for each host."; } }
+        public override string Method { get { return "Time and allocation of CreateEmbeddedLanguages(), and of 100 consecutive CreateHighlighter calls (100 buffers) for each host."; } }
         public override string Criterion { get { return "Opening a buffer costs less than 1 ms and 1 MB, for every host."; } }
         public override string IfMet { get { return "The registry per buffer is not a cost worth removing."; } }
         public override string IfNotMet { get { return "A shared registry (or lazily built tokenizers) would pay off."; } }
@@ -16,9 +16,9 @@ namespace NestLight.Experiments
         public override Outcome Run(Settings settings)
         {
             var outcome = new Outcome();
-            Sample languages = Measure.Run(() => NestLightComposition.CreateLanguages(), 50, 200);
+            Sample languages = Measure.Run(() => NestLightComposition.CreateEmbeddedLanguages(), 50, 200);
             var table = new Table("Cost of opening one buffer", "Host", "Time per buffer", "Allocated per buffer");
-            table.Add("CreateLanguages() alone", Measure.Ms(languages.Ms), Measure.Kb(languages.AllocKb));
+            table.Add("CreateEmbeddedLanguages() alone", Measure.Ms(languages.Ms), Measure.Kb(languages.AllocKb));
 
             bool met = languages.Ms < 1 && languages.AllocKb < 1024;
             double worstMs = languages.Ms, worstKb = languages.AllocKb;

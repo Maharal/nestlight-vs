@@ -81,7 +81,7 @@ namespace NestLight.Tests
                 IReadOnlyList<string> list;
                 Assert.True(KeywordUse.Default.TryGetValue(language, out list), language);
                 Assert.NotEmpty(list);
-                Assert.All(list.Take(20), w => Assert.NotNull(Vocabularies.Find(language, w))); // each one is a keyword of the language
+                Assert.All(list.Take(20), w => Assert.NotNull(CompletionLanguages.Default.Find(language).FindKeyword(w))); // each one is a keyword of the language
             }
         }
 

@@ -8,7 +8,7 @@ namespace NestLight.Tests
     {
         private static string[] Ids(string code)
         {
-            return Lexer.Templates(code).Select(t => t.LanguageId).ToArray();
+            return Lexer.Templates(code).Select(t => t.EmbeddedLanguageId).ToArray();
         }
 
         [Theory]

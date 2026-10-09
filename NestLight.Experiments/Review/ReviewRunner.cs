@@ -52,7 +52,7 @@ namespace NestLight.Experiments
         public static void DumpCorpus(string outDir)
         {
             Directory.CreateDirectory(outDir);
-            ILanguageRegistry languages = NestLightComposition.CreateLanguages();
+            IEmbeddedLanguageRegistry languages = NestLightComposition.CreateEmbeddedLanguages();
             IHostScanner scanner = NestLightComposition.CreateScanner(HostLanguage.JavaScript, languages);
             foreach (string language in RealisticCorpus.Languages)
             {
@@ -64,7 +64,7 @@ namespace NestLight.Experiments
                     foreach (EmbeddedString s in scanner.Scan(documents[i].Text))
                     {
                         strings++;
-                        if (!Vocabularies.SameLanguage(s.LanguageId, language) && !(language == "html" && s.LanguageId == "svg")) wrong++;
+                        if (!CompletionLanguages.Default.Same(s.EmbeddedLanguageId, language) && !(language == "html" && s.EmbeddedLanguageId == "svg")) wrong++;
                     }
                     text.Append("// ---- ").Append(language).Append(" file ").Append(i + 1).Append(documents[i].Train ? " (train)" : " (test)").Append('\n').Append(documents[i].Text).Append('\n');
                 }
@@ -95,7 +95,7 @@ namespace NestLight.Experiments
 
         private static List<string> Cases(string language, string[] documents)
         {
-            ILanguageRegistry languages = NestLightComposition.CreateLanguages();
+            IEmbeddedLanguageRegistry languages = NestLightComposition.CreateEmbeddedLanguages();
             IHostScanner scanner = NestLightComposition.CreateScanner(HostLanguage.JavaScript, languages);
 
             var occurrences = new List<Occurrence>();
@@ -104,9 +104,9 @@ namespace NestLight.Experiments
                 string text = documents[d].Trim('\r', '\n');
                 foreach (EmbeddedString s in scanner.Scan(text))
                 {
-                    if (!Vocabularies.SameLanguage(s.LanguageId, language) && !(language == "html" && s.LanguageId == "svg")) continue;
+                    if (!CompletionLanguages.Default.Same(s.EmbeddedLanguageId, language) && !(language == "html" && s.EmbeddedLanguageId == "svg")) continue;
                     int i = s.Start, end = Math.Min(s.End, text.Length);
-                    bool dash = Vocabularies.IsExtraWordChar(language, '-');
+                    bool dash = CompletionLanguages.Default.Find(language).IsExtraWordChar('-');
                     while (i < end)
                     {
                         if (!(char.IsLetter(text[i]) || text[i] == '_')) { i++; continue; }
@@ -162,7 +162,7 @@ namespace NestLight.Experiments
             int total = 0;
             if (site != null)
             {
-                Position position = Positions.At(text, site);
+                Position position = CompletionLanguages.Default.Find(site.EmbeddedLanguageId).PositionAt(text, site);
                 place = position == null ? "(no rule)" : position.Name;
                 IReadOnlyList<Suggestion> items = analysis.Completion.Suggest(text, site);
                 total = items.Count;
@@ -173,13 +173,13 @@ namespace NestLight.Experiments
             }
 
             // whether anything could offer the word: it is a keyword of the language, or it is written elsewhere in the file
-            bool reachable = Vocabularies.Find(language, o.Word) != null
+            bool reachable = CompletionLanguages.Default.Find(language).FindKeyword(o.Word) != null
                 || System.Text.RegularExpressions.Regex.Matches(text, "(?<![\\p{L}\\p{N}_-])" + System.Text.RegularExpressions.Regex.Escape(o.Word) + "(?![\\p{L}\\p{N}_-])", System.Text.RegularExpressions.RegexOptions.IgnoreCase)
                     .Cast<System.Text.RegularExpressions.Match>().Any(m => m.Index != o.Start);
 
             // the code of the string the caret is in, with the caret marked
             EmbeddedString owner = null;
-            foreach (EmbeddedString s in NestLightComposition.CreateScanner(HostLanguage.JavaScript, NestLightComposition.CreateLanguages()).Scan(text))
+            foreach (EmbeddedString s in NestLightComposition.CreateScanner(HostLanguage.JavaScript, NestLightComposition.CreateEmbeddedLanguages()).Scan(text))
                 if (s.Start <= caret && caret <= Math.Min(s.End, text.Length)) owner = s;
             string shown = owner == null ? text : text.Substring(owner.Start, Math.Min(owner.End, text.Length) - owner.Start);
             int markAt = owner == null ? caret : caret - owner.Start;
