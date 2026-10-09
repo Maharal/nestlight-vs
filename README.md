@@ -105,7 +105,7 @@ The code is split by responsibility, and every dependency is injected through a 
 
 | Folder | Holds |
 |---|---|
-| `Completion` | The completion engine and the distance used for similar words; in `Completion/Languages`, one strategy per embedded language (its words, what counts as a word, the grammar of the place of the caret) |
+| `Completion` | The completion engine, the distance used for similar words and the rankers of the words of the document (`IWordRanker`: nearest, frequency, blend); in `Completion/Languages`, one strategy per embedded language (its words and the order they are used in, what counts as a word, the grammar of the place of the caret) |
 | `Common` | The model (embedded string, interpolation, token), the interfaces everything else depends on, marker rules and text helpers |
 | `Hosts` | One scanner per host language |
 | `EmbeddedLanguages` | One tokenizer per embedded language |
@@ -114,7 +114,7 @@ The code is split by responsibility, and every dependency is injected through a 
 
 Everything but `VisualStudio` is free of the Visual Studio SDK, so the tests run it as is.
 
-Adding a host means writing a scanner and a provider. Adding a language means writing a tokenizer, adding it to the composition root and declaring its classification types in `VisualStudio`, and, to complete it, writing a completion strategy in `Completion/Languages` (a class that derives from `CompletionLanguage` and overrides only what is different about the language).
+Adding a host means writing a scanner and a provider. Adding a language means writing a tokenizer, adding it to the composition root and declaring its classification types in `VisualStudio`, and, to complete it, writing a completion strategy in `Completion/Languages` (a class that derives from `CompletionLanguage` and overrides only what is different about the language). A language that holds code of another (HTML holds CSS) has one definition of where that code is, in its tokenizer (`INestingTokenizer`); the completion asks the same tokenizer, so the two cannot disagree. A new way of ordering the words of the document is a new `IWordRanker`; the engine does not change.
 
 ## Experiments
 

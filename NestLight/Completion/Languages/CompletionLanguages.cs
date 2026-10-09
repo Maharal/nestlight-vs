@@ -9,7 +9,7 @@ namespace NestLight.Completion
         private static readonly ICompletionLanguage Unknown = new UnknownCompletionLanguage();
 
         /// <summary>Every language the plugin knows. The strategies keep no state that depends on a buffer, so they are shared.</summary>
-        public static readonly CompletionLanguages Default = new CompletionLanguages(Standard());
+        public static readonly CompletionLanguages Default = new CompletionLanguages(CreateStandard());
 
         private readonly Dictionary<string, ICompletionLanguage> _byId = new Dictionary<string, ICompletionLanguage>(StringComparer.OrdinalIgnoreCase);
 
@@ -26,7 +26,8 @@ namespace NestLight.Completion
 
         public IEnumerable<string> Ids { get { return _byId.Keys; } }
 
-        private static IEnumerable<ICompletionLanguage> Standard()
+        /// <summary>New instances of every language the plugin knows: for a registry of its own (the experiments change the order by use of a copy).</summary>
+        internal static IEnumerable<ICompletionLanguage> CreateStandard()
         {
             return new ICompletionLanguage[]
             {

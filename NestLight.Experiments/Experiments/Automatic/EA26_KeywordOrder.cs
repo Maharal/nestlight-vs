@@ -72,8 +72,9 @@ namespace NestLight.Experiments
 
         internal static Func<IHostScanner, CompletionEngine> Variant(bool wordsFirst, Dictionary<string, IReadOnlyList<string>> priors, int head = 0)
         {
-            var features = new CompletionFeatures(previousWord: true, sameLanguageWords: true, grammar: true, wordsBeforeKeywords: wordsFirst, keywordPriors: priors, headKeywords: head);
-            return scanner => new CompletionEngine(scanner, matcher: new BandedPrefixMatcher(), features: features);
+            var features = new CompletionFeatures(previousWord: true, sameLanguageWords: true, grammar: true, wordsBeforeKeywords: wordsFirst, keywordPriority: priors != null, headKeywords: head);
+            ICompletionLanguages languages = priors == null ? null : LearnedLanguages.With(priors);
+            return scanner => new CompletionEngine(scanner, matcher: new BandedPrefixMatcher(), features: features, languages: languages);
         }
 
         internal static List<Scored> Evaluate(Dictionary<string, List<CorpusProbe>> probes, Func<IHostScanner, CompletionEngine>[] variants)

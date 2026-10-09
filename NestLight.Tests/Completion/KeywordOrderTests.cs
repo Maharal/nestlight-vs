@@ -9,26 +9,106 @@ namespace NestLight.Tests
     /// <summary>The order of the keywords and the words where no rule decides the place.</summary>
     public class KeywordOrderTests
     {
-        private static List<Suggestion> Items(string codeWithCaret, CompletionFeatures features, int maxItems = 100000)
+        private static List<Suggestion> Items(string codeWithCaret, CompletionFeatures features, int maxItems = 100000, ICompletionLanguages languages = null)
         {
             int caret = codeWithCaret.IndexOf('|');
             string code = codeWithCaret.Remove(caret, 1);
-            var engine = new CompletionEngine(Pipeline.Scanner(HostLanguage.JavaScript), maxItems, CompletionEngine.DefaultMinWordLength, features: features);
+            var engine = new CompletionEngine(Pipeline.Scanner(HostLanguage.JavaScript), maxItems, CompletionEngine.DefaultMinWordLength, features: features, languages: languages);
             return engine.Suggest(code, engine.Locate(code, caret)).ToList();
         }
 
-        private static List<string> Texts(string codeWithCaret, CompletionFeatures features) { return Items(codeWithCaret, features).Select(s => s.Text).ToList(); }
+        private static List<string> Texts(string codeWithCaret, CompletionFeatures features, ICompletionLanguages languages = null) { return Items(codeWithCaret, features, languages: languages).Select(s => s.Text).ToList(); }
 
         private static readonly CompletionFeatures WordsFirst = new CompletionFeatures(grammar: true, wordsBeforeKeywords: true);
+
+        /// <summary>A language that says for itself which of its words are used most.</summary>
+        private sealed class UsedLanguage : CompletionLanguage
+        {
+            private readonly IReadOnlyList<string> _use;
+            public UsedLanguage(string id, string[] keywords, string[] use, string[] extraWords = null) : base(new[] { id }, keywords, extraWords) { _use = use; }
+            protected override IReadOnlyList<string> UseOrder { get { return _use; } }
+        }
 
         [Fact]
         public void The_order_of_keywords_puts_the_ones_in_the_list_first_and_the_others_alphabetically()
         {
-            var features = new CompletionFeatures(keywordPriors: new Dictionary<string, IReadOnlyList<string>> { { "x", new[] { "b", "zzz", "B" } } });
-            IReadOnlyList<string> ordered = features.OrderKeywords("x", new[] { "a", "b", "c" });
-            Assert.Equal(new[] { "b", "a", "c" }, ordered.ToArray()); // a word that is not a keyword is ignored, a repeated one is placed once
-            Assert.Equal(new[] { "a", "b", "c" }, features.OrderKeywords("y", new[] { "a", "b", "c" }).ToArray()); // another language: unchanged
-            Assert.Equal(new[] { "a", "b", "c" }, CompletionFeatures.None.OrderKeywords("x", new[] { "a", "b", "c" }).ToArray());
+            var language = new UsedLanguage("x", new[] { "a", "b", "c" }, new[] { "b", "zzz", "B" });
+            Assert.Equal(new[] { "b", "a", "c" }, language.CompletionWordsByUse.ToArray()); // a word that is not a keyword is ignored, a repeated one is placed once
+            Assert.Equal(new[] { "a", "b", "c" }, language.CompletionWords.ToArray());      // the alphabetical list is still there
+
+            var other = new UsedLanguage("y", new[] { "a", "b", "c" }, new string[0]);
+            Assert.Equal(new[] { "a", "b", "c" }, other.CompletionWordsByUse.ToArray());    // a language without a list: unchanged
+            Assert.Same(other.CompletionWords, other.CompletionWordsByUse);
+            Assert.Same(language.CompletionWordsByUse, language.CompletionWordsByUse);       // computed once
+        }
+
+        [Fact]
+        public void The_words_that_are_offered_but_not_colored_take_part_in_the_order_by_use()
+        {
+            var language = new UsedLanguage("x", new[] { "a", "c" }, new[] { "main", "c" }, extraWords: new[] { "main" });
+            Assert.Equal(new[] { "main", "c", "a" }, language.CompletionWordsByUse.ToArray());
+        }
+
+        [Fact]
+        public void A_list_of_the_grammar_is_ordered_by_the_use_of_its_language_and_the_order_is_cached_by_list()
+        {
+            var language = new UsedLanguage("x", new[] { "a" }, new[] { "z", "m", "missing" });
+            IReadOnlyList<string> properties = new[] { "a", "m", "z" };
+            IReadOnlyList<string> ordered = language.OrderByUse(properties);
+            Assert.Equal(new[] { "z", "m", "a" }, ordered.ToArray());
+            Assert.Same(ordered, language.OrderByUse(properties));
+            Assert.Equal(new[] { "a", "m", "z" }, properties.ToArray()); // the list that came in is not touched
+
+            var none = new UsedLanguage("y", new[] { "a" }, new string[0]);
+            Assert.Same(properties, none.OrderByUse(properties));
+            Assert.Throws<System.ArgumentNullException>(() => language.OrderByUse(null));
+        }
+
+        [Fact]
+        public void The_features_decide_whether_the_use_order_applies_not_which_order_it_is()
+        {
+            var language = new UsedLanguage("x", new[] { "a", "b", "c" }, new[] { "c" });
+            Assert.Equal(new[] { "c", "a", "b" }, new CompletionFeatures(keywordPriority: true).OrderKeywords(language).ToArray());
+            Assert.Equal(new[] { "a", "b", "c" }, CompletionFeatures.None.OrderKeywords(language).ToArray());
+            IReadOnlyList<string> properties = new[] { "a", "c" };
+            Assert.Equal(new[] { "c", "a" }, new CompletionFeatures(keywordPriority: true).OrderByUse(language, properties).ToArray());
+            Assert.Same(properties, CompletionFeatures.None.OrderByUse(language, properties));
+        }
+
+        [Fact]
+        public void A_language_reads_its_order_under_any_of_its_ids_so_an_alias_needs_no_entry()
+        {
+            // "htm" and "svg" are not keys of KeywordUse.Default: the html language finds its list under "html"
+            Assert.False(KeywordUse.Default.ContainsKey("htm"));
+            Assert.False(KeywordUse.Default.ContainsKey("svg"));
+            IReadOnlyList<string> html = CompletionLanguages.Default.Find("html").CompletionWordsByUse;
+            Assert.Same(html, CompletionLanguages.Default.Find("htm").CompletionWordsByUse);
+            Assert.Same(html, CompletionLanguages.Default.Find("svg").CompletionWordsByUse);
+            Assert.Equal(KeywordUse.Default["html"][0], html[0]);
+            // yml is the alias of yaml
+            Assert.Equal("true", CompletionLanguages.Default.Find("yml").CompletionWordsByUse[0]);
+        }
+
+        [Fact]
+        public void A_language_without_a_list_offers_its_words_alphabetically_even_with_the_priority_on()
+        {
+            foreach (string id in new[] { "xml", "markdown", "regex" })
+            {
+                ICompletionLanguage language = CompletionLanguages.Default.Find(id);
+                Assert.Same(language.CompletionWords, language.CompletionWordsByUse);
+            }
+            Assert.Empty(CompletionLanguages.Default.Find("unknown-language").CompletionWordsByUse);
+        }
+
+        [Fact]
+        public void An_order_learned_elsewhere_replaces_the_one_of_the_instance_only()
+        {
+            ICompletionLanguage shipped = CompletionLanguages.Default.Find("json");
+            ICompletionLanguage copy = null;
+            foreach (ICompletionLanguage l in CompletionLanguages.CreateStandard()) if (l.Ids.Contains("json")) copy = l;
+            ((CompletionLanguage)copy).LearnUseOrder(new[] { "null", "false" });
+            Assert.Equal(new[] { "null", "false", "true" }, copy.CompletionWordsByUse.ToArray());
+            Assert.Equal(new[] { "true", "false", "null" }, shipped.CompletionWordsByUse.ToArray()); // the shared one is untouched
         }
 
         [Fact]
@@ -44,16 +124,24 @@ namespace NestLight.Tests
         [Fact]
         public void The_most_used_keywords_still_come_first_and_the_rest_after_the_words()
         {
-            var priors = new Dictionary<string, IReadOnlyList<string>> { { "glsl", new[] { "texture", "tan" } } };
+            // the glsl of the plugin, with an order by use of its own
+            var glsl = CompletionLanguages.CreateStandard().Single(l => l.Ids.Contains("glsl"));
+            ((CompletionLanguage)glsl).LearnUseOrder(new[] { "texture", "tan" });
+            var languages = new CompletionLanguages(CompletionLanguages.CreateStandard().Where(l => !l.Ids.Contains("glsl")).Concat(new[] { glsl }));
+
             const string code = "glsl`void main() { float texel = 1.0; float t|`";
-            List<string> head = Texts(code, new CompletionFeatures(grammar: true, wordsBeforeKeywords: true, keywordPriors: priors, headKeywords: 1));
+            List<string> head = Texts(code, new CompletionFeatures(grammar: true, wordsBeforeKeywords: true, keywordPriority: true, headKeywords: 1), languages);
             Assert.Equal(new[] { "texture", "texel" }, head.Take(2).ToArray());
             Assert.True(head.IndexOf("tan") > head.IndexOf("texel"));
 
-            List<string> none = Texts(code, new CompletionFeatures(grammar: true, wordsBeforeKeywords: true, keywordPriors: priors, headKeywords: 0));
+            List<string> none = Texts(code, new CompletionFeatures(grammar: true, wordsBeforeKeywords: true, keywordPriority: true, headKeywords: 0), languages);
             Assert.Equal("texel", none[0]);
-            List<string> two = Texts(code, new CompletionFeatures(grammar: true, wordsBeforeKeywords: true, keywordPriors: priors, headKeywords: 2));
+            List<string> two = Texts(code, new CompletionFeatures(grammar: true, wordsBeforeKeywords: true, keywordPriority: true, headKeywords: 2), languages);
             Assert.Equal(new[] { "texture", "tan", "texel" }, two.Take(3).ToArray());
+
+            // with the priority off the order of the language is not used at all
+            List<string> off = Texts(code, new CompletionFeatures(grammar: true, wordsBeforeKeywords: true, headKeywords: 2), languages);
+            Assert.True(off.IndexOf("tan") < off.IndexOf("texture"));
         }
 
         [Fact]
@@ -76,12 +164,15 @@ namespace NestLight.Tests
         [Fact]
         public void The_plugin_default_has_a_list_for_each_language_with_a_vocabulary()
         {
-            foreach (string language in new[] { "sql", "css", "html", "svg", "graphql", "json", "yaml", "glsl", "wgsl" })
+            foreach (string id in new[] { "sql", "css", "html", "svg", "graphql", "json", "yaml", "glsl", "wgsl" })
             {
-                IReadOnlyList<string> list;
-                Assert.True(KeywordUse.Default.TryGetValue(language, out list), language);
-                Assert.NotEmpty(list);
-                Assert.All(list.Take(20), w => Assert.NotNull(CompletionLanguages.Default.Find(language).FindKeyword(w))); // each one is a keyword of the language
+                ICompletionLanguage language = CompletionLanguages.Default.Find(id);
+                IReadOnlyList<string> byUse = language.CompletionWordsByUse;
+                Assert.NotSame(language.CompletionWords, byUse);
+                // the same words (a word spelled in several cases is one word here, as it always was)
+                Assert.Equal(language.CompletionWords.Select(w => w.ToLowerInvariant()).Distinct().OrderBy(w => w, System.StringComparer.Ordinal), byUse.Select(w => w.ToLowerInvariant()).Distinct().OrderBy(w => w, System.StringComparer.Ordinal));
+                Assert.Equal(byUse.Count, byUse.Distinct(System.StringComparer.OrdinalIgnoreCase).Count());
+                Assert.All(KeywordUse.Default[id == "svg" ? "html" : id].Take(20), w => Assert.NotNull(language.FindKeyword(w))); // each one is a keyword of the language
             }
         }
 

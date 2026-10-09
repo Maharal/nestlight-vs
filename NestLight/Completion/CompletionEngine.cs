@@ -189,17 +189,17 @@ namespace NestLight.Completion
             if (context.Has)
             {
                 scan = ScanWords(language, text, site, prefix, context, scope);
-                AddFollowing(language, text, site, scan, upper, seen, result, _features.Order, _features.BlendWeight);
+                AddFollowing(language, text, site, scan, upper, seen, result, _features.Ranker);
             }
             if (schema != null && place.Role == PlaceRole.Table) AddCandidates(schema, prefix, seen, result);
 
             // what the grammar expects at the caret, then (where the place says so) the words of the document, then the other keywords
-            if (position != null) AddExpected(language, position.PriorOrder ? _features.OrderByUse(site.EmbeddedLanguageId, position.Expected) : position.Expected, prefix, upper, seen, result);
+            if (position != null) AddExpected(language, position.PriorOrder ? _features.OrderByUse(language, position.Expected) : position.Expected, prefix, upper, seen, result);
             bool wordsFirst = position != null ? position.WordsFirst : _features.WordsBeforeKeywords;
             if (wordsFirst && position == null && _features.HeadKeywords > 0)
             {
                 // the most used keywords still go first where the words of the file do
-                foreach (string word in _features.OrderKeywords(site.EmbeddedLanguageId, language.CompletionWords).Take(_features.HeadKeywords))
+                foreach (string word in _features.OrderKeywords(language).Take(_features.HeadKeywords))
                 {
                     if (result.Count >= _maxItems) return result;
                     if (!StartsWithIgnoreCase(word, prefix) || word.Length == prefix.Length) continue;
@@ -210,7 +210,7 @@ namespace NestLight.Completion
             if (position != null && position.Secondary.Count > 0) AddExpected(language, position.Secondary, prefix, upper, seen, result);
 
             List<string> unlikely = null;
-            foreach (string word in position != null && position.OnlyWords ? new string[0] : _features.OrderKeywords(site.EmbeddedLanguageId, language.CompletionWords))
+            foreach (string word in position != null && position.OnlyWords ? new string[0] : _features.OrderKeywords(language))
             {
                 if (result.Count >= _maxItems) return result;
                 if (!StartsWithIgnoreCase(word, prefix) || word.Length == prefix.Length) continue;
@@ -343,7 +343,7 @@ namespace NestLight.Completion
                 if (_fuzzyFirstLetter && char.ToUpperInvariant(text[start]) != first) continue;
 
                 int near = start > site.Caret ? start - site.Caret : site.Caret - i;
-                int hash = Hash(text, start, length);
+                int hash = WordText.Hash(text, start, length);
                 Similar entry;
                 known.TryGetValue(hash, out entry);
                 Similar same = entry;
@@ -402,17 +402,17 @@ namespace NestLight.Completion
         /// <summary>The matches of one pass over the window of the document.</summary>
         private sealed class WordScan
         {
-            public readonly List<Match> Before = new List<Match>();
-            public readonly List<Match> After = new List<Match>();
+            public readonly List<WordMatch> Before = new List<WordMatch>();
+            public readonly List<WordMatch> After = new List<WordMatch>();
             /// <summary>With <see cref="CompletionFeatures.SameLanguageWords"/>, the matches outside the code of the strings of the language; they come after the others.</summary>
-            public readonly List<Match> OtherBefore = new List<Match>();
-            public readonly List<Match> OtherAfter = new List<Match>();
+            public readonly List<WordMatch> OtherBefore = new List<WordMatch>();
+            public readonly List<WordMatch> OtherAfter = new List<WordMatch>();
             /// <summary>With <see cref="CompletionFeatures.ShortWordsLast"/>, the words under the minimum length; they come after all the others.</summary>
-            public readonly List<Match> ShortBefore = new List<Match>();
-            public readonly List<Match> ShortAfter = new List<Match>();
+            public readonly List<WordMatch> ShortBefore = new List<WordMatch>();
+            public readonly List<WordMatch> ShortAfter = new List<WordMatch>();
             /// <summary>The matches that follow the same word and punctuation as the caret does (only with <see cref="CompletionFeatures.PreviousWord"/>).</summary>
-            public readonly List<Match> Follows;
-            public WordScan(bool context) { if (context) Follows = new List<Match>(); }
+            public readonly List<WordMatch> Follows;
+            public WordScan(bool context) { if (context) Follows = new List<WordMatch>(); }
         }
 
         /// <summary>The word before the caret and the punctuation between them: what the words that follow it elsewhere have in common.</summary>
@@ -545,7 +545,7 @@ namespace NestLight.Completion
                 if (start <= site.Caret && site.Caret <= i) continue; // the word under the caret
                 if (length == prefix.Length) continue; // nothing to add
                 if (string.Compare(text, start, prefix, 0, prefix.Length, StringComparison.OrdinalIgnoreCase) != 0) continue;
-                var match = new Match(start, length);
+                var match = new WordMatch(start, length);
                 bool inScope = true;
                 if (scope != null)
                 {
@@ -566,21 +566,9 @@ namespace NestLight.Completion
         }
 
         /// <summary>The words that followed the same word before, the nearest occurrence first; a keyword of the language keeps its own spelling.</summary>
-        private static void AddFollowing(ICompletionLanguage language, string text, CompletionSite site, WordScan scan, bool upper, HashSet<string> seen, List<Suggestion> result, WordOrder order, double blendWeight)
+        private static void AddFollowing(ICompletionLanguage language, string text, CompletionSite site, WordScan scan, bool upper, HashSet<string> seen, List<Suggestion> result, IWordRanker ranker)
         {
-            int caret = site.Caret;
-            IEnumerable<Match> ordered;
-            if (order == WordOrder.Nearest)
-            {
-                scan.Follows.Sort((x, y) =>
-                {
-                    int nx = x.Start > caret ? x.Start - caret : caret - (x.Start + x.Length), ny = y.Start > caret ? y.Start - caret : caret - (y.Start + y.Length);
-                    return nx != ny ? nx.CompareTo(ny) : x.Start.CompareTo(y.Start);
-                });
-                ordered = scan.Follows;
-            }
-            else ordered = Ranked(text, caret, new[] { scan.Follows }, order, blendWeight);
-            foreach (Match m in ordered)
+            foreach (WordMatch m in ranker.RankFollowing(text, site.Caret, scan.Follows))
             {
                 string word = text.Substring(m.Start, m.Length);
                 if (!seen.Add(word)) continue;
@@ -592,52 +580,20 @@ namespace NestLight.Completion
         }
 
         /// <summary>
-        /// The words of the scan, nearest to the caret first and each one once. The matches before and after the caret are already
-        /// in order, so merging them gives the order by distance, and a word is only created when it is about to be offered: a caller
-        /// that stops after the first N words never pays for the other thousands.
+        /// The words of the scan in the order of the ranker (the words of the code of the language first, then the others, then the short
+        /// ones) and each one once. A word is only created when it is about to be offered: one that was already offered is recognized from
+        /// its hash, so a caller that stops after the first N words never pays for the other thousands.
         /// </summary>
         private IEnumerable<string> OrderedWords(string text, CompletionSite site, WordScan scan)
         {
             var emitted = new HashSet<string>(StringComparer.Ordinal);
             var byHash = new Dictionary<int, string>();
-            if (_features.Order != WordOrder.Nearest)
-            {
-                // by count and distance: one representative occurrence of each distinct word, in rank order, tier by tier
-                for (int tier = 0; tier < 3; tier++)
-                    foreach (Match m in Ranked(text, site.Caret, tier == 0 ? new[] { scan.Before, scan.After } : tier == 1 ? new[] { scan.OtherBefore, scan.OtherAfter } : new[] { scan.ShortBefore, scan.ShortAfter }, _features.Order, _features.BlendWeight))
-                    {
-                        string word = text.Substring(m.Start, m.Length);
-                        if (emitted.Add(word)) yield return word;
-                    }
-                yield break;
-            }
-
-            // the words of the code of the language, then the others (empty without the feature)
             for (int tier = 0; tier < 3; tier++)
             {
-                List<Match> before = tier == 0 ? scan.Before : tier == 1 ? scan.OtherBefore : scan.ShortBefore, after = tier == 0 ? scan.After : tier == 1 ? scan.OtherAfter : scan.ShortAfter;
-                int b = before.Count - 1, a = 0;
-                while (b >= 0 || a < after.Count)
+                List<WordMatch> before = tier == 0 ? scan.Before : tier == 1 ? scan.OtherBefore : scan.ShortBefore, after = tier == 0 ? scan.After : tier == 1 ? scan.OtherAfter : scan.ShortAfter;
+                foreach (WordMatch m in _features.Ranker.Rank(text, site.Caret, before, after))
                 {
-                    Match m;
-                    if (a >= after.Count) m = before[b--];
-                    else if (b < 0) m = after[a++];
-                    else
-                    {
-                        int behind = site.Caret - (before[b].Start + before[b].Length), ahead = after[a].Start - site.Caret;
-                        if (behind < ahead) m = before[b--];
-                        else if (ahead < behind) m = after[a++];
-                        else
-                        {
-                            // the same distance on both sides: alphabetical, so that the order does not depend on the side
-                            Match left = before[b], right = after[a];
-                            bool leftFirst = string.CompareOrdinal(text.Substring(left.Start, left.Length), text.Substring(right.Start, right.Length)) <= 0;
-                            m = leftFirst ? before[b--] : after[a++];
-                        }
-                    }
-
-                    // a word that was already offered is recognized from its hash, without creating the string again
-                    int hash = Hash(text, m.Start, m.Length);
+                    int hash = WordText.Hash(text, m.Start, m.Length);
                     string known;
                     if (byHash.TryGetValue(hash, out known) && known.Length == m.Length && string.CompareOrdinal(text, m.Start, known, 0, m.Length) == 0) continue;
                     string word = text.Substring(m.Start, m.Length);
@@ -645,70 +601,6 @@ namespace NestLight.Completion
                     if (known == null) byHash[hash] = word;
                     yield return word;
                 }
-            }
-        }
-
-        private sealed class Counted
-        {
-            public Match First;
-            public int Count, Near;
-            public Counted Next;
-            public double Score;
-        }
-
-        /// <summary>
-        /// One occurrence of each distinct word of the lists (case matters), in the order of <paramref name="order"/>: the number of times
-        /// it occurs and the distance from the caret to the nearest one decide. Ties go to the nearer, then to the earlier in the text,
-        /// so that the order is the same every time.
-        /// </summary>
-        private static IEnumerable<Match> Ranked(string text, int caret, IEnumerable<List<Match>> lists, WordOrder order, double blendWeight)
-        {
-            var byHash = new Dictionary<int, Counted>();
-            var all = new List<Counted>();
-            foreach (List<Match> list in lists)
-                foreach (Match m in list)
-                {
-                    int near = m.Start > caret ? m.Start - caret : caret - (m.Start + m.Length);
-                    int hash = Hash(text, m.Start, m.Length);
-                    Counted head;
-                    byHash.TryGetValue(hash, out head);
-                    Counted c = head;
-                    while (c != null && !(c.First.Length == m.Length && string.CompareOrdinal(text, c.First.Start, text, m.Start, m.Length) == 0)) c = c.Next;
-                    if (c == null)
-                    {
-                        c = new Counted { First = m, Near = near, Next = head };
-                        byHash[hash] = c;
-                        all.Add(c);
-                    }
-                    c.Count++;
-                    if (near < c.Near) { c.Near = near; c.First = m; }
-                }
-
-            if (order == WordOrder.Blend)
-                foreach (Counted c in all) c.Score = Math.Log(1 + c.Count) - blendWeight * Math.Log(1 + c.Near);
-            all.Sort((x, y) =>
-            {
-                if (order == WordOrder.Frequency) { if (x.Count != y.Count) return y.Count.CompareTo(x.Count); }
-                else if (x.Score != y.Score) return y.Score.CompareTo(x.Score);
-                if (x.Near != y.Near) return x.Near.CompareTo(y.Near);
-                return x.First.Start.CompareTo(y.First.Start);
-            });
-            foreach (Counted c in all) yield return c.First;
-        }
-
-        private struct Match
-        {
-            public readonly int Start, Length;
-            public Match(int start, int length) { Start = start; Length = length; }
-        }
-
-        private static int Hash(string text, int start, int length)
-        {
-            unchecked
-            {
-                int h = (int)2166136261;
-                for (int k = 0; k < length; k++) h = (h ^ text[start + k]) * 16777619;
-                return h;
             }
         }
 

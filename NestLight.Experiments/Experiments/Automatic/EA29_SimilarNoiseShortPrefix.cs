@@ -41,7 +41,7 @@ namespace NestLight.Experiments
             Func<CompletionFeatures, Func<IHostScanner, CompletionEngine>> make = f => scanner => new CompletionEngine(scanner, matcher: new BandedPrefixMatcher(), features: f);
             CompletionFeatures D(int minPrefix = 3, int cap = 0, bool fileOnly = false)
             {
-                return new CompletionFeatures(previousWord: true, sameLanguageWords: true, grammar: true, wordsBeforeKeywords: true, keywordPriors: KeywordUse.Default, headKeywords: 12,
+                return new CompletionFeatures(previousWord: true, sameLanguageWords: true, grammar: true, wordsBeforeKeywords: true, keywordPriority: true, headKeywords: 12,
                     fuzzyMinPrefix: minPrefix, shortSimilarCap: cap, shortSimilarFromFileOnly: fileOnly);
             }
             var variants = new[] { make(D()), make(D(minPrefix: 4)), make(D(cap: 3)), make(D(fileOnly: true)), make(D(cap: 3, fileOnly: true)) };

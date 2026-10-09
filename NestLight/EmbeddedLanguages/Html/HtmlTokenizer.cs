@@ -9,10 +9,13 @@ namespace NestLight.EmbeddedLanguages
     /// text, tag name, attribute name, value... CSS in &lt;style&gt; blocks and style="..." attributes is
     /// delegated to the CSS tokenizer of the registry.
     /// </summary>
-    internal sealed class HtmlTokenizer : IEmbeddedLanguageTokenizer
+    internal sealed class HtmlTokenizer : INestingTokenizer
     {
         private const char Mask = TextUtil.Mask;
         private static readonly string[] HtmlIds = { "html", "htm", "svg" };
+
+        /// <summary>The language of the content of a <c>&lt;style&gt;</c> element and of the value of a <c>style</c> attribute.</summary>
+        public const string StyleLanguageId = "css";
 
         private readonly IEmbeddedLanguageRegistry _languages;
 
@@ -25,6 +28,30 @@ namespace NestLight.EmbeddedLanguages
         public IReadOnlyList<string> Ids { get { return HtmlIds; } }
 
         public void Tokenize(char[] m, int from, int to, TokenSink add)
+        {
+            Parse(m, from, to, add, region => Embedded(region.EmbeddedLanguageId, m, region.Start, region.End, add));
+        }
+
+        public IReadOnlyList<NestedRegion> FindRegions(char[] m, int from, int to)
+        {
+            return Regions(m, from, to);
+        }
+
+        private static readonly TokenSink Ignore = (a, b, type) => { };
+
+        /// <summary>
+        /// <see cref="FindRegions"/> without a registry: finding the regions does not need the tokenizers of the languages inside, only the
+        /// rules of HTML that say where they are.
+        /// </summary>
+        public static IReadOnlyList<NestedRegion> Regions(char[] m, int from, int to)
+        {
+            var regions = new List<NestedRegion>();
+            Parse(m, from, to, Ignore, regions.Add);
+            return regions;
+        }
+
+        /// <summary>The one pass over the HTML: the tokens of the markup go to <paramref name="add"/> and the code of other languages to <paramref name="nested"/>.</summary>
+        private static void Parse(char[] m, int from, int to, TokenSink add, RegionSink nested)
         {
             int n = to;
             int i = from;
@@ -90,7 +117,7 @@ namespace NestLight.EmbeddedLanguages
                             {
                                 // style="prop: value; ..." -> CSS between the quotes
                                 add(v, v + 1, ClassificationNames.AttributeValue);
-                                Embedded("css", m, v + 1, q, add);
+                                nested(new NestedRegion { EmbeddedLanguageId = StyleLanguageId, Start = v + 1, End = q, InlineDeclarations = true });
                                 if (closed) add(q, q + 1, ClassificationNames.AttributeValue);
                             }
                             else
@@ -116,7 +143,7 @@ namespace NestLight.EmbeddedLanguages
                 {
                     int close = TextUtil.IndexOfIgnoreCase(m, "</style", p, n);
                     int end = close < 0 ? n : close;
-                    Embedded("css", m, p, end, add);
+                    nested(new NestedRegion { EmbeddedLanguageId = StyleLanguageId, Start = p, End = end });
                     p = end;
                 }
                 i = p;
