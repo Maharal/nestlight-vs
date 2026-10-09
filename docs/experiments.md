@@ -776,6 +776,14 @@ The review of 800 suggestions listed words the plugin never offered. They are no
 
 On the 800 suggestions of the review the 15 cases of this kind that had no answer now have one: [GLSL-1](suggestion-review/glsl.md#glsl-1) `es`, [GLSL-15](suggestion-review/glsl.md#glsl-15) `main`, [GLSL-98](suggestion-review/glsl.md#glsl-98) `gl_FragColor`, [WGSL-19](suggestion-review/wgsl.md#wgsl-19) `builtin`, [WGSL-25](suggestion-review/wgsl.md#wgsl-25) `vertex`, [WGSL-64](suggestion-review/wgsl.md#wgsl-64) `read`, [HTML-63](suggestion-review/html.md#html-63) `region`, [HTML-85](suggestion-review/html.md#html-85) `currentColor`... They are not experiments: a word either exists or not, and the 58 tests of the places check each one.
 
+## CSS inside HTML
+
+The highlighter has always colored the CSS of a `<style>` element and of a `style="..."` attribute as CSS; the completion saw only the string as a whole, so inside them it completed as HTML (words of the text and, with a mistake, tag names: `clipPath`, `main`, `map`). Now [NestedLanguages](../NestLight/Completion/NestedLanguages.cs) finds the CSS inside an HTML or SVG string (it skips comments and the interpolations of the host, so a `>` inside `${a => a > 1}` does not end a tag), and `Locate` gives a site of language `css` there: every rule of the CSS applies (properties, values, `:hover`, `@media`, `@keyframes`, functions, the words of the style sheets of the file). A style attribute starts inside a declaration list, with no selectors. An unfinished `<style>` or `style="` runs to the end of the string, which is how it is while typing.
+
+Found on the way: the similar-words stage ignored the places where no keyword belongs (text, attribute values, JSON keys, literals) and offered tag names and keywords for a mistake. It now takes only the words of the file there ([HTML-30](suggestion-review/html.md#html-30) `scp` offers `scope` first instead of `script`).
+
+Not done: the CSS inside the HTML is found for completion only; the highlighter has its own reading of the same places (`HtmlTokenizer`) and the two could share it. `<script>` is not completed: the plugin has no JavaScript.
+
 ## Notes on the context ranking
 
 - **What the plugin runs with** (`CompletionFeatures.Default`): the previous word (E28), the words of the language (E29), the grammar (E30) and, where no rule decides, the words of the file first with the 12 most used keywords in front of them (E35); the words of two letters are offered after all the others (E38). Within the first 5, on the generated files: 72.5% with the order by distance alone, 85.5% with the previous word, 88.1% with the language, 97.2% with the grammar. The schema (E31) and the order by count (E32) stay in the code, off.

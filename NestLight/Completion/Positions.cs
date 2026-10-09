@@ -268,6 +268,7 @@ namespace NestLight.Completion
         private static Position Css(string text, int floor, CompletionSite site)
         {
             var blocks = new List<CssBlock>(); // innermost last; none: the top level
+            if (site.InlineDeclarations) blocks.Add(CssBlock.Declarations); // the value of a style attribute starts inside a rule
             int declarationStart = floor, colon = -1, parens = 0, brackets = 0;
             int i = floor;
             while (i < site.Start)

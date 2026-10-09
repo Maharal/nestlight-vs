@@ -30,9 +30,9 @@ namespace NestLight.Completion
     /// <summary>Where a completion applies: the word under the caret inside an embedded string.</summary>
     internal sealed class CompletionSite
     {
-        public CompletionSite(string languageId, int start, int caret, int end, int ownerStart = -1, int ownerEnd = -1)
+        public CompletionSite(string languageId, int start, int caret, int end, int ownerStart = -1, int ownerEnd = -1, bool inlineDeclarations = false)
         {
-            LanguageId = languageId; Start = start; Caret = caret; End = end; OwnerStart = ownerStart; OwnerEnd = ownerEnd;
+            LanguageId = languageId; Start = start; Caret = caret; End = end; OwnerStart = ownerStart; OwnerEnd = ownerEnd; InlineDeclarations = inlineDeclarations;
         }
 
         /// <summary>Lower-case id or alias of the embedded language.</summary>
@@ -45,6 +45,8 @@ namespace NestLight.Completion
         /// <summary>The code of the embedded string the caret is in: [OwnerStart, OwnerEnd). -1 when unknown.</summary>
         public int OwnerStart { get; private set; }
         public int OwnerEnd { get; private set; }
+        /// <summary>The code is the value of a style attribute: a list of declarations, with no selectors.</summary>
+        public bool InlineDeclarations { get; private set; }
 
         /// <summary>What was typed so far: the text of [Start, Caret).</summary>
         public int PrefixLength { get { return Caret - Start; } }
@@ -137,14 +139,21 @@ namespace NestLight.Completion
                 if (x.Start < caret && caret < x.End) return null; // the host language owns the expression
 
             string id = owner.LanguageId;
+            int ownerStart = owner.Start, limit = Math.Min(owner.End, text.Length);
+            bool inline = false;
+            NestedLanguages.CssRange css;
+            if (Vocabularies.SameLanguage(id, "html") && NestedLanguages.TryCssAt(text, owner, caret, out css))
+            {
+                // the CSS of a <style> element or of a style attribute is completed as CSS
+                id = "css"; ownerStart = css.Start; limit = css.End; inline = css.Attribute;
+            }
             int start = caret;
-            while (start > owner.Start && IsWordChar(id, text[start - 1])) start--;
+            while (start > ownerStart && IsWordChar(id, text[start - 1])) start--;
             int end = caret;
-            int limit = Math.Min(owner.End, text.Length);
             while (end < limit && IsWordChar(id, text[end])) end++;
 
             if (start < caret && !IsWordStart(id, text[start])) return null; // numbers, not words
-            return new CompletionSite(id, start, caret, end, owner.Start, limit);
+            return new CompletionSite(id, start, caret, end, ownerStart, limit, inline);
         }
 
         // ---- what -----------------------------------------------------------------------------------------------
@@ -215,7 +224,7 @@ namespace NestLight.Completion
                 }
 
             if (_matcher != null && prefix.Length >= _features.FuzzyMinPrefix && result.Count < _fuzzyBelow && result.Count < _maxItems)
-                AddSimilar(text, site, prefix, upper, seen, result, cancellation);
+                AddSimilar(text, site, prefix, upper, seen, result, cancellation, position == null || !position.OnlyWords);
             return result;
         }
 
@@ -305,7 +314,7 @@ namespace NestLight.Completion
             public bool Rejected;
         }
 
-        private void AddSimilar(string text, CompletionSite site, string prefix, bool upper, HashSet<string> seen, List<Suggestion> result, CancellationToken cancellation)
+        private void AddSimilar(string text, CompletionSite site, string prefix, bool upper, HashSet<string> seen, List<Suggestion> result, CancellationToken cancellation, bool keywords)
         {
             cancellation.ThrowIfCancellationRequested();
             int k = ToleranceFor(prefix.Length), n = prefix.Length;
@@ -318,7 +327,7 @@ namespace NestLight.Completion
             int capacity = limit + result.Count;
             var best = new List<Similar>(capacity + 1);
 
-            foreach (string word in shortPrefix && _features.ShortSimilarFromFileOnly ? new string[0] : Vocabularies.ForCompletion(site.LanguageId))
+            foreach (string word in !keywords || shortPrefix && _features.ShortSimilarFromFileOnly ? new string[0] : Vocabularies.ForCompletion(site.LanguageId))
             {
                 if (++examined % CancellationStride == 0) cancellation.ThrowIfCancellationRequested();
                 if (word.Length < n - k) continue;
@@ -474,6 +483,19 @@ namespace NestLight.Completion
             return string.Compare(text, previousStart, text, context.Start, previousLength, StringComparison.OrdinalIgnoreCase) == 0;
         }
 
+        /// <summary>The part of [from, to) that is outside the interpolations of the string.</summary>
+        private static void AddPieces(List<KeyValuePair<int, int>> pieces, EmbeddedString s, int from, int to)
+        {
+            int at = from;
+            foreach (Interpolation x in s.Interpolations)
+            {
+                if (x.End <= at || x.Start >= to) continue;
+                if (x.Start > at) pieces.Add(new KeyValuePair<int, int>(at, x.Start));
+                at = Math.Max(at, x.End);
+            }
+            if (at < to) pieces.Add(new KeyValuePair<int, int>(at, to));
+        }
+
         /// <summary>
         /// The code of the strings of the caret's language as sorted, disjoint [start, end) pairs, flat: what is inside a string of the
         /// language and outside its interpolations.
@@ -481,16 +503,12 @@ namespace NestLight.Completion
         private int[] CodeRanges(string text, CompletionSite site)
         {
             var pieces = new List<KeyValuePair<int, int>>();
+            bool css = Vocabularies.SameLanguage(site.LanguageId, "css");
             foreach (EmbeddedString s in _scanner.Scan(text))
             {
-                if (!Vocabularies.SameLanguage(s.LanguageId, site.LanguageId)) continue;
-                int end = Math.Min(s.End, text.Length), at = s.Start;
-                foreach (Interpolation x in s.Interpolations)
-                {
-                    if (x.Start > at) pieces.Add(new KeyValuePair<int, int>(at, Math.Min(x.Start, end)));
-                    at = Math.Max(at, x.End);
-                }
-                if (at < end) pieces.Add(new KeyValuePair<int, int>(at, end));
+                if (Vocabularies.SameLanguage(s.LanguageId, site.LanguageId)) AddPieces(pieces, s, s.Start, Math.Min(s.End, text.Length));
+                else if (css && Vocabularies.SameLanguage(s.LanguageId, "html"))
+                    foreach (NestedLanguages.CssRange r in NestedLanguages.CssIn(text, s)) AddPieces(pieces, s, r.Start, r.End); // the CSS inside the HTML
             }
             pieces.Sort((a, b) => a.Key.CompareTo(b.Key));
 
