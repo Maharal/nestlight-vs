@@ -18,6 +18,9 @@ namespace NestLight.Experiments
     /// </summary>
     internal static class CombinationReview
     {
+        public const string Id = "EM_04";
+        public const string Title = "Review of every host with every embedded language";
+
         private const int Top = 10;
         private const int MaxWords = 8;
 
@@ -25,7 +28,7 @@ namespace NestLight.Experiments
         {
             Directory.CreateDirectory(outDir);
             var index = new StringBuilder();
-            index.AppendLine("# Review of the generated combinations").AppendLine();
+            index.AppendLine("# " + Id + ": " + Title).AppendLine();
             index.AppendLine("One file per combination: read each and judge the colors and the completion. `Gaps` = words inside the string with no token; `Misses` = completion cases where the intended word is not in the top " + Top + ".").AppendLine();
             index.AppendLine("| Combination | Strings | Tokens | Gaps | Misses | Wrong sites |").AppendLine("|---|---|---|---|---|---|");
 

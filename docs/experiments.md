@@ -11,6 +11,8 @@ What grows is the cost **per edit**, proportional to the file size: every new sn
 
 ## Automatic and manual experiments
 
+The ids say which kind it is, and each kind is numbered from 1: **EA_nn** are automatic (class `EA_nn_Name`, in `Experiments/Automatic/`), **EM_nn** are manual (in `Experiments/Manual/`). The first reports (`docs/reports/`, before this numbering) use the old single sequence `E01` to `E39`, and stay as they were run: `E01` to `E09` are `EA_01` to `EA_09`; `E10`, `E11` and `E26` are `EM_01`, `EM_02` and `EM_03`; `E12` to `E25` are `EA_10` to `EA_23`; `E27` to `E39` are `EA_24` to `EA_36`.
+
 Besides the unit tests (`NestLight.Tests`, which say whether the code is right) the experiments are split by folder in [NestLight.Experiments/Experiments](../NestLight.Experiments/Experiments):
 
 | Folder | What it is | How to run |
@@ -29,13 +31,13 @@ dotnet run -c Release --project NestLight.Experiments -- --generate out         
 dotnet run -c Release --project NestLight.Experiments -- --generate out --host python --language sql --repeat 1000   # one big file
 ```
 
-To add a language, add its sample to `LanguageSamples`; to add a host, add a rule to `Reason` and a writer to the generator. A new check over the matrix goes through `CombinationGenerator.Applicable()` and `CombinationCheck.Check` (E39); a new section of the review goes in `CombinationReview.Review`.
+To add a language, add its sample to `LanguageSamples`; to add a host, add a rule to `Reason` and a writer to the generator. A new check over the matrix goes through `CombinationGenerator.Applicable()` and `CombinationCheck.Check` (EA_36); a new section of the review goes in `CombinationReview.Review`.
 
 ## How it works
 
 ```
 dotnet run -c Release --project NestLight.Experiments            # all experiments, writes docs/reports/experiments-<date>-<commit>.md
-dotnet run -c Release --project NestLight.Experiments -- --only E03,E07
+dotnet run -c Release --project NestLight.Experiments -- --only EA_03,EA_07
 dotnet run -c Release --project NestLight.Experiments -- --list
 dotnet run -c Release --project NestLight.Experiments -- --quick  # smoke run, numbers not worth keeping
 ```
@@ -46,57 +48,58 @@ The *Experiments* workflow runs the same suite on Windows, on `net48` (the runti
 
 - A **result is a snapshot**, valid for one commit, one runtime and one machine. The code changes, so results go stale: a past run is never edited, a new run adds a new report.
 - **Absolute times move between sessions** even on the same machine. The numbers below are ratios and orders of magnitude from runs on one machine; compare numbers only inside one report.
-- **Run at least three times** before trusting a verdict. A verdict that flips between identical runs sits at the edge of the noise (E09 does), and the report of a single run cannot show that.
-- The **hypothesis, the test and the criterion** are the stable part of an experiment. If one of them changes, the experiment is replaced: the old id is closed and a new one opened. (E03's criterion was restated when it was automated, and E06 was rewritten twice before any of its results was recorded; see their notes.)
+- **Run at least three times** before trusting a verdict. A verdict that flips between identical runs sits at the edge of the noise (EA_09 does), and the report of a single run cannot show that.
+- The **hypothesis, the test and the criterion** are the stable part of an experiment. If one of them changes, the experiment is replaced: the old id is closed and a new one opened. (EA_03's criterion was restated when it was automated, and EA_06 was rewritten twice before any of its results was recorded; see their notes.)
 - A **decision** says why, and a **Revisit when** line says what would make the old answer wrong: a code change, a bigger file, a new host.
-- *Criterion met* is the statement of the experiment's own criterion, not a grade. For an optimization, met means it is worth doing; for a risk (E06 to E09), met means the plugin is healthy.
+- *Criterion met* is the statement of the experiment's own criterion, not a grade. For an optimization, met means it is worth doing; for a risk (EA_06 to EA_09), met means the plugin is healthy.
 - Statuses: `Planned`, `Done`, `Closed`. Decisions: `Adopted`, `Rejected`, `Inconclusive`.
 
-All the criteria below were written before the run that decided them, except those of E01 to E04, which were first measured with throwaway code and then restated when the experiments were automated.
+All the criteria below were written before the run that decided them, except those of EA_01 to EA_04, which were first measured with throwaway code and then restated when the experiments were automated.
 
 ## Index
 
 | Id | Question | Test | Status | Decision |
 |---|---|---|---|---|
-| [E01](#e01-baseline-cost-of-one-highlight-call) | How much does one `Highlight` call cost? | Automated | Done | Baseline |
-| [E02](#e02-skip-the-scan-when-the-text-has-no-language-id) | Does skipping the scan without language ids help? | Automated | Done | Rejected |
-| [E03](#e03-the-text-copy-on-every-edit) | How much does the `GetText()` copy cost? | Automated | Done | Rejected for now |
-| [E04](#e04-the-language-registry-built-per-buffer) | Does building the registry per buffer matter? | Automated | Done | Rejected |
-| [E05](#e05-where-highlight-allocates) | Where do the allocations of `Highlight` come from? | Automated | Done | Points at the scan |
-| [E06](#e06-number-of-marked-strings) | Does the cost stay linear as the strings multiply? | Automated | Done | Not linear above ~400k characters |
-| [E07](#e07-many-interpolations-in-one-string) | Does one string with many interpolations scale? | Automated | Done | **Quadratic**, fixed by E13 |
-| [E08](#e08-throughput-of-each-embedded-language) | Is any tokenizer much slower than the others? | Automated | Done | No outlier; all superlinear on large strings |
-| [E09](#e09-malformed-and-pathological-input) | Does bad input make the cost explode? | Automated | Done | Inconclusive (borderline) |
-| [E10](#e10-typing-latency-and-gc-inside-visual-studio) | What does the user feel while typing in a large file? | Manual | Planned | |
-| [E11](#e11-background-re-analysis) | Does analyzing off the UI thread improve typing latency? | Manual | Planned | |
-| [E12](#e12-incremental-analysis) | Is re-analyzing only the edited strings worth it? | Both | Planned | |
-| [E13](#e13-clip-tokens-without-rescanning-the-interpolations) | Does fixing the quadratic clipping make E07 linear? | Automated | Done | Adopt: criterion met |
-| [E14](#e14-fewer-allocations-in-the-scan) | How much does the scan's allocation fall if comments stop allocating? | Automated | Done | Modest gain; criterion not met |
-| [E15](#e15-why-the-cost-grows-faster-than-the-text-above-400k-characters) | What makes the cost superlinear on very large strings? | Automated | Planned | |
-| [E16](#e16-completion-latency-against-the-size-of-the-file) | Is completion fast on large files? | Automated | Done | Not met above ~1M characters; no change |
-| [E17](#e17-do-the-limits-of-the-completion-change-its-cost) | Do the limits of the completion change its cost? | Automated | Done | Only 10,000 suggestions cost more; defaults kept |
-| [E18](#e18-completion-on-incomplete-and-cut-code) | Can completion be triggered anywhere in a file being edited? | Automated | Closed | Met: 0 violations; replaced by E27 |
-| [E19](#e19-does-the-tokenizer-agree-with-the-vocabulary) | Does the tokenizer agree with the vocabulary? | Automated | Done | Met |
-| [E20](#e20-order-of-the-words-of-the-document) | Is nearest-first the best order for the words of the document? | Automated, generated code | Done | Kept; the advantage depends on the generator |
-| [E21](#e21-where-the-words-come-from-and-how-many-keystrokes-completion-saves) | Which words should completion offer? | Automated, generated code | Done | Inconclusive |
-| [E22](#e22-sharing-the-scan-and-not-creating-the-words-of-the-completion) | Does sharing the scan and not creating the words bring completion under a frame? | Automated | Done | Adopt: criterion met |
-| [E23](#e23-does-the-second-stage-of-the-completion-fit-in-a-frame) | Does the second stage of the completion fit in a frame? | Automated | Done | Inconclusive (borderline in one extreme case) |
-| [E24](#e24-does-the-second-stage-recover-the-word-after-one-mistake-and-which-tie-break-works) | Does the second stage recover the word after one mistake? | Automated, generated code | Planned | |
-| [E25](#e25-does-the-second-stage-get-in-the-way-when-the-prefix-is-right) | Does it get in the way when the prefix is right? | Automated, generated code | Planned | |
-| [E26](#e26-do-the-similar-suggestions-show-up-in-visual-studio) | Do the similar suggestions show up in Visual Studio? | Manual | Planned (needs a build) | |
-| [E27](#e27-completion-with-similar-words-on-incomplete-and-cut-code) | Is completion still robust with the second stage? | Automated | Done | Met: 0 violations |
-| [E28](#e28-does-the-word-before-the-caret-help-to-rank-the-suggestions) | Does the word before the caret help to rank the suggestions? | Automated, generated code | Done | Adopted: criterion met |
-| [E29](#e29-do-the-words-of-the-same-language-come-first) | Do the words of the same language come first? | Automated, generated code | Done | Adopted: criterion met |
-| [E30](#e30-does-the-place-in-the-grammar-help-to-rank-the-suggestions) | Does the place in the grammar help to rank the suggestions? | Automated, generated code | Done | Adopted: criterion met |
-| [E31](#e31-does-the-schema-read-from-the-sql-of-the-document-help) | Does the schema read from the SQL of the document help? | Automated, generated code | Done | Not adopted: criterion not met |
-| [E32](#e32-do-the-words-used-most-often-come-before-the-nearest-ones) | Do the words used most often come before the nearest ones? | Automated, generated code | Done | Not adopted: criterion not met |
-| [E33](#e33-completion-with-the-context-rankings-on-incomplete-and-cut-code) | Is completion robust with the context rankings on? | Automated | Done | Met: 0 violations |
-| [E34](#e34-where-the-place-of-the-caret-says-nothing-do-the-words-of-the-file-and-the-most-used-keywords-come-first) | Do the words of the file and the most used keywords come first where no rule decides? | Automated, generated code | Done | Not met (+2.2); E35 refines it |
-| [E35](#e35-do-a-few-keywords-still-come-before-the-words-of-the-file) | Do a few keywords still come before the words of the file? | Automated, generated code | Done | Adopted: criterion met by a hair (+3.0) |
-| [E36](#e36-should-words-of-two-letters-be-offered) | Should words of two letters be offered? | Automated, generated code | Closed | Not met: the criterion could not be met; E38 |
-| [E37](#e37-does-the-similar-words-stage-make-noise-with-short-prefixes-and-what-removes-it) | Does the similar-words stage make noise with short prefixes? | Automated, generated code | Done | Not met; kept as it is |
-| [E38](#e38-should-words-of-two-letters-be-offered-e36-with-a-criterion-that-can-be-met) | E36 with a criterion that can be met | Automated, generated code | Done | Adopted: two-letter words last |
-| [E39](#e39-every-host-with-every-embedded-language) | Does every host work with every embedded language? | Automated, generated code | Done | Met |
+| [EA_01](#ea_01-baseline-cost-of-one-highlight-call) | How much does one `Highlight` call cost? | Automated | Done | Baseline |
+| [EA_02](#ea_02-skip-the-scan-when-the-text-has-no-language-id) | Does skipping the scan without language ids help? | Automated | Done | Rejected |
+| [EA_03](#ea_03-the-text-copy-on-every-edit) | How much does the `GetText()` copy cost? | Automated | Done | Rejected for now |
+| [EA_04](#ea_04-the-language-registry-built-per-buffer) | Does building the registry per buffer matter? | Automated | Done | Rejected |
+| [EA_05](#ea_05-where-highlight-allocates) | Where do the allocations of `Highlight` come from? | Automated | Done | Points at the scan |
+| [EA_06](#ea_06-number-of-marked-strings) | Does the cost stay linear as the strings multiply? | Automated | Done | Not linear above ~400k characters |
+| [EA_07](#ea_07-many-interpolations-in-one-string) | Does one string with many interpolations scale? | Automated | Done | **Quadratic**, fixed by EA_11 |
+| [EA_08](#ea_08-throughput-of-each-embedded-language) | Is any tokenizer much slower than the others? | Automated | Done | No outlier; all superlinear on large strings |
+| [EA_09](#ea_09-malformed-and-pathological-input) | Does bad input make the cost explode? | Automated | Done | Inconclusive (borderline) |
+| [EM_01](#em_01-typing-latency-and-gc-inside-visual-studio) | What does the user feel while typing in a large file? | Manual | Planned | |
+| [EM_02](#em_02-background-re-analysis) | Does analyzing off the UI thread improve typing latency? | Manual | Planned | |
+| [EA_10](#ea_10-incremental-analysis) | Is re-analyzing only the edited strings worth it? | Both | Planned | |
+| [EA_11](#ea_11-clip-tokens-without-rescanning-the-interpolations) | Does fixing the quadratic clipping make EA_07 linear? | Automated | Done | Adopt: criterion met |
+| [EA_12](#ea_12-fewer-allocations-in-the-scan) | How much does the scan's allocation fall if comments stop allocating? | Automated | Done | Modest gain; criterion not met |
+| [EA_13](#ea_13-why-the-cost-grows-faster-than-the-text-above-400k-characters) | What makes the cost superlinear on very large strings? | Automated | Planned | |
+| [EA_14](#ea_14-completion-latency-against-the-size-of-the-file) | Is completion fast on large files? | Automated | Done | Not met above ~1M characters; no change |
+| [EA_15](#ea_15-do-the-limits-of-the-completion-change-its-cost) | Do the limits of the completion change its cost? | Automated | Done | Only 10,000 suggestions cost more; defaults kept |
+| [EA_16](#ea_16-completion-on-incomplete-and-cut-code) | Can completion be triggered anywhere in a file being edited? | Automated | Closed | Met: 0 violations; replaced by EA_24 |
+| [EA_17](#ea_17-does-the-tokenizer-agree-with-the-vocabulary) | Does the tokenizer agree with the vocabulary? | Automated | Done | Met |
+| [EA_18](#ea_18-order-of-the-words-of-the-document) | Is nearest-first the best order for the words of the document? | Automated, generated code | Done | Kept; the advantage depends on the generator |
+| [EA_19](#ea_19-where-the-words-come-from-and-how-many-keystrokes-completion-saves) | Which words should completion offer? | Automated, generated code | Done | Inconclusive |
+| [EA_20](#ea_20-sharing-the-scan-and-not-creating-the-words-of-the-completion) | Does sharing the scan and not creating the words bring completion under a frame? | Automated | Done | Adopt: criterion met |
+| [EA_21](#ea_21-does-the-second-stage-of-the-completion-fit-in-a-frame) | Does the second stage of the completion fit in a frame? | Automated | Done | Inconclusive (borderline in one extreme case) |
+| [EA_22](#ea_22-does-the-second-stage-recover-the-word-after-one-mistake-and-which-tie-break-works) | Does the second stage recover the word after one mistake? | Automated, generated code | Planned | |
+| [EA_23](#ea_23-does-the-second-stage-get-in-the-way-when-the-prefix-is-right) | Does it get in the way when the prefix is right? | Automated, generated code | Planned | |
+| [EM_03](#em_03-do-the-similar-suggestions-show-up-in-visual-studio) | Do the similar suggestions show up in Visual Studio? | Manual | Planned (needs a build) | |
+| [EA_24](#ea_24-completion-with-similar-words-on-incomplete-and-cut-code) | Is completion still robust with the second stage? | Automated | Done | Met: 0 violations |
+| [EA_25](#ea_25-does-the-word-before-the-caret-help-to-rank-the-suggestions) | Does the word before the caret help to rank the suggestions? | Automated, generated code | Done | Adopted: criterion met |
+| [EA_26](#ea_26-do-the-words-of-the-same-language-come-first) | Do the words of the same language come first? | Automated, generated code | Done | Adopted: criterion met |
+| [EA_27](#ea_27-does-the-place-in-the-grammar-help-to-rank-the-suggestions) | Does the place in the grammar help to rank the suggestions? | Automated, generated code | Done | Adopted: criterion met |
+| [EA_28](#ea_28-does-the-schema-read-from-the-sql-of-the-document-help) | Does the schema read from the SQL of the document help? | Automated, generated code | Done | Not adopted: criterion not met |
+| [EA_29](#ea_29-do-the-words-used-most-often-come-before-the-nearest-ones) | Do the words used most often come before the nearest ones? | Automated, generated code | Done | Not adopted: criterion not met |
+| [EA_30](#ea_30-completion-with-the-context-rankings-on-incomplete-and-cut-code) | Is completion robust with the context rankings on? | Automated | Done | Met: 0 violations |
+| [EA_31](#ea_31-where-the-place-of-the-caret-says-nothing-do-the-words-of-the-file-and-the-most-used-keywords-come-first) | Do the words of the file and the most used keywords come first where no rule decides? | Automated, generated code | Done | Not met (+2.2); EA_32 refines it |
+| [EA_32](#ea_32-do-a-few-keywords-still-come-before-the-words-of-the-file) | Do a few keywords still come before the words of the file? | Automated, generated code | Done | Adopted: criterion met by a hair (+3.0) |
+| [EA_33](#ea_33-should-words-of-two-letters-be-offered) | Should words of two letters be offered? | Automated, generated code | Closed | Not met: the criterion could not be met; EA_35 |
+| [EA_34](#ea_34-does-the-similar-words-stage-make-noise-with-short-prefixes-and-what-removes-it) | Does the similar-words stage make noise with short prefixes? | Automated, generated code | Done | Not met; kept as it is |
+| [EA_35](#ea_35-should-words-of-two-letters-be-offered-ea_33-with-a-criterion-that-can-be-met) | EA_33 with a criterion that can be met | Automated, generated code | Done | Adopted: two-letter words last |
+| [EA_36](#ea_36-every-host-with-every-embedded-language) | Does every host work with every embedded language? | Automated, generated code | Done | Met |
+| [EM_04](#em_04-review-of-every-host-with-every-embedded-language) | What does the plugin do, case by case, with every host and language? | Manual, generated code | Done (the tool) | |
 
 ## Latest runs
 
@@ -104,32 +107,32 @@ Three consecutive full runs on commit `6a7f9ff`, 2026-10-07, .NET 10 in Release 
 
 | Id | Run 1 | Run 2 | Run 3 | Criterion |
 |---|---|---|---|---|
-| E01 | 10.1 ms | 10.1 ms | 10.4 ms | Met in all |
-| E02 | 2.63x / 0.83x | 2.63x / 0.85x | 2.68x / 0.82x | Not met in all |
-| E03 | 361 µs | 348 µs | 336 µs | Not met in all |
-| E04 | 15 µs, 11 KB | 15 µs, 11 KB | 15 µs, 11 KB | Met in all |
-| E05 | 1.74x text, 85% | 1.74x text, 85% | 1.74x text, 85% | Met in all |
-| E06 | 18.3x | 16.4x | 18.7x | Not met in all |
-| E07 | 84.8x | 81.9x | 97.5x | Not met in all |
-| E08 | 22.1x | 21.1x | 23.4x | Not met in all |
-| E09 | 2.41x | 2.45x | 2.58x | **Met, met, not met** |
+| EA_01 | 10.1 ms | 10.1 ms | 10.4 ms | Met in all |
+| EA_02 | 2.63x / 0.83x | 2.63x / 0.85x | 2.68x / 0.82x | Not met in all |
+| EA_03 | 361 µs | 348 µs | 336 µs | Not met in all |
+| EA_04 | 15 µs, 11 KB | 15 µs, 11 KB | 15 µs, 11 KB | Met in all |
+| EA_05 | 1.74x text, 85% | 1.74x text, 85% | 1.74x text, 85% | Met in all |
+| EA_06 | 18.3x | 16.4x | 18.7x | Not met in all |
+| EA_07 | 84.8x | 81.9x | 97.5x | Not met in all |
+| EA_08 | 22.1x | 21.1x | 23.4x | Not met in all |
+| EA_09 | 2.41x | 2.45x | 2.58x | **Met, met, not met** |
 
-(E01: worst case at 60k lines. E02: best speed-up without markers / worst result with them. E03: time the copy could save per edit at 400k characters. E05: allocation as a multiple of the text, and the share of the dominant stage. E06: time for 8x the strings. E07: time for 10x the interpolations. E08: worst time for 10x the text. E09: worst time for 2x the input.)
+(EA_01: worst case at 60k lines. EA_02: best speed-up without markers / worst result with them. EA_03: time the copy could save per edit at 400k characters. EA_05: allocation as a multiple of the text, and the share of the dominant stage. EA_06: time for 8x the strings. EA_07: time for 10x the interpolations. EA_08: worst time for 10x the text. EA_09: worst time for 2x the input.)
 
 ### The two changes, measured against the code they change
 
-Same session, three runs each, on the code of the experiments (`6797746`) and on each change on top of it. The changes are commit `5796fe6` (E13) and commit `3380d4b` (E14). Together, on one build: E01 9.0 ms, E05 1.18x, E07 13.8x.
+Same session, three runs each, on the code of the experiments (`6797746`) and on each change on top of it. The changes are commit `5796fe6` (EA_11) and commit `3380d4b` (EA_12). Together, on one build: EA_01 9.0 ms, EA_05 1.18x, EA_07 13.8x.
 
-| Id | Before (3 runs) | After E13 | After E14 |
+| Id | Before (3 runs) | After EA_11 | After EA_12 |
 |---|---|---|---|
-| E01 | 9.9 / 9.9 / 10.1 ms | 9.9 / 10.3 / 10.0 ms | 9.3 / 9.1 / 9.5 ms |
-| E05 (Highlight / text, with markers) | 1.74x | not run | 1.18x |
-| E06 | 18.2x / 18.5x / 17.9x | not run | 16.9x / 21.9x / 17.4x |
-| E07 | 87.4x / 86.8x / 82.3x | **13.6x / 13.8x / 14.6x** | 82.1x / 87.8x / 82.0x |
-| E08 | 22.0x / 21.6x / 22.9x | not run | 22.4x / 23.7x / 22.5x |
-| E09 | 2.94x / 2.75x / 3.08x | not run | 2.69x / 2.56x / 2.62x |
+| EA_01 | 9.9 / 9.9 / 10.1 ms | 9.9 / 10.3 / 10.0 ms | 9.3 / 9.1 / 9.5 ms |
+| EA_05 (Highlight / text, with markers) | 1.74x | not run | 1.18x |
+| EA_06 | 18.2x / 18.5x / 17.9x | not run | 16.9x / 21.9x / 17.4x |
+| EA_07 | 87.4x / 86.8x / 82.3x | **13.6x / 13.8x / 14.6x** | 82.1x / 87.8x / 82.0x |
+| EA_08 | 22.0x / 21.6x / 22.9x | not run | 22.4x / 23.7x / 22.5x |
+| EA_09 | 2.94x / 2.75x / 3.08x | not run | 2.69x / 2.56x / 2.62x |
 
-## E01: baseline cost of one `Highlight` call
+## EA_01: baseline cost of one `Highlight` call
 
 **Status:** Done · **Decision:** Baseline
 
@@ -145,7 +148,7 @@ Same session, three runs each, on the code of the experiments (`6797746`) and on
 
 **Revisit when.** A host or a tokenizer is added, or the scan changes shape.
 
-## E02: skip the scan when the text has no language id
+## EA_02: skip the scan when the text has no language id
 
 **Status:** Done · **Decision:** Rejected
 
@@ -163,7 +166,7 @@ Same session, three runs each, on the code of the experiments (`6797746`) and on
 
 **Revisit when.** The scan becomes much more expensive per character, or the ids are searched in a single pass.
 
-## E03: the text copy on every edit
+## EA_03: the text copy on every edit
 
 **Status:** Done · **Decision:** Rejected for now
 
@@ -177,11 +180,11 @@ Same session, three runs each, on the code of the experiments (`6797746`) and on
 
 **Decision.** Rejected for now: the saving is below a millisecond on files of ordinary size, and it is an upper bound, since scanning over `ITextSnapshot` instead of a `string` would make every character access slower.
 
-**Caveat.** The process has a tiny heap. A gen2 collection in Visual Studio walks a far larger one, so the real cost of the collections is probably higher. E10 measures that.
+**Caveat.** The process has a tiny heap. A gen2 collection in Visual Studio walks a far larger one, so the real cost of the collections is probably higher. EM_01 measures that.
 
-**Revisit when.** E10 shows gen2 pauses while typing, or the scanners are rewritten to take a span or a snapshot.
+**Revisit when.** EM_01 shows gen2 pauses while typing, or the scanners are rewritten to take a span or a snapshot.
 
-## E04: the language registry built per buffer
+## EA_04: the language registry built per buffer
 
 **Status:** Done · **Decision:** Rejected
 
@@ -197,7 +200,7 @@ Same session, three runs each, on the code of the experiments (`6797746`) and on
 
 **Revisit when.** The tokenizers multiply, or one starts building large tables in its constructor.
 
-## E05: where `Highlight` allocates
+## EA_05: where `Highlight` allocates
 
 **Status:** Done · **Decision:** Points at the scan
 
@@ -209,13 +212,13 @@ Same session, three runs each, on the code of the experiments (`6797746`) and on
 
 **Result.** Met, identically in the three runs. With marked strings `Highlight` allocates 1.2x to 2.3x the size of the text (1.74x on average), and the scan accounts for 85% to 88% of it. The scan allocates more than the text itself even **without any marked string** (C#: 1.2 MB for a 680 KB file), so what it allocates is not tied to the embedded code it finds.
 
-**Decision.** The allocation is in the scan, and it is independent of what the file contains. The stage split is as far as this test goes: the call sites need an allocation profile. The comment handling is the first suspect (a `Substring`, a `Trim` and a `ToLowerInvariant` for each comment): see E14.
+**Decision.** The allocation is in the scan, and it is independent of what the file contains. The stage split is as far as this test goes: the call sites need an allocation profile. The comment handling is the first suspect (a `Substring`, a `Trim` and a `ToLowerInvariant` for each comment): see EA_12.
 
-**Update.** E14 ran: the scan now allocates 27% to 60% less and `Highlight` 1.74x to 1.18x the text. The stage split is now more even (69% to 84% in the scan), which is why this experiment's criterion reads "not met" on the new code.
+**Update.** EA_12 ran: the scan now allocates 27% to 60% less and `Highlight` 1.74x to 1.18x the text. The stage split is now more even (69% to 84% in the scan), which is why this experiment's criterion reads "not met" on the new code.
 
-**Revisit when.** The scanners create the embedded string lazily (see E14).
+**Revisit when.** The scanners create the embedded string lazily (see EA_12).
 
-## E06: number of marked strings
+## EA_06: number of marked strings
 
 **Status:** Done · **Decision:** Not linear above ~400k characters
 
@@ -231,11 +234,11 @@ Same session, three runs each, on the code of the experiments (`6797746`) and on
 
 **Note.** The first version of this experiment (a fixed file with a growing density of marked strings) was replaced before any result was recorded: it measured a difference between two noisy times of about 1 ms and its verdict changed between identical runs. A later version also gave an optimistic result when run alone, because the first experiments ran on code the JIT had not optimized yet; tiered compilation is now off, which also matches `net48`.
 
-**Update.** E14 reduced the allocations of the scan and neither the growth (16.9x to 21.9x) nor the gen2 collections changed. The scan's allocation is not the cause; see E15.
+**Update.** EA_12 reduced the allocations of the scan and neither the growth (16.9x to 21.9x) nor the gen2 collections changed. The scan's allocation is not the cause; see EA_13.
 
-**Revisit when.** E15 attributes the growth.
+**Revisit when.** EA_13 attributes the growth.
 
-## E07: many interpolations in one string
+## EA_07: many interpolations in one string
 
 **Status:** Done · **Decision:** Quadratic
 
@@ -247,13 +250,13 @@ Same session, three runs each, on the code of the experiments (`6797746`) and on
 
 **Result.** Not met, and the clearest finding of the suite: 10x the interpolations cost 82x to 98x the time, the same in the three hosts. 100 interpolations take 0.16 ms, 1,000 take 7 ms and 10,000 take 550 to 600 ms.
 
-**Decision.** The cost is quadratic in the number of interpolations of one string. It is invisible below a few hundred interpolations and a freeze of half a second at 10,000. The experiment does not isolate the cause: `AddClipped` is the suspect, not a proven culprit. E13 tests the fix.
+**Decision.** The cost is quadratic in the number of interpolations of one string. It is invisible below a few hundred interpolations and a freeze of half a second at 10,000. The experiment does not isolate the cause: `AddClipped` is the suspect, not a proven culprit. EA_11 tests the fix.
 
-**Update.** E13 replaced the walk with a binary search: 10x the interpolations now cost 13.6x to 14.6x the time, 10,000 interpolations take 22 ms instead of 550 to 600 ms, and the tokens are identical. The remaining 14x (against 10x for linear) is the same superlinear effect as in E06 and E08.
+**Update.** EA_11 replaced the walk with a binary search: 10x the interpolations now cost 13.6x to 14.6x the time, 10,000 interpolations take 22 ms instead of 550 to 600 ms, and the tokens are identical. The remaining 14x (against 10x for linear) is the same superlinear effect as in EA_06 and EA_08.
 
 **Revisit when.** The clipping changes again.
 
-## E08: throughput of each embedded language
+## EA_08: throughput of each embedded language
 
 **Status:** Done · **Decision:** No outlier; all superlinear on large strings
 
@@ -265,13 +268,13 @@ Same session, three runs each, on the code of the experiments (`6797746`) and on
 
 **Result.** Not met in the three runs, but only the second half. The slowest language (SQL or YAML) is 1.5x to 1.6x below the median, so there is no outlier. All 11 languages take 13.6x to 23x longer on 10x the text, not just one: Markdown, GraphQL and GLSL sit at the low end, SQL, JSON and XML at the high end.
 
-**Decision.** No tokenizer is an outlier. The superlinear growth is common to all of them, which points to the shared engine (large buffers, the garbage collector) more than to any tokenizer, as in E06. The test does not separate the two.
+**Decision.** No tokenizer is an outlier. The superlinear growth is common to all of them, which points to the shared engine (large buffers, the garbage collector) more than to any tokenizer, as in EA_06. The test does not separate the two.
 
-**Update.** E14 did not change the growth (22.4x to 23.7x). The cause is not the scan's allocation; see E15.
+**Update.** EA_12 did not change the growth (22.4x to 23.7x). The cause is not the scan's allocation; see EA_13.
 
-**Revisit when.** E15 attributes the growth.
+**Revisit when.** EA_13 attributes the growth.
 
-## E09: malformed and pathological input
+## EA_09: malformed and pathological input
 
 **Status:** Done · **Decision:** Inconclusive (borderline)
 
@@ -283,85 +286,85 @@ Same session, three runs each, on the code of the experiments (`6797746`) and on
 
 **Result.** Met, met, not met (worst growth 2.41x, 2.45x and 2.58x). Only one case matters: an unterminated marked string at the top, where the whole file becomes one embedded string of 250k to 500k characters. Everything else is linear, and the block comment, the long line and the nesting are too fast to measure. That case grows 1.9x to 2.6x depending on the host and the run, with 6 gen2 collections at N and 8 to 9 at 2N.
 
-**Decision.** Inconclusive: the verdict flips on noise, so there is no quadratic here, but a mild superlinear effect cannot be ruled out. The size of an unterminated string is the same situation as E06 and E08.
+**Decision.** Inconclusive: the verdict flips on noise, so there is no quadratic here, but a mild superlinear effect cannot be ruled out. The size of an unterminated string is the same situation as EA_06 and EA_08.
 
-**Update.** E14 left the case where it was (2.56x to 2.69x, over the limit in the three runs). **Revisit when.** E15 attributes the growth. A criterion of 2.5 is too close to the noise to separate a mild effect: a larger N or more runs would help.
+**Update.** EA_12 left the case where it was (2.56x to 2.69x, over the limit in the three runs). **Revisit when.** EA_13 attributes the growth. A criterion of 2.5 is too close to the noise to separate a mild effect: a larger N or more runs would help.
 
-## E10: typing latency and GC inside Visual Studio
+## EM_01: typing latency and GC inside Visual Studio
 
 **Status:** Planned
 
-**Hypothesis.** In a real session, the gen2 collections caused by the text copy (E03) and the analysis on the UI thread are enough to make typing in a large file noticeable.
+**Hypothesis.** In a real session, the gen2 collections caused by the text copy (EA_03) and the analysis on the UI thread are enough to make typing in a large file noticeable.
 
 **Test (manual).** Open a large real file (generated code, a JS bundle of 5k to 50k lines), type continuously, and record the per-keystroke latency and the gen2 count and pause time with and without the extension. A fixed file and script, kept with the result, so runs can be repeated.
 
 **Criterion.** A p95 latency increase under 8 ms, and no gen2 pause above 20 ms.
 
-## E11: background re-analysis
+## EM_02: background re-analysis
 
-**Status:** Planned (depends on E10 showing a problem)
+**Status:** Planned (depends on EM_01 showing a problem)
 
 **Hypothesis.** Returning the tokens of the previous snapshot and raising `ClassificationChanged` when the new analysis finishes takes the scan off the UI thread and improves typing latency.
 
-**Test (manual).** The E10 session before and after the change.
+**Test (manual).** The EM_01 session before and after the change.
 
-**Criterion.** The p95 latency in E10 goes back to within 2 ms of the baseline without the extension.
+**Criterion.** The p95 latency in EM_01 goes back to within 2 ms of the baseline without the extension.
 
 **Risks.** Colors stale for an instant, and more concurrency complexity.
 
-## E12: incremental analysis
+## EA_10: incremental analysis
 
-**Status:** Planned (depends on E11 not being enough)
+**Status:** Planned (depends on EM_02 not being enough)
 
 **Hypothesis.** Re-analyzing only the strings hit by the edit and reusing the tokens of the rest is much cheaper than the full scan.
 
-**Test.** Automated: the cost of a one-character edit in the middle of a file against the full scan, over the E01 sizes. Manual: the E10 session. Plus a differential test: after any sequence of edits, the incremental tokens must equal the tokens of a full scan.
+**Test.** Automated: the cost of a one-character edit in the middle of a file against the full scan, over the EA_01 sizes. Manual: the EM_01 session. Plus a differential test: after any sequence of edits, the incremental tokens must equal the tokens of a full scan.
 
 **Criterion.** At least 5x cheaper per edit at 60k lines, and the differential test passes on the existing samples and on random edits.
 
 **Risks.** The largest of all: escapes, nested interpolations and unterminated strings shift everything after the edit point.
 
-## E13: clip tokens without rescanning the interpolations
+## EA_11: clip tokens without rescanning the interpolations
 
 **Status:** Done · **Decision:** Adopt (`5796fe6`)
 
-**Hypothesis.** E07 is quadratic because `AddClipped` walks the interpolations of the string from the first one for every token. Starting from the first one that can matter, found by binary search, makes the cost linear.
+**Hypothesis.** EA_07 is quadratic because `AddClipped` walks the interpolations of the string from the first one for every token. Starting from the first one that can matter, found by binary search, makes the cost linear.
 
-**Test.** Change the clipping and run E07 again. Check that the tokens are exactly the same: the unit tests, plus a differential run of 3,000 random templates (all 4 hosts, random interpolations, nested templates, text cut at any point) whose tokens are compared before and after.
+**Test.** Change the clipping and run EA_07 again. Check that the tokens are exactly the same: the unit tests, plus a differential run of 3,000 random templates (all 4 hosts, random interpolations, nested templates, text cut at any point) whose tokens are compared before and after.
 
-**Criterion.** E07 criterion met (10x the interpolations cost less than 20x the time), no token changes, and no slowdown above 5% in E01.
+**Criterion.** EA_07 criterion met (10x the interpolations cost less than 20x the time), no token changes, and no slowdown above 5% in EA_01.
 
-**Result.** Met. E07: 13.6x, 13.8x and 14.6x, against 82x to 87x before. 10,000 interpolations: 22 ms, against 550 to 600 ms. The 829 unit tests pass, and the 5.6 MB of tokens of the 3,000 random templates are byte for byte identical. E01: 9.9 to 10.3 ms against 9.9 to 10.1 ms (+1.6% at most).
+**Result.** Met. EA_07: 13.6x, 13.8x and 14.6x, against 82x to 87x before. 10,000 interpolations: 22 ms, against 550 to 600 ms. The 829 unit tests pass, and the 5.6 MB of tokens of the 3,000 random templates are byte for byte identical. EA_01: 9.9 to 10.3 ms against 9.9 to 10.1 ms (+1.6% at most).
 
 **Decision.** Adopt: a change of ten lines in one private method, with a large effect where the bug was and none elsewhere.
 
 **Limit.** Only the HTML inside JavaScript, C# and Python templates was measured for the speed; the differential run also covers CSS, SQL and JSON.
 
-## E14: fewer allocations in the scan
+## EA_12: fewer allocations in the scan
 
 **Status:** Done · **Decision:** Modest gain; criterion not met, adopted (`3380d4b`)
 
-**Hypothesis.** The scan allocates more than the size of the text even when there is nothing to find, mostly in the handling of comments (a `Substring`, a `Trim` and a `ToLowerInvariant` for each one, plus an array of keys per call). Parsing the marker on the text itself, without creating strings, removes most of it. If E06, E08 and E09 are limited by the garbage collector, they improve together.
+**Hypothesis.** The scan allocates more than the size of the text even when there is nothing to find, mostly in the handling of comments (a `Substring`, a `Trim` and a `ToLowerInvariant` for each one, plus an array of keys per call). Parsing the marker on the text itself, without creating strings, removes most of it. If EA_06, EA_08 and EA_09 are limited by the garbage collector, they improve together.
 
-**Test.** Change `MarkerComment.Parse` to read a range of the text, then run E05 again, and E06, E08 and E09 to see whether the superlinear growth goes away. Check that nothing changes: the unit tests (19 new ones compare the two overloads), a differential fuzz of 200,000 random comments (including Unicode that changes case in unexpected ways) against the old implementation, and the 3,000 random templates of E13.
+**Test.** Change `MarkerComment.Parse` to read a range of the text, then run EA_05 again, and EA_06, EA_08 and EA_09 to see whether the superlinear growth goes away. Check that nothing changes: the unit tests (19 new ones compare the two overloads), a differential fuzz of 200,000 random comments (including Unicode that changes case in unexpected ways) against the old implementation, and the 3,000 random templates of EA_11.
 
-**Criterion.** E05: the scan allocates less than 0.5x the size of the text without marked strings, and no token changes.
+**Criterion.** EA_05: the scan allocates less than 0.5x the size of the text without marked strings, and no token changes.
 
 **Result.** Not met, but the change is real.
 - **Allocation.** The scan without marked strings went from 1.01x-2.01x the size of the text to 0.41x-1.41x (JavaScript 996 to 610 KB, C# 1.2 MB to 834 KB, Python 1.1 MB to 803 KB, C++ 645 to 258 KB). Only C++ is under 0.5x. `Highlight` as a whole: 1.74x to 1.18x the text, on average with marked strings.
-- **Time.** E01 improved by 11.5% on average at 12k and 60k lines (from -2% to -18% by case; worst case 60k lines: 9.9 to 9.3 ms).
+- **Time.** EA_01 improved by 11.5% on average at 12k and 60k lines (from -2% to -18% by case; worst case 60k lines: 9.9 to 9.3 ms).
 - **No change in behavior.** 848 unit tests pass, the fuzz found no difference and the 5.6 MB of tokens are identical.
-- **E06, E08 and E09 did not move.** E06: 16.9x to 21.9x (before 17.9x to 18.5x). E08: 22.4x to 23.7x (before 21.6x to 22.9x). E09: 2.56x to 2.69x (before 2.75x to 3.08x, the same borderline case). The gen2 collections of E06 at 800k characters did not fall either (4 to 5 in 25 runs, before 3).
+- **EA_06, EA_08 and EA_09 did not move.** EA_06: 16.9x to 21.9x (before 17.9x to 18.5x). EA_08: 22.4x to 23.7x (before 21.6x to 22.9x). EA_09: 2.56x to 2.69x (before 2.75x to 3.08x, the same borderline case). The gen2 collections of EA_06 at 800k characters did not fall either (4 to 5 in 25 runs, before 3).
 
-**Decision.** The change is safe, small and worth merging for the 11% and the lower allocation. The part of the hypothesis that said the garbage collector explains the superlinear growth is **refuted** for the allocations of the scan: removing a third of them changed nothing. The cause of the growth above ~400k characters is still unknown (see E15).
+**Decision.** The change is safe, small and worth merging for the 11% and the lower allocation. The part of the hypothesis that said the garbage collector explains the superlinear growth is **refuted** for the allocations of the scan: removing a third of them changed nothing. The cause of the growth above ~400k characters is still unknown (see EA_13).
 
 **Remaining allocation.** What is left is probably an `EmbeddedString` (with its lists) and an id string created for every string literal of the host, marked or not. Allocating them only when the string is marked would remove it, but the scanners need the object while they read the interpolations, so it is a larger change than this one.
 
 **Revisit when.** The scanners are changed to create the embedded string lazily.
 
-## E15: why the cost grows faster than the text above ~400k characters
+## EA_13: why the cost grows faster than the text above ~400k characters
 
-**Status:** Planned (follows E06, E08, E09 and E14)
+**Status:** Planned (follows EA_06, EA_08, EA_09 and EA_12)
 
 **Hypothesis.** When one file or one string is large, the cost per character grows even without the scan's allocations. Candidates: the decoding buffers (`List<char>` and `List<int>` of 12 bytes per character of the string, which land on the Large Object Heap and double as they grow), the list of tokens and its sort, and the processor cache.
 
@@ -369,17 +372,17 @@ Same session, three runs each, on the code of the experiments (`6797746`) and on
 
 **Criterion.** One stage accounts for the extra cost, so that the superlinear growth can be attributed. Success is a cause, not a speed-up.
 
-## Completion (E16 to E27)
+## Completion (EA_14 to EA_24)
 
-The completion ([NestLight/Completion](../NestLight/Completion)) offers the keywords of the language of the string and the words that already exist in the document. E16 to E25 and E27 test it without Visual Studio (E26 is manual), on the same shared source as the other experiments. E20 and E21 run on **generated code** (`SyntheticCorpus`: 50 files, 4 hosts, SQL / HTML / CSS / GraphQL strings, a pool of 40 names reused as variables, columns, classes and fields, seeded so a run can be repeated). It is not real code: how often a name comes back, and how close to its last use, is set by the generator (`locality`), so those two experiments only say what would happen under that setting. The first full run was on commit `791df35`, .NET 8 in Release on a 4-core Linux machine, three runs; the quality experiments (E18 to E21) give the same numbers in every run. The second stage (E23 to E27) is described after E22.
+The completion ([NestLight/Completion](../NestLight/Completion)) offers the keywords of the language of the string and the words that already exist in the document. EA_14 to EA_23 and EA_24 test it without Visual Studio (EM_03 is manual), on the same shared source as the other experiments. EA_18 and EA_19 run on **generated code** (`SyntheticCorpus`: 50 files, 4 hosts, SQL / HTML / CSS / GraphQL strings, a pool of 40 names reused as variables, columns, classes and fields, seeded so a run can be repeated). It is not real code: how often a name comes back, and how close to its last use, is set by the generator (`locality`), so those two experiments only say what would happen under that setting. The first full run was on commit `791df35`, .NET 8 in Release on a 4-core Linux machine, three runs; the quality experiments (EA_16 to EA_19) give the same numbers in every run. The second stage (EA_21 to EA_24) is described after EA_20.
 
-## E16: completion latency against the size of the file
+## EA_14: completion latency against the size of the file
 
 **Status:** Done · **Decision:** Not met above about 1 million characters; no change for now
 
 **Hypothesis.** Every keystroke in an embedded string scans the host to find the string (`Locate`) and the whole text for words (`Suggest`). That is cheap on a normal file but could be noticeable on a large one, mostly when thousands of distinct words share the prefix.
 
-**Test.** For each host, a file of 1,200, 12,000 and 60,000 lines with the caret at the end of an open `comp` in a marked SQL string. Two shapes: E01's file (typical code) and a file where every line declares a new `compNNNNN` identifier. Time of `Locate` alone and of `Locate` + `Suggest`, without the text copy of the editor (E03).
+**Test.** For each host, a file of 1,200, 12,000 and 60,000 lines with the caret at the end of an open `comp` in a marked SQL string. Two shapes: EA_01's file (typical code) and a file where every line declares a new `compNNNNN` identifier. Time of `Locate` alone and of `Locate` + `Suggest`, without the text copy of the editor (EA_03).
 
 **Criterion.** `Locate` + `Suggest` under 16 ms at the largest size, in every host and shape.
 
@@ -390,17 +393,17 @@ The completion ([NestLight/Completion](../NestLight/Completion)) offers the keyw
 
 **Decision.** At 12,000 lines completion is well inside a frame. Above a million characters it takes more than a frame in some hosts, and the scan of the host (the same work the classifier already did for that snapshot) is the larger part. No change now.
 
-**Revisit when.** E10 shows that typing in large files is already tight, or the classifier exposes the strings of its last scan: then `Locate` can reuse them and the cost falls to the word scan.
+**Revisit when.** EM_01 shows that typing in large files is already tight, or the classifier exposes the strings of its last scan: then `Locate` can reuse them and the cost falls to the word scan.
 
-**Update (E22, commit `1fa1fbe`).** The classifier and the completion now share one scan per snapshot, and the word pass no longer creates a string per match. E16, unchanged, measures one `Locate` + `Suggest` over a plain scanner: with distinct words the 60,000-line case fell from 12.6 to 16.1 ms (C#) and 14.1 to 22.1 ms (Python) to 5.7 to 9.5 ms; with typical code nothing moved (9.6 to 13.6 ms, and Python 16.9 to 17.6 ms, still above a frame), because there the cost is the scan of the host, which E16 does not share. The criterion is still not met in the three runs, only by Python with typical code. The real session, with the scan shared, is E22.
+**Update (EA_20, commit `1fa1fbe`).** The classifier and the completion now share one scan per snapshot, and the word pass no longer creates a string per match. EA_14, unchanged, measures one `Locate` + `Suggest` over a plain scanner: with distinct words the 60,000-line case fell from 12.6 to 16.1 ms (C#) and 14.1 to 22.1 ms (Python) to 5.7 to 9.5 ms; with typical code nothing moved (9.6 to 13.6 ms, and Python 16.9 to 17.6 ms, still above a frame), because there the cost is the scan of the host, which EA_14 does not share. The criterion is still not met in the three runs, only by Python with typical code. The real session, with the scan shared, is EA_20.
 
-## E17: do the limits of the completion change its cost?
+## EA_15: do the limits of the completion change its cost?
 
 **Status:** Done · **Decision:** Defaults kept (100 suggestions, 3 characters)
 
 **Hypothesis.** The limit on the number of suggestions (100) and the minimum word length (3) were picked without measuring. If the cost is in the scan, no value of them is a performance lever.
 
-**Test.** The two shapes of E16 at 12,000 lines (JavaScript), with the maximum number of suggestions at 10, 100, 1,000 and 10,000 and the minimum word length at 1, 3 and 5, one knob at a time from the default. Median of 100 runs, against the faster of two measurements of the default (first and last).
+**Test.** The two shapes of EA_14 at 12,000 lines (JavaScript), with the maximum number of suggestions at 10, 100, 1,000 and 10,000 and the minimum word length at 1, 3 and 5, one knob at a time from the default. Median of 100 runs, against the faster of two measurements of the default (first and last).
 
 **Criterion.** Every combination within 25% of the default, in both shapes.
 
@@ -408,13 +411,13 @@ The completion ([NestLight/Completion](../NestLight/Completion)) offers the keyw
 
 **How the measurement was fixed.** The first version compared everything against a baseline measured once, first. That measurement was often 40 to 50% slower than the same setting measured later, which made the other rows look 30% faster and flipped the verdict between runs. The default is now measured twice (first and last).
 
-**Update (E22).** After the word pass stopped creating a string per match, the default of 100 costs about 2.5 ms and 10,000 suggestions about 7 ms (2.7x in the three runs, against 1.5x before). The absolute cost of 10,000 did not change; the default got cheaper. The verdict is the same and clearer: only a limit that makes the engine create thousands of words costs anything.
+**Update (EA_20).** After the word pass stopped creating a string per match, the default of 100 costs about 2.5 ms and 10,000 suggestions about 7 ms (2.7x in the three runs, against 1.5x before). The absolute cost of 10,000 did not change; the default got cheaper. The verdict is the same and clearer: only a limit that makes the engine create thousands of words costs anything.
 
 **Decision.** The scan is the cost, not the limits; the one setting that matters (10,000) is far from the default of 100. Keep both defaults. The verdict of this experiment is real but narrow, and the noise means a 25% criterion is tight for 4 ms measurements.
 
-## E18: completion on incomplete and cut code
+## EA_16: completion on incomplete and cut code
 
-**Status:** Closed (replaced by [E27](#e27-completion-with-similar-words-on-incomplete-and-cut-code)) · **Decision:** Met
+**Status:** Closed (replaced by [EA_24](#ea_24-completion-with-similar-words-on-incomplete-and-cut-code)) · **Decision:** Met
 
 **Hypothesis.** Completion runs while code is being typed, so it sees unterminated strings, half-written interpolations and carets anywhere. For every text and caret, `Locate` and `Suggest` must not throw, the site must lie inside the text around the caret with only word characters, and the suggestions must start with the typed prefix, add something to it and not repeat.
 
@@ -428,7 +431,7 @@ The completion ([NestLight/Completion](../NestLight/Completion)) offers the keyw
 
 **Closed.** The invariant "every suggestion starts with what was typed" no longer holds once similar words are offered, so the hypothesis changed and, by the rule of this file, the experiment was replaced. The run above stays as the record of the completion without the second stage; the class was removed from the suite.
 
-## E19: does the tokenizer agree with the vocabulary?
+## EA_17: does the tokenizer agree with the vocabulary?
 
 **Status:** Done · **Decision:** Met
 
@@ -444,7 +447,7 @@ The completion ([NestLight/Completion](../NestLight/Completion)) offers the keyw
 
 **Limit.** For CSS and HTML the second check is weak: any word in a property position is a property to the tokenizer. What they really verify is that no word is split, which is the check that would have caught a typo in the lists.
 
-## E20: order of the words of the document
+## EA_18: order of the words of the document
 
 **Status:** Done · **Decision:** Kept (nearest to the caret first)
 
@@ -473,13 +476,13 @@ The completion ([NestLight/Completion](../NestLight/Completion)) offers the keyw
 
 **Revisit when.** There are real files to run it on, or there is a way to see which suggestion users accept.
 
-## E21: where the words come from, and how many keystrokes completion saves
+## EA_19: where the words come from, and how many keystrokes completion saves
 
 **Status:** Done · **Decision:** Inconclusive
 
 **Hypothesis.** Offering the words of the whole document (host code included, as Visual Studio Code does) saves more keystrokes than offering only the words inside embedded strings, or only those of the string being typed.
 
-**Test.** The corpus of E20 at locality 0.5. 3,217 words typed one character at a time, up to 5. The completion is accepted at the first prefix where the right word is within the first 5; saving = length of the word - characters typed - 1 for the accepting key. Four scopes, always with the keywords except the first.
+**Test.** The corpus of EA_18 at locality 0.5. 3,217 words typed one character at a time, up to 5. The completion is accepted at the first prefix where the right word is within the first 5; saving = length of the word - characters typed - 1 for the accepting key. Four scopes, always with the keywords except the first.
 
 **Criterion.** The saving of the whole document within 2 percentage points of the best narrower scope, or above it.
 
@@ -498,47 +501,47 @@ The completion ([NestLight/Completion](../NestLight/Completion)) offers the keyw
 
 **Revisit when.** There are real files, or the test types words from interpolations too.
 
-## E22: sharing the scan and not creating the words of the completion
+## EA_20: sharing the scan and not creating the words of the completion
 
 **Status:** Done · **Decision:** Adopt (`1fa1fbe`)
 
-**Hypothesis.** E16 found that completion takes more than a frame above ~1 million characters, mostly the scan of the host. In Visual Studio a session scans the text twice (once to decide whether to open, once to fill the list) after the classifier already did it for the same snapshot, and the word pass created a string and a sort entry for every match. Sharing one scan between the classifier and the completion, and creating a word only when it is offered, brings the worst case under a frame.
+**Hypothesis.** EA_14 found that completion takes more than a frame above ~1 million characters, mostly the scan of the host. In Visual Studio a session scans the text twice (once to decide whether to open, once to fill the list) after the classifier already did it for the same snapshot, and the word pass created a string and a sort entry for every match. Sharing one scan between the classifier and the completion, and creating a word only when it is offered, brings the worst case under a frame.
 
 **Change.** `CachingHostScanner` remembers the last scan, compared by reference to the text, held weakly. `SnapshotTextCache` gives everything that reads one snapshot the same string instance. The classifier and the completion of a buffer are built over one scanner (`NestLightComposition.CreateForBuffer`). The word pass finds the matches as positions, in one pass and without strings, and merges the matches before and after the caret in order of distance, creating a word (and checking it against the ones already offered by hash) only when it is about to be offered.
 
-**Test.** E16's files. The start of one completion session, as the editor makes it (`Locate`, `Locate` again, `Suggest`) over a new text instance each time, in two cases: nothing shared, and the scan shared (the classifier has already highlighted that text, not timed). Plus `Suggest` alone. Check that nothing changes: 897 unit tests, among them a comparison of the order of the words with the first, straightforward implementation (dictionary and sort) on 4,800 random carets of small generated programs (those inside embedded strings are compared), and a test of two words at the same distance on both sides.
+**Test.** EA_14's files. The start of one completion session, as the editor makes it (`Locate`, `Locate` again, `Suggest`) over a new text instance each time, in two cases: nothing shared, and the scan shared (the classifier has already highlighted that text, not timed). Plus `Suggest` alone. Check that nothing changes: 897 unit tests, among them a comparison of the order of the words with the first, straightforward implementation (dictionary and sort) on 4,800 random carets of small generated programs (those inside embedded strings are compared), and a test of two words at the same distance on both sides.
 
 **Criterion.** The session with the scan shared stays under 16 ms at 60,000 lines, in every host and shape.
 
-**Result.** Met in three runs: 2.4 to 2.8 ms in every host and shape at 60,000 lines (0.2 to 2 million characters), the same for typical code and distinct words. Nothing shared: 12 to 32 ms (C++ distinct words 12.1 ms, Python typical code 31.5 to 31.8 ms), the cost of the old wiring, which E16 understated because it counted one `Locate`. `Suggest` alone: 2.2 to 2.6 ms. E20 and E21 give the same numbers as before the change.
+**Result.** Met in three runs: 2.4 to 2.8 ms in every host and shape at 60,000 lines (0.2 to 2 million characters), the same for typical code and distinct words. Nothing shared: 12 to 32 ms (C++ distinct words 12.1 ms, Python typical code 31.5 to 31.8 ms), the cost of the old wiring, which EA_14 understated because it counted one `Locate`. `Suggest` alone: 2.2 to 2.6 ms. EA_18 and EA_19 give the same numbers as before the change.
 
 **Decision.** Adopt. The change is small, the order of the suggestions is the same, and the session start fell from 12 to 32 ms to under 3 ms at the largest size.
 
 **Limits.**
-- The 2.5 ms assumes the classifier ran on the same snapshot first (or that completion's scan seeds the classifier). The classifier's own cost, about 10 ms at this size (E01), is not new: it was already paid at every edit.
+- The 2.5 ms assumes the classifier ran on the same snapshot first (or that completion's scan seeds the classifier). The classifier's own cost, about 10 ms at this size (EA_01), is not new: it was already paid at every edit.
 - A hit needs the same text instance. If a gen2 collection frees the text between the two uses, the next one scans again: slower, never wrong.
 - The Visual Studio part (`NestLightBuffer`, the providers) was written without the VS SDK here and was not compiled or run; the test is the same code over a fake scanner and the real one.
 - Generated files, one machine, .NET 8 (not net48).
 
-**Revisit when.** E10 measures typing in Visual Studio; or the scan itself becomes incremental (E12), which would help the classifier too.
+**Revisit when.** EM_01 measures typing in Visual Studio; or the scan itself becomes incremental (EA_10), which would help the classifier too.
 
-## Second stage: similar words (E23 to E27)
+## Second stage: similar words (EA_21 to EA_24)
 
 The second stage ([BandedPrefixMatcher](../NestLight/Completion/ApproximateMatcher.cs) and the end of [CompletionEngine](../NestLight/Completion/CompletionEngine.cs)) runs only when fewer than `FuzzyBelow` (1) items start with what was typed, the typed text has 3 or more letters, and a matcher was given. It offers the keywords and the words of the document that are at most 1 edit away (3 to 5 letters) or 2 (6 or more) from some prefix of them: an extra letter, a missing one, a wrong one or two swapped neighbours. Only the first `FuzzyMaxItems` (10) are added, after the exact ones. The first letter has to be the one typed. `SELCT` offers `SELECT`, `<dvi` offers `div`, `custmer` offers `customerName`.
 
-The first runs were on commit `70e9ffd` (.NET 8 in Release, a 4-core Linux machine), three runs for the experiments that were run. **E24 and E25 have not been run in full**: their criteria are proposals that were left to be confirmed before the first run, and a run fixes them. A smoke run (`--quick`, numbers not kept) only checked that they work.
+The first runs were on commit `70e9ffd` (.NET 8 in Release, a 4-core Linux machine), three runs for the experiments that were run. **EA_22 and EA_23 have not been run in full**: their criteria are proposals that were left to be confirmed before the first run, and a run fixes them. A smoke run (`--quick`, numbers not kept) only checked that they work.
 
-## E23: does the second stage of the completion fit in a frame?
+## EA_21: does the second stage of the completion fit in a frame?
 
 **Status:** Done · **Decision:** Inconclusive (borderline in one extreme case)
 
 **Hypothesis.** The second stage compares what was typed with every distinct word of the document that passes two cheap filters (the first letter, the length) and keeps the best few. Even forced to run in every session, with thousands of words one edit away, a session still fits in the 16 ms of a frame.
 
-**Test.** E22's files and session (the scan shared, a new text instance each time), 4 hosts, typical code and distinct words, 1,200 / 12,000 / 60,000 lines, with the second stage forced (asked for below any number of items). Two typed texts: `comp` (everything is compared, nothing new is found) and `cmop` (in the distinct-words file all 60,000 words are one edit away). Also the same session with the second stage off, and the bytes allocated.
+**Test.** EA_20's files and session (the scan shared, a new text instance each time), 4 hosts, typical code and distinct words, 1,200 / 12,000 / 60,000 lines, with the second stage forced (asked for below any number of items). Two typed texts: `comp` (everything is compared, nothing new is found) and `cmop` (in the distinct-words file all 60,000 words are one edit away). Also the same session with the second stage off, and the bytes allocated.
 
 **Criterion.** Under 16 ms at 60,000 lines in every host, shape and typed text.
 
-**Result.** Not met in two runs and met in one, so the verdict flips (the same behavior as E09).
+**Result.** Not met in two runs and met in one, so the verdict flips (the same behavior as EA_09).
 - **One case decides it:** Python, distinct words, `cmop`: 18.7, 15.4 and 16.1 ms. The other distinct-words cases with `cmop` are 11.6 to 13.9 ms in every run.
 - **Typical code:** 4.1 to 4.6 ms forced, against 2.1 to 2.9 ms with the stage off. Typing `comp` costs nothing in the distinct-words file (2.2 to 2.6 ms, as with the stage off): no word is one edit away that is not already a prefix match.
 - **Allocation:** in typical code the stage allocates 1 KB more. In the worst case it allocates 3.2 to 3.7 MB: one small record per distinct word that passed the filters (60,000 of them), and the 10 strings that are offered. No string is created for a word that is too far or too similar to matter.
@@ -547,31 +550,31 @@ The first runs were on commit `70e9ffd` (.NET 8 in Release, a 4-core Linux machi
 
 **Decision.** Not changed. The stage keeps the order of remedies that the design set: a cache of the distinct words per text (as `CachingHostScanner` does for the scan) and a smaller window first, and a trie only if those do not fit. Neither helps the first request on a new text, which is the case measured here.
 
-**Revisit when.** E26 shows the feature is used on large files, or real files have as many near-identical distinct words as this one.
+**Revisit when.** EM_03 shows the feature is used on large files, or real files have as many near-identical distinct words as this one.
 
-## E24: does the second stage recover the word after one mistake, and which tie-break works?
+## EA_22: does the second stage recover the word after one mistake, and which tie-break works?
 
 **Status:** Planned (the criterion is a proposal to confirm before the first run)
 
 **Hypothesis.** When the typed text has one edit (an extra letter, a missing one, a wrong one, two swapped) in a prefix of 4 to 8 letters, the meant word is among the first 5 suggestions in most cases. Among words the same number of edits away, the nearest to the caret is no worse a tie-break than the most frequent.
 
-**Test.** The corpus of E20 (50 generated files, locality 0.5). A sample of the words of the embedded strings is typed as a prefix of 4 to 8 letters with one edit of each kind at a random place over the prefix (the first letter included). Only the reachable cases count (the word exists elsewhere in the document or is a keyword). The list is also reordered inside each group of the same kind and distance: nearest first (the engine), most frequent first, most frequent and then nearest.
+**Test.** The corpus of EA_18 (50 generated files, locality 0.5). A sample of the words of the embedded strings is typed as a prefix of 4 to 8 letters with one edit of each kind at a random place over the prefix (the first letter included). Only the reachable cases count (the word exists elsewhere in the document or is a keyword). The list is also reordered inside each group of the same kind and distance: nearest first (the engine), most frequent first, most frequent and then nearest.
 
 **Criterion.** The meant word within the first 5 in at least 70% of the reachable cases with the best of the three tie-breaks; if more than one reaches 70%, the best result enters, and on a tie the nearest stays.
 
 **Limits already known.** A mistake in the first letter cannot be recovered with the first letter required; with the mistake uniform over the prefix that is about one case in five or six, which caps the result well under 100%. The corpus is generated and the mistakes are not the way people mistype.
 
-## E25: does the second stage get in the way when the prefix is right?
+## EA_23: does the second stage get in the way when the prefix is right?
 
 **Status:** Planned (the criterion is a proposal to confirm before the first run)
 
 **Hypothesis.** If the second stage ran whenever the first found few items, a correct prefix would often get a list with words that are only similar by chance. Running it only when nothing matched (`FuzzyBelow` = 1) keeps that rare.
 
-**Test.** The corpus of E20. A sample of the words of the embedded strings typed correctly, 3 to 8 letters, with the rest of the word removed. The engine with `FuzzyBelow` = 1, 3 and 5; the cases where similar items are added are counted, apart for those where the first stage found something and those where it found nothing.
+**Test.** The corpus of EA_18. A sample of the words of the embedded strings typed correctly, 3 to 8 letters, with the rest of the word removed. The engine with `FuzzyBelow` = 1, 3 and 5; the cases where similar items are added are counted, apart for those where the first stage found something and those where it found nothing.
 
 **Criterion.** With `FuzzyBelow` = 1, similar items are added in at most 5% of the cases. The default is chosen among the values that meet it.
 
-## E26: do the similar suggestions show up in Visual Studio?
+## EM_03: do the similar suggestions show up in Visual Studio?
 
 **Status:** Planned (manual, needs a build in Visual Studio 2022 and 2026)
 
@@ -583,41 +586,27 @@ The first runs were on commit `70e9ffd` (.NET 8 in Release, a 4-core Linux machi
 
 **If not met.** Limit the feature to the explicit invocation and say so in the README. Nothing of the Visual Studio side of this feature (`NestLightCompletionSource`) has been compiled or run in this work.
 
-## E27: completion with similar words on incomplete and cut code
+## EA_24: completion with similar words on incomplete and cut code
 
-**Status:** Done · **Decision:** Met (replaces E18)
+**Status:** Done · **Decision:** Met (replaces EA_16)
 
 **Hypothesis.** Completion runs while code is being typed. For every text and caret, `Suggest` must not throw; the site must lie inside the text with only word characters; the exact suggestions must start with the typed text; the similar ones must be at the distance they claim (as the definition computes it), between 1 and the tolerance, with the first letter typed, after the exact ones, keywords before words and fewer edits first; nothing repeats; and the limits hold.
 
-**Test.** E18's: 50 generated files, every prefix cut and every single-character deletion at a stride (12,450 texts), the caret at the start, at the end and at 5 random places (86,900 carets, about 16,000 of them inside embedded code); plus, at each of those, the same text with a one-letter mistake put in the word under the caret. The distance of every similar item is recomputed with the whole matrix.
+**Test.** EA_16's: 50 generated files, every prefix cut and every single-character deletion at a stride (12,450 texts), the caret at the start, at the end and at 5 random places (86,900 carets, about 16,000 of them inside embedded code); plus, at each of those, the same text with a one-letter mistake put in the word under the caret. The distance of every similar item is recomputed with the whole matrix.
 
 **Criterion.** Zero violations.
 
 **Result.** Met in the three runs: 0 violations in 86,900 carets, 21,275 similar items checked against the definition.
 
-## Combinations of host and language (E39)
-
-## E39: every host with every embedded language
-
-**Status:** Done · **Decision:** Met
-
-**Hypothesis.** The unit tests try each host with some languages and each language mostly in a JavaScript host. A combination nobody wrote a test for may be missed or read as another language.
-
-**Test.** The [generator](#the-code-generator) writes a file for each of the 168 applicable combinations; each is run through the scan and the highlighter at 1 and at 200 copies of the sample and compared with what the generator put there (strings, interpolations, language, tokens inside the strings). The time to highlight 200 copies is reported by host and language.
-
-**Criterion.** Every applicable combination passes at both sizes.
-
-**Result.** Met on the first run: 168 combinations, 0 failing checks. Times for 200 copies are between 0.4 and 4 ms in every host. What E39 cannot say is whether the colors and the suggestions are good: that is the manual review of the same files.
-
-## Context ranking (E28 to E38)
+## Context ranking (EA_25 to EA_35)
 
 Until here the list depended only on what was typed: the keywords, then the words of the document nearest to the caret first. These experiments ask whether the list gets better when it also looks at where the caret is. Each idea is a flag of [CompletionFeatures](../NestLight/Completion/CompletionFeatures.cs) and an experiment decides whether it is on in the plugin (`CompletionFeatures.Default`).
 
-They share one harness ([ContextLab](../NestLight.Experiments/Framework/ContextLab.cs)) and one corpus: `SyntheticCorpus.Generate(..., structured: true)`, where SQL strings follow a schema (a `CREATE TABLE` for each table, columns that belong to their table, joins on foreign keys), CSS values belong to their property and HTML attributes belong to their tag. **The structure is put there by the generator.** What these experiments show is that an idea works when code has that structure, not how much real code has it; E20 and E21 have the same limit, and no experiment here ran on real files. A word is typed with 1, 2 or 3 letters, the list is the one the editor gets (100 items, the second stage on), and the measure is the share of cases where the word is within the first 5, over the cases where anything could offer it.
+They share one harness ([ContextLab](../NestLight.Experiments/Framework/ContextLab.cs)) and one corpus: `SyntheticCorpus.Generate(..., structured: true)`, where SQL strings follow a schema (a `CREATE TABLE` for each table, columns that belong to their table, joins on foreign keys), CSS values belong to their property and HTML attributes belong to their tag. **The structure is put there by the generator.** What these experiments show is that an idea works when code has that structure, not how much real code has it; EA_18 and EA_19 have the same limit, and no experiment here ran on real files. A word is typed with 1, 2 or 3 letters, the list is the one the editor gets (100 items, the second stage on), and the measure is the share of cases where the word is within the first 5, over the cases where anything could offer it.
 
 The editor sorts the list by the sort text of each item, which is the text unless told otherwise, so the order of the engine did not reach the screen before: [NestLightCompletionSource](../NestLight/VisualStudio/NestLightCompletionSource.cs) now gives every item its position as sort text. That code has not been compiled or run in this work (it needs the Visual Studio SDK).
 
-## E28: does the word before the caret help to rank the suggestions?
+## EA_25: does the word before the caret help to rank the suggestions?
 
 **Status:** Done · **Decision:** Adopted (`CompletionFeatures.PreviousWord`)
 
@@ -631,37 +620,37 @@ The editor sorts the list by the sort text of each item, which is the text unles
 
 **What it says.** With one or two letters typed, a keyword or a nearby word usually fills the first places, and what the document did after the same word is a better guess than what is nearest. With three letters the prefix has already narrowed the list, and there is little left to gain.
 
-**Cost.** One more comparison per candidate that passes the prefix test, and a record of the previous word during the pass. The hot path with the features off was measured two ways. In one process, alternating the engine of `main` and this one on the same 60,000-line Python text, 40 calls each, four rounds: 0.87 to 1.07 ms against 0.87 to 1.05 ms, no difference. E22 run on `main` and on each commit of this work, three runs each: 1.20 ms on `main`, then 1.44, 1.65, 1.62 and 1.60 ms, a rise of about a third that the first measure does not show; a pass restored to the original loop did not change it, and the cause was not found. Taken together: the code of the first stage costs the same, and the E22 harness reads about 0.4 ms more on these builds for a reason outside the engine (the cell is a median of 25 calls in a process that has also loaded the new experiments). With the three features of the plugin on, the start of a session at 60,000 lines is about 5 ms against about 4 ms for distance alone (E28 to E30).
+**Cost.** One more comparison per candidate that passes the prefix test, and a record of the previous word during the pass. The hot path with the features off was measured two ways. In one process, alternating the engine of `main` and this one on the same 60,000-line Python text, 40 calls each, four rounds: 0.87 to 1.07 ms against 0.87 to 1.05 ms, no difference. EA_20 run on `main` and on each commit of this work, three runs each: 1.20 ms on `main`, then 1.44, 1.65, 1.62 and 1.60 ms, a rise of about a third that the first measure does not show; a pass restored to the original loop did not change it, and the cause was not found. Taken together: the code of the first stage costs the same, and the EA_20 harness reads about 0.4 ms more on these builds for a reason outside the engine (the cell is a median of 25 calls in a process that has also loaded the new experiments). With the three features of the plugin on, the start of a session at 60,000 lines is about 5 ms against about 4 ms for distance alone (EA_25 to EA_27).
 
-**Limits.** The words after the same word are found in the whole window, strings and host code alike; E29 puts the words of the language first. A word shorter than 3 letters is only offered when it follows the context (`BY`).
+**Limits.** The words after the same word are found in the whole window, strings and host code alike; EA_26 puts the words of the language first. A word shorter than 3 letters is only offered when it follows the context (`BY`).
 
-**Revisit when.** E26 shows how the order looks in the editor, or real files show that the previous word predicts worse than here.
+**Revisit when.** EM_03 shows how the order looks in the editor, or real files show that the previous word predicts worse than here.
 
-## E29: do the words of the same language come first?
+## EA_26: do the words of the same language come first?
 
 **Status:** Done · **Decision:** Adopted (`CompletionFeatures.SameLanguageWords`)
 
-**Hypothesis.** A word written in the code of another string of the same language (a column in another SQL string) is likelier than a word of the host code or of a string of another language that happens to start with the same letters, even when the other one is nearer to the caret. Putting the words of the language first, and taking the context of the previous word from them only, puts the meant word in the first 5 more often. It is E21's question (where should the words come from) asked as a ranking and not as a filter: nothing is dropped, the other words come after.
+**Hypothesis.** A word written in the code of another string of the same language (a column in another SQL string) is likelier than a word of the host code or of a string of another language that happens to start with the same letters, even when the other one is nearer to the caret. Putting the words of the language first, and taking the context of the previous word from them only, puts the meant word in the first 5 more often. It is EA_19's question (where should the words come from) asked as a ranking and not as a filter: nothing is dropped, the other words come after.
 
-**Test.** E28's probes, four variants: the order by distance alone; the words of the language first; the previous word; both. Interpolations are host code. Also the start of a session on files of 1,200 to 60,000 lines with the scan shared.
+**Test.** EA_25's probes, four variants: the order by distance alone; the words of the language first; the previous word; both. Interpolations are host code. Also the start of a session on files of 1,200 to 60,000 lines with the scan shared.
 
 **Criterion.** Adding the words of the language to the previous word is at least 2 points better within the first 5; no language more than 1 point worse; the session under 16 ms at 60,000 lines in every host.
 
 **Result.** Met. Within the first 5: 72.5% (distance alone), 77.3% (the language), 85.5% (previous word), **88.1%** (both): +2.6 points on top of the previous word. By language, with both against the previous word alone: HTML 70.7% to 77.4%, GraphQL 90.1% to 96.0%, SQL 88.1% to 89.8%, CSS 80.7% to 81.8%; none is worse. The slowest session is 5.11 ms at 60,000 lines (Python), against 4.13 ms without the scope.
 
-**What it says.** The scope helps most where the host shares names with the strings (HTML classes against variables, GraphQL fields), and least where the previous word already did the work (SQL). The gain is modest next to E28's; the generator names host variables after the same nouns as the tables, which makes the collision common.
+**What it says.** The scope helps most where the host shares names with the strings (HTML classes against variables, GraphQL fields), and least where the previous word already did the work (SQL). The gain is modest next to EA_25's; the generator names host variables after the same nouns as the tables, which makes the collision common.
 
 **Cost.** About 1 ms at 60,000 lines (the strings of the language are taken from the shared scan and merged into ranges, and the matches go into two lists). With the features off nothing of it runs.
 
 **Limits.** The second stage (similar words) does not use the scope. A string whose language the plugin does not know has no words of its own language to prefer, and its words are ranked as before.
 
-## E30: does the place in the grammar help to rank the suggestions?
+## EA_27: does the place in the grammar help to rank the suggestions?
 
 **Status:** Done · **Decision:** Adopted (`CompletionFeatures.Grammar`)
 
 **Hypothesis.** What belongs at the caret can be told from a few characters of look-behind ([the grammar of each language](../NestLight/Completion/Languages), no parser): a table after `FROM`, a column after `SELECT`, `BY` after `GROUP`, the properties inside the braces of CSS and the values of the property after its colon, the attributes of the tag inside `<button `. Putting what belongs first and what does not last (nothing is dropped) puts the meant word in the first 5 more often than the previous word and the language alone, and fits in a frame.
 
-**Test.** E28's probes, four variants: the order by distance alone; the grammar; the previous word and the language (what the plugin ran with before); all three. Reported by the place of the caret. Also the start of a session on files of 1,200 to 60,000 lines.
+**Test.** EA_25's probes, four variants: the order by distance alone; the grammar; the previous word and the language (what the plugin ran with before); all three. Reported by the place of the caret. Also the start of a session on files of 1,200 to 60,000 lines.
 
 **Criterion.** Adding the grammar to the previous word and the language is at least 2 points better within the first 5; SQL, CSS and HTML each do not fall; the session under 16 ms at 60,000 lines in every host.
 
@@ -669,19 +658,19 @@ The editor sorts the list by the sort text of each item, which is the text unles
 - **Where it is weak:** `css:selector` 50.6% and `html:tag` 82.0% (tag names are a closed list and the words typed there are classes and ids that the rules do not cover), `css:property` 86.5%.
 - **Where the two ideas overlap:** after `from` the previous word already reached 92.0%; the grammar adds the cases the document has not seen yet (a first `JOIN`, a `GROUP BY` never written).
 
-**What it says.** The grammar gives a large gain, but read the corpus before the number: the same person wrote the generator and the tables of attributes, values and continuations, and the generator follows them. 97% is what the rules do on code that obeys them. Real code has attributes, values and clauses that the tables do not know; the rules then put nothing first and the list is the one of E29, so the cost of an incomplete table is a smaller gain, not a wrong order. Where the rules say something wrong (`Unlikely` words pushed after the words of the document) is not measured by this corpus.
+**What it says.** The grammar gives a large gain, but read the corpus before the number: the same person wrote the generator and the tables of attributes, values and continuations, and the generator follows them. 97% is what the rules do on code that obeys them. Real code has attributes, values and clauses that the tables do not know; the rules then put nothing first and the list is the one of EA_26, so the cost of an incomplete table is a smaller gain, not a wrong order. Where the rules say something wrong (`Unlikely` words pushed after the words of the document) is not measured by this corpus.
 
 **Limits.** The grammar covers SQL, CSS and HTML / SVG. A place the rules do not recognize (inside `url(`, a language without rules) is ranked as before. The tables are short: about 150 attributes, 40 properties with values, 60 SQL continuations.
 
 **Revisit when.** Real files give a hit rate to compare with this one, or a table turns out to hide a word people use (watch `Unlikely`).
 
-## E31: does the schema read from the SQL of the document help?
+## EA_28: does the schema read from the SQL of the document help?
 
 **Status:** Done · **Decision:** Not adopted (`CompletionFeatures.Schema` stays in the code, off)
 
 **Hypothesis.** The tables and columns the SQL of the file talks about ([SqlSchema](../NestLight/Completion/Languages/SqlSchema.cs): a `CREATE TABLE`, the `FROM` and `JOIN` of the statement, the aliases, the column list of an `INSERT`, the `SET` of an `UPDATE`) tell which table to offer after `FROM` and which columns belong after `u.` or in the select list. That is more precise than the previous word, because an alias means a different table in every statement. The reader is a scan of the common shapes, not a parser.
 
-**Test.** E28's probes reported by the place of the caret: the order by distance alone; the previous word, the language and the grammar (what the plugin ran with); the same plus the schema; the schema alone. Files with a `CREATE TABLE` for each table and joins with the aliases `t` and `o` reused for a different table in every statement. Also, apart from the criterion, 200 short files (4 functions each), where the previous word has little history. Also the start of a session with `select u.comp| from users u` typed at the end of files of 1,200 to 60,000 lines, where every SQL string in the window is read.
+**Test.** EA_25's probes reported by the place of the caret: the order by distance alone; the previous word, the language and the grammar (what the plugin ran with); the same plus the schema; the schema alone. Files with a `CREATE TABLE` for each table and joins with the aliases `t` and `o` reused for a different table in every statement. Also, apart from the criterion, 200 short files (4 functions each), where the previous word has little history. Also the start of a session with `select u.comp| from users u` typed at the end of files of 1,200 to 60,000 lines, where every SQL string in the window is read.
 
 **Criterion.** At least 1 point better within the first 5 over all the reachable cases; the places that need a table or a column (`sql:table`, `sql:member`, `sql:expression`) do not fall; the session under 16 ms at 60,000 lines in every host.
 
@@ -695,39 +684,39 @@ The editor sorts the list by the sort text of each item, which is the text unles
 
 **Revisit when.** The schema of a text is kept between requests (a cache next to the scan, so a keystroke does not read the file again), or real files turn out to have few repeated queries and a `CREATE TABLE` close by.
 
-## E32: do the words used most often come before the nearest ones?
+## EA_29: do the words used most often come before the nearest ones?
 
 **Status:** Done · **Decision:** Not adopted (`WordOrder` stays in the code, `Nearest` is the default)
 
 **Hypothesis.** The order by distance alone sends to the end a word that is used all over the file and is not close to the caret, while the nearest word may have been used once. A blend, `ln(1 + count) - weight * ln(1 + distance)`, puts the meant word in the first 5 more often, whatever the locality of the code. The engine has no edit history, so how near an occurrence is to the caret stands for how recently the word was used; real recency (the words accepted or typed last) would need the editor to tell the engine and is not done here.
 
-**Test.** E28's probes on files of three localities (0, 0.5, 0.9), 50 each, with the previous word, the language and the grammar on. Five orders of the words of the document and of the words that followed the context: distance alone, count alone, and the blend with a weight of 1, 0.5 and 0.25. Also, apart from the criterion, the same orders with no other feature, and the start of a session.
+**Test.** EA_25's probes on files of three localities (0, 0.5, 0.9), 50 each, with the previous word, the language and the grammar on. Five orders of the words of the document and of the words that followed the context: distance alone, count alone, and the blend with a weight of 1, 0.5 and 0.25. Also, apart from the criterion, the same orders with no other feature, and the start of a session.
 
 **Criterion.** The best of the four other orders at least 1.5 points better within the first 5 than distance alone at locality 0.5; at no locality worse by more than 1 point; no language worse by more than 1 point; the session under 16 ms at 60,000 lines.
 
 **Result.** Not met: no order is better. At locality 0.5: distance alone 97.2%, count alone 97.0%, the blends 97.2%, 97.2% and 97.1%. At locality 0 the five orders are within 0.1 points (96.7% to 96.8%), at 0.9 distance alone is the best (97.5% against 97.2% to 97.4%). With no other feature the picture is the same: distance alone 72.5%, count alone 71.4%, the blends 72.5%, 72.3% and 71.9%; counting without looking at the distance is the only order clearly behind (1.1 points). The session costs the same with every order (about 5 ms at 60,000 lines).
 
-**What it says.** E20 had already found the nearest first better than the alphabetical order; this finds that adding the count does not improve on it, in code that repeats names by construction. With the previous word, the language and the grammar in front, a word that the context does not settle is a tie between a few near candidates, and the count does not break it better than the distance. It is not a result about real code, where a name used 30 times in the file is probably a better guess than one used once next to the caret; the generator draws its names from a pool of 40 and cannot say.
+**What it says.** EA_18 had already found the nearest first better than the alphabetical order; this finds that adding the count does not improve on it, in code that repeats names by construction. With the previous word, the language and the grammar in front, a word that the context does not settle is a tie between a few near candidates, and the count does not break it better than the distance. It is not a result about real code, where a name used 30 times in the file is probably a better guess than one used once next to the caret; the generator draws its names from a pool of 40 and cannot say.
 
 **Decision.** `Nearest` stays the default. The blend is kept as an option with its 7 tests, because it costs nothing when off and the answer may change with real files.
 
 **Revisit when.** There are real files to measure on, or the editor can tell the engine which words the user accepted last.
 
-## E33: completion with the context rankings on incomplete and cut code
+## EA_30: completion with the context rankings on incomplete and cut code
 
 **Status:** Done · **Decision:** Met
 
-**Hypothesis.** E27 again with every context feature on (the previous word, the words of the language, the grammar of SQL, CSS and HTML, the schema of the SQL, the blend of count and distance), over the structured files that have the statements, rules and tags those features read. The look-behind of the grammar and of the schema, the pointers into the ranges of the strings, the ranked words and the short words offered after a context must not throw on a text cut anywhere, repeat a word, break the limits, or offer an exact suggestion that does not start with what was typed.
+**Hypothesis.** EA_24 again with every context feature on (the previous word, the words of the language, the grammar of SQL, CSS and HTML, the schema of the SQL, the blend of count and distance), over the structured files that have the statements, rules and tags those features read. The look-behind of the grammar and of the schema, the pointers into the ranges of the strings, the ranked words and the short words offered after a context must not throw on a text cut anywhere, repeat a word, break the limits, or offer an exact suggestion that does not start with what was typed.
 
-**Test.** E27's: every prefix cut at a stride and every single-character deletion at a stride (12,269 texts), the caret at the start, at the end and at 5 random places (85,633 carets, 35,116 of them inside embedded code), and the same position with a mistake in the word (16,841), with every feature of `CompletionFeatures` on, schema and blend included.
+**Test.** EA_24's: every prefix cut at a stride and every single-character deletion at a stride (12,269 texts), the caret at the start, at the end and at 5 random places (85,633 carets, 35,116 of them inside embedded code), and the same position with a mistake in the word (16,841), with every feature of `CompletionFeatures` on, schema and blend included.
 
 **Criterion.** Zero violations.
 
 **Result.** Met: 0 violations, 29,786 similar items checked against the definition.
 
-## E34: where the place of the caret says nothing, do the words of the file and the most used keywords come first?
+## EA_31: where the place of the caret says nothing, do the words of the file and the most used keywords come first?
 
-**Status:** Done · **Decision:** Not met as written; E35 refines it
+**Status:** Done · **Decision:** Not met as written; EA_32 refines it
 
 **Hypothesis.** The review of 800 suggestions (`docs/suggestion-review`) found that, without a rule for the place, the list is the vocabulary in alphabetical order, cut at 100, with the words of the file after it: with nothing or one letter typed the word that is wanted is often out of the first five or out of the list (GLSL, WGSL, GraphQL, and the keyword soup in the others). The words of the file first, and the keywords in the order of how much code uses them, should put it among the first five more often.
 
@@ -737,15 +726,15 @@ The editor sorts the list by the sort text of each item, which is the text unles
 
 **Result.** Not met. On the test files "both" gives 73.9% to 76.1% within the first 5 (+2.2 points); the words of the file first alone 75.6%, the keywords by use alone 76.0%. By language the gain is large in GLSL (71.8% to 82.0%) and WGSL (82.8% to 87.7%) and HTML (85.9% to 88.6%), nothing in CSS, and it **loses** in JSON (75.2% to 73.2%) and GraphQL (60.9% to 59.8%), so the worst language is -2.0. On the hand-written files it gains everywhere but JSON: 58.3% to 68.2% (+9.9), GLSL 23.2% to 55.8%, WGSL 35.1% to 58.6%, JSON 81.2% to 50.0%.
 
-**What it says.** The loss in JSON is the words of the file pushing `true`, `false` and `null` down, which are the few keywords that are always right in a value. That points at the fix, which is E35.
+**What it says.** The loss in JSON is the words of the file pushing `true`, `false` and `null` down, which are the few keywords that are always right in a value. That points at the fix, which is EA_32.
 
-## E35: do a few keywords still come before the words of the file?
+## EA_32: do a few keywords still come before the words of the file?
 
 **Status:** Done · **Decision:** Adopted (`WordsBeforeKeywords`, `KeywordPriors` and `HeadKeywords = 12`), by a hair
 
-**Hypothesis.** Put only the few most used keywords of the language before the words of the file and the others after them; that keeps E34's gain and removes its loss.
+**Hypothesis.** Put only the few most used keywords of the language before the words of the file and the others after them; that keeps EA_31's gain and removes its loss.
 
-**Test.** E34's files, words and priors. The engine as it is; the words of the file first with the keywords by use (0 keywords in front); and the same with the 3, 6 and 12 most used keywords in front. E35 was written after seeing E34: the variants react to its tables, and the test files are the same, so a gain is partly fitted to them. The hand-written files are the check.
+**Test.** EA_31's files, words and priors. The engine as it is; the words of the file first with the keywords by use (0 keywords in front); and the same with the 3, 6 and 12 most used keywords in front. EA_32 was written after seeing EA_31: the variants react to its tables, and the test files are the same, so a gain is partly fitted to them. The hand-written files are the check.
 
 **Criterion.** The best variant with keywords in front at least 3 points better within the first 5 on the test files; no language more than 1 point worse; not worse on the hand-written files.
 
@@ -759,9 +748,9 @@ The editor sorts the list by the sort text of each item, which is the text unles
 
 **Revisit when.** There are real files to learn the order from, or the plugin learns it from the files the user opens.
 
-## E36: should words of two letters be offered?
+## EA_33: should words of two letters be offered?
 
-**Status:** Closed · **Decision:** Not met as written; replaced by E38
+**Status:** Closed · **Decision:** Not met as written; replaced by EA_35
 
 **Hypothesis.** The completion skips the words under 3 letters, so `id`, `db`, `in`, `uv` and `if` are never offered, and they are among the most written words of SQL, YAML and shaders ([SQL-5](suggestion-review/sql.md#sql-5), [YAML-39](suggestion-review/yaml.md#yaml-39), [WGSL-23](suggestion-review/wgsl.md#wgsl-23)). Offering them, after all the longer words, lets a person who types `i` find `id` without crowding the list for the person who wants a longer word.
 
@@ -769,13 +758,13 @@ The editor sorts the list by the sort text of each item, which is the text unles
 
 **Criterion (as written).** A variant raises the words of 2 letters by at least 15 points within the first 5; lowers the longer words by no more than 0.5 point overall and 1 point in any language; and on the hand-written files the words of 2 letters gain at least 10 points while the longer ones lose no more than 1.
 
-**Result.** Not met, because the criterion could not be met: on the test files the words of 2 letters were already at 85.2% within the first 5 (the follow-the-context tier has always accepted two letters), so a gain of 15 points was out of reach (the ceiling is +14.8). Minimum 2 reached 97.5% (+12.3), the two-letter tier 93.1% (+7.9). On the hand-written files the words of 2 letters went from 77.8% to 99.1% and 97.4% (+21.4 and +19.7). The longer words moved by -0.1 and 0.0 points. The threshold was a mistake of the person who wrote it; the experiment is closed and E38 restates it.
+**Result.** Not met, because the criterion could not be met: on the test files the words of 2 letters were already at 85.2% within the first 5 (the follow-the-context tier has always accepted two letters), so a gain of 15 points was out of reach (the ceiling is +14.8). Minimum 2 reached 97.5% (+12.3), the two-letter tier 93.1% (+7.9). On the hand-written files the words of 2 letters went from 77.8% to 99.1% and 97.4% (+21.4 and +19.7). The longer words moved by -0.1 and 0.0 points. The threshold was a mistake of the person who wrote it; the experiment is closed and EA_35 restates it.
 
-## E38: should words of two letters be offered? (E36 with a criterion that can be met)
+## EA_35: should words of two letters be offered? (EA_33 with a criterion that can be met)
 
 **Status:** Done · **Decision:** Adopted (`ShortWordsLast`: the two-letter words after all the others)
 
-**Criterion.** The same test as E36. A variant closes at least half of the distance to 100% for the words of 2 letters on the test files and on the hand-written files, and lowers the longer words by no more than 0.5 point overall and 1 point in any language (1 point on the hand-written files). Among the variants that meet it, the one that lowers the longer words least is adopted, then the one that gains most. It was written **after** E36's numbers: the numbers are the same, the criterion is the one E36 should have had.
+**Criterion.** The same test as EA_33. A variant closes at least half of the distance to 100% for the words of 2 letters on the test files and on the hand-written files, and lowers the longer words by no more than 0.5 point overall and 1 point in any language (1 point on the hand-written files). Among the variants that meet it, the one that lowers the longer words least is adopted, then the one that gains most. It was written **after** EA_33's numbers: the numbers are the same, the criterion is the one EA_33 should have had.
 
 **Result.** Both variants meet it. Minimum 2 closes 83% of the gap on the test files and 96% on the hand-written ones, with the longer words at -0.1 (worst language -0.4); the two-letter tier closes 53% and 89%, with the longer words unchanged (0.0 everywhere). The two-letter tier is adopted because it costs nothing in the corpus and because it keeps the longer words first whatever the host code has: the real host code is full of `if`, `in`, `of` and `fn`, which the corpus does not have, and the tier cannot put them in front of a longer word.
 
@@ -785,7 +774,7 @@ The editor sorts the list by the sort text of each item, which is the text unles
 
 **Limits.** The words of 2 letters in the corpus are the ones its generators write.
 
-## E37: does the similar-words stage make noise with short prefixes, and what removes it?
+## EA_34: does the similar-words stage make noise with short prefixes, and what removes it?
 
 **Status:** Done · **Decision:** Not met; the stage stays as it is
 
@@ -804,10 +793,33 @@ The editor sorts the list by the sort text of each item, which is the text unles
 
 **Revisit when.** There are real sessions to tell how many 3-letter prefixes are mistakes, or the stage can use how often a candidate is used (a candidate used five times is likelier than one used once).
 
+## EA_36: every host with every embedded language
+
+**Status:** Done · **Decision:** Met
+
+**Hypothesis.** The unit tests try each host with some languages and each language mostly in a JavaScript host. A combination nobody wrote a test for may be missed or read as another language.
+
+**Test.** The [generator](#the-code-generator) writes a file for each of the 168 applicable combinations; each is run through the scan and the highlighter at 1 and at 200 copies of the sample and compared with what the generator put there (strings, interpolations, language, tokens inside the strings). The time to highlight 200 copies is reported by host and language.
+
+**Criterion.** Every applicable combination passes at both sizes.
+
+**Result.** Met on the first run: 168 combinations, 0 failing checks. Times for 200 copies are between 0.4 and 4 ms in every host. What EA_36 cannot say is whether the colors and the suggestions are good: that is the manual review of the same files.
+
+
+## EM_04: review of every host with every embedded language
+
+**Status:** Done (the tool); the review itself is read by hand and recorded when it is done
+
+**Hypothesis.** EA_36 says every combination is found and tokenized, not whether the colors and the suggestions are good. Reading what the plugin does with each combination, one by one, finds what a count cannot: a word that should have a color and has none, a suggestion that does not belong (a variable of the host offered inside SQL), a caret in host code that gets a site.
+
+**Test (manual, qualitative).** `--manual <dir>` generates the 168 combinations, runs the plugin over them and writes a file for each with the source, the tokens, the words with no token, the completion for each word typed with 1 and 2 letters and the carets that must get nothing. A reader goes through the files and judges each case.
+
+**Criterion.** None: the result is a list of findings, each with the file and the case.
+
 ## The missing vocabulary
 
 The review of 800 suggestions listed words the plugin never offered. They are now, in three ways:
-- **Words offered but not colored** ([CompletionWords](../NestLight/Completion/Languages/CompletionLanguage.cs)): `main` and the `gl_` variables of GLSL (`gl_FragColor`, `gl_Position`, `gl_FragCoord`...) and `main` of WGSL. They are not in the vocabulary the tokenizers share, so E19 (offering a word and coloring it agree) keeps measuring the colored vocabulary only.
+- **Words offered but not colored** ([CompletionWords](../NestLight/Completion/Languages/CompletionLanguage.cs)): `main` and the `gl_` variables of GLSL (`gl_FragColor`, `gl_Position`, `gl_FragCoord`...) and `main` of WGSL. They are not in the vocabulary the tokenizers share, so EA_17 (offering a word and coloring it agree) keeps measuring the colored vocabulary only.
 - **Places** ([the grammar of each language](../NestLight/Completion/Languages)): GLSL after `#` (`version`, `define`, `ifdef`, `endif`...) and after `#version 300 ` (`es`, `core`); WGSL after `@` (`builtin`, `location`, `group`, `binding`, `vertex`, `fragment`, `compute`, `workgroup_size`...), inside `@builtin(` (`position`, `global_invocation_id`...), inside `@interpolate(`, inside `var<` (`uniform`, `storage`...) and after the comma (`read`, `write`, `read_write`).
 - **Values** of HTML attributes (the ARIA roles, `aria-*`, `fill` and `stroke` with `currentColor`, `stroke-linecap`, `autocomplete`, `enctype`, `loading`, `meta name`, `script type`...) and of CSS properties (`font-family`, `background-size`, `background-repeat`, `scroll-behavior`, `mix-blend-mode`, `border-collapse`...).
 
@@ -830,9 +842,9 @@ A pass over the CSS of the plugin, with a battery of tricky style sheets read to
 - All 148 named colors for the properties that take a color, and after the values of the shorthands that can have one (`border: 1px solid salm|`).
 - 200 modern properties (`margin-inline`, `padding-block`, `container-type`, `accent-color`, `scrollbar-gutter`, `text-wrap`, the SVG ones), 360 in all; and the values of more of them.
 - An attribute selector offers the attributes most tested (`type`, `href`, `disabled`...).
-- **The properties come in the order of use** (the order of the keywords by use of E35, learned from generated code) and the rest alphabetically. The longer list made the alphabetical one worse: before the order, `display` was 71st in an empty property position and `box-sizing` 31st after `bo`; with it, 5th and 5th.
+- **The properties come in the order of use** (the order of the keywords by use of EA_32, learned from generated code) and the rest alphabetically. The longer list made the alphabetical one worse: before the order, `display` was 71st in an empty property position and `box-sizing` 31st after `bo`; with it, 5th and 5th.
 
-On the 800 suggestions of the review: the word first in 348 cases (345 before this pass), among the first five in 464 (456), among the first twenty in 494 (486); `display`, `color`, `border-radius` and `font-weight` in an empty property position went from 71st, 62nd, 41st and 92nd to 5th, 2nd, 10th and 9th. E35 rerun on the generated corpus: +5.4 points on the test files (it was +3.0), because the order by use also applies to the properties; that gain is fitted to the generator, and the hand-written files give +12.6.
+On the 800 suggestions of the review: the word first in 348 cases (345 before this pass), among the first five in 464 (456), among the first twenty in 494 (486); `display`, `color`, `border-radius` and `font-weight` in an empty property position went from 71st, 62nd, 41st and 92nd to 5th, 2nd, 10th and 9th. EA_32 rerun on the generated corpus: +5.4 points on the test files (it was +3.0), because the order by use also applies to the properties; that gain is fitted to the generator, and the hand-written files give +12.6.
 
 Not done: the order by use applies to the properties only; the values of a property are still in the order of their table.
 
@@ -860,15 +872,15 @@ Not done: the CSS inside the HTML is found for completion only; the highlighter 
 
 ## Notes on the context ranking
 
-- **What the plugin runs with** (`CompletionFeatures.Default`): the previous word (E28), the words of the language (E29), the grammar (E30) and, where no rule decides, the words of the file first with the 12 most used keywords in front of them (E35); the words of two letters are offered after all the others (E38). Within the first 5, on the generated files: 72.5% with the order by distance alone, 85.5% with the previous word, 88.1% with the language, 97.2% with the grammar. The schema (E31) and the order by count (E32) stay in the code, off.
+- **What the plugin runs with** (`CompletionFeatures.Default`): the previous word (EA_25), the words of the language (EA_26), the grammar (EA_27) and, where no rule decides, the words of the file first with the 12 most used keywords in front of them (EA_32); the words of two letters are offered after all the others (EA_35). Within the first 5, on the generated files: 72.5% with the order by distance alone, 85.5% with the previous word, 88.1% with the language, 97.2% with the grammar. The schema (EA_28) and the order by count (EA_29) stay in the code, off.
 - **What the numbers are not.** Every context experiment ran on code made by a generator that was written with the same structure the features look for (a schema for the SQL, a value table for the CSS, an attribute table for the HTML). The gains say that the ideas work on code that has that structure. How much real code does is the open question, and the first thing to measure with files from real projects. The hit rate of 97% is a ceiling that real code will not reach.
-- **After the review of 800 suggestions** (`docs/suggestion-review`) the places of the grammar were corrected and extended (E30 rerun: 88.1% to 97.8%). The review is by hand-written files and is a different measure from E28 to E33, which use generated code.
+- **After the review of 800 suggestions** (`docs/suggestion-review`) the places of the grammar were corrected and extended (EA_27 rerun: 88.1% to 97.8%). The review is by hand-written files and is a different measure from EA_25 to EA_30, which use generated code.
 - **The order reaches the screen** only through the sort text of each item (`NestLightCompletionSource`), which has not been compiled or run in this work.
 - **Cost:** the start of a session at 60,000 lines goes from about 4.0 ms (distance alone) to about 5.1 ms with the three features on; with the schema it would be 6.4 to 22 ms (the spread between runs is large). The words of the language need the scan of the strings, which the completion gets from the cache it shares with the classifier; on a scan that is not cached one more scan is paid (about 12 ms at 60,000 lines).
-- **Tests:** 1,025 unit tests, among them the places of the grammar (80 cases), the schema (15), the previous word, the scope and the order of the words (22), and every cut of a text for the look-behind of the grammar and of the schema; E33 runs 85,633 carets with every feature on and finds no violation.
+- **Tests:** 1,025 unit tests, among them the places of the grammar (80 cases), the schema (15), the previous word, the scope and the order of the words (22), and every cut of a text for the look-behind of the grammar and of the schema; EA_30 runs 85,633 carets with every feature on and finds no violation.
 
 ## Notes on the second stage
 
-- **RNF2, the hot path** (E22 re-run on this commit, against the same file measured three times on the previous commit): the median of the 24 cells is 4% lower for the session with the scan shared, 4% lower for `Suggest` alone and 1.5% lower for the session with nothing shared. One cell, at 60,000 lines, is 7% higher, which is within the difference between identical runs; the bound of 5% holds as a median, not in every cell.
+- **RNF2, the hot path** (EA_20 re-run on this commit, against the same file measured three times on the previous commit): the median of the 24 cells is 4% lower for the session with the scan shared, 4% lower for `Suggest` alone and 1.5% lower for the session with nothing shared. One cell, at 60,000 lines, is 7% higher, which is within the difference between identical runs; the bound of 5% holds as a median, not in every cell.
 - **Tests:** 932 unit tests, among them the comparison of the banded distance with the definition on 200,000 random pairs (small alphabets, letters whose case changes in surprising ways, ranges inside longer strings), the same from 8 threads, the equality of the first stage with the engine without a matcher on 2,000 carets, cancellation, and the order of the similar words.
 
