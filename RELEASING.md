@@ -13,9 +13,8 @@ The VSIX manifest accepts only numeric parts, so pre-release suffixes (`-beta.1`
 ## Steps
 
 1. Update `Version` in `source.extension.vsixmanifest`.
-2. Move the `Unreleased` entries of [CHANGELOG.md](CHANGELOG.md) under the new version and date.
-3. Merge to `main`.
-4. Tag the merge commit and push the tag:
+2. Merge to `main`.
+3. Tag the merge commit and push the tag:
    ```
    git tag -a v0.1.0 -m "NestLight 0.1.0"
    git push origin v0.1.0

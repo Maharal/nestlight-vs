@@ -22,7 +22,7 @@ namespace NestLight.Experiments
   --repeat n       with --generate: copies of the sample in each file (default 3)
   --list           list the experiments and exit
   --quick          smoke run with small sizes (numbers are not worth keeping)
-  --out <dir>      where to write the report (default: docs/reports; with --quick: the temp folder)
+  --out <dir>      where to write the report (default: reports; with --quick: the temp folder)
   --corpus <dir>   write the generated corpus of 500 snippets for each language and count the strings the scanner finds in it
   --priors <file>  write NestLight/Completion/KeywordUse.cs from the generated corpus
   --review <dir>   type words of hand-written files, run the completion of the plugin and write the inputs and the top 20 as JSON, to be read
@@ -87,7 +87,7 @@ namespace NestLight.Experiments
             string repoRoot = FindRepoRoot();
             RunEnvironment env = RunEnvironment.Detect(repoRoot);
             if (outDir == null)
-                outDir = settings.Quick ? Path.Combine(Path.GetTempPath(), "nestlight-experiments") : Path.Combine(repoRoot, "docs", "reports");
+                outDir = settings.Quick ? Path.Combine(Path.GetTempPath(), "nestlight-experiments") : Path.Combine(repoRoot, "reports");
 
             Measure.EnableAllocationTracking();
             var results = new List<Result>();

@@ -87,7 +87,7 @@ To build from source, open `NestLight/NestLight.csproj` with the **Visual Studio
 
 To run the tests, use **Test > Run All Tests** in Visual Studio or `dotnet test NestLight.Tests` from a terminal.
 
-Releases are built by CI (VSIX plus a test report) and follow [Semantic Versioning](https://semver.org); see [RELEASING.md](RELEASING.md) and the [changelog](CHANGELOG.md).
+Releases are built by CI (VSIX plus a test report) and follow [Semantic Versioning](https://semver.org); see [RELEASING.md](RELEASING.md).
 
 Colors are under **Tools > Options > Environment > Fonts and Colors > Text Editor**, in the items named **Template &lt;Language&gt; ...**.
 
@@ -124,9 +124,9 @@ Beyond the unit tests, which check what the plugin colors, a suite of **experime
 dotnet run -c Release --project NestLight.Experiments
 ```
 
-The run executes every experiment and writes a Markdown report with the tables, the analysis and whether each criterion held to `docs/reports/experiments-<date>-<commit>.md`. The reports are versioned: each one is valid only for its commit and machine, so a new run adds a file instead of replacing the old one. Options: `--only EA03,EA05`, `--list`, `--quick` (a smoke run, numbers not worth keeping) and `--out <dir>`.
+The run executes every experiment and writes a Markdown report with the tables, the analysis and whether each criterion held to `reports/experiments-<date>-<commit>.md` (not versioned: each report is valid only for its commit and machine). Options: `--only EA03,EA05`, `--list`, `--quick` (a smoke run, numbers not worth keeping) and `--out <dir>`.
 
-The experiments and their results are described in [docs/experiments.md](docs/experiments.md). The *Experiments* workflow runs the suite on Windows, on the same runtime as Visual Studio (`net48`), and uploads the report.
+The experiments are defined in [docs/experiments.md](docs/experiments.md). The *Experiments* workflow runs the suite on Windows, on the same runtime as Visual Studio (`net48`), and uploads the report.
 
 ## Limitations
 
