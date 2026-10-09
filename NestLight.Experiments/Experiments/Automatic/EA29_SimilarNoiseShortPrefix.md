@@ -1,0 +1,7 @@
+# EA29: does the similar-words stage make noise with short prefixes, and what removes it?
+
+**Hypothesis.** A review of 800 suggestions found the stage that corrects mistakes inventing suggestions with no relation when the person is typing a new word with 3 letters (`fir` offers `fragment`, `scr` offers `src`). With 3 letters one edit is a third of the word, so almost any word is "similar". Looking for similar words only from 4 letters, showing at most 3, or only the words of the file at 3 letters should remove most of that noise and keep most of the recovery.
+
+**Test.** The corpus (odd files) and the hand-written files. Recovery: words typed with one mistake (a swap, a missing letter, a wrong one, an extra one; never the first letter) that leaves 3, 4, 5 or 6 letters typed, only the words that exist elsewhere in the file or are keywords (11,423 mistakes); the meant word within the first 5. Noise: words written once in the file, not keywords, typed with a correct prefix of 3, 4 and 5 letters (2,787 new words); how often any similar item is shown. Five variants: as it is; from 4 letters; at most 3 items at 3 letters; only the words of the file at 3 letters; both of the last two.
+
+**Criterion.** A variant keeps at least 85% of the recovery of the current engine with 3 letters typed (relative), shows noise in at most half as many cases with a correct 3-letter prefix, keeps the recovery with 4 and 5 letters within 1 point, and goes the same way on the hand-written files.
