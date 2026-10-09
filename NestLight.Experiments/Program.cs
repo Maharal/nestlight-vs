@@ -14,15 +14,13 @@ namespace NestLight.Experiments
   dotnet run -c Release --project NestLight.Experiments -- [options]
 
   --only E01,E05   run only these experiments
-  --kind <kind>    auto (default) or manual. Automatic experiments measure and decide; a manual one only writes its kit
-                   (the files to open in Visual Studio and a protocol) under --manual-dir
-  --manual-dir <d> where the kits of the manual experiments go (default: the temp folder)
-  --generate <dir> write the code generated for every host x embedded language combination, one file per combination, and exit
-                   (--host, --language and --repeat narrow or enlarge it; E39 and E40 use the same generator)
+  --manual         run the manual experiments instead of the automatic ones: they are run on demand, over the code that the
+                   generator writes for each host x embedded language combination
+  --generate <dir> write that code, one file per combination, and exit (--host, --language and --repeat narrow or enlarge it)
   --host h         with --generate: javascript, csharp, python or cpp
   --language l     with --generate: html, css, sql, json, graphql, xml, markdown, yaml, regex, glsl or wgsl
   --repeat n       with --generate: copies of the sample in each file (default 3)
-  --list           list the experiments and their kind, and exit
+  --list           list the experiments and exit
   --quick          smoke run with small sizes (numbers are not worth keeping)
   --out <dir>      where to write the report (default: docs/reports; with --quick: the temp folder)
   --corpus <dir>   write the generated corpus of 500 snippets for each language and count the strings the scanner finds in it
@@ -37,7 +35,8 @@ namespace NestLight.Experiments
             System.Globalization.CultureInfo.CurrentCulture = System.Globalization.CultureInfo.InvariantCulture;
 
             var settings = new Settings();
-            string only = null, outDir = null, kind = "auto", generate = null, host = null, language = null;
+            string only = null, outDir = null, generate = null, host = null, language = null;
+            bool manual = false;
             int repeat = 3;
             bool list = false;
             for (int i = 0; i < args.Length; i++)
@@ -48,8 +47,7 @@ namespace NestLight.Experiments
                     case "--list": list = true; break;
                     case "--only" when i + 1 < args.Length: only = args[++i]; break;
                     case "--out" when i + 1 < args.Length: outDir = args[++i]; break;
-                    case "--kind" when i + 1 < args.Length: kind = args[++i].ToLowerInvariant(); break;
-                    case "--manual-dir" when i + 1 < args.Length: settings.ManualDir = args[++i]; break;
+                    case "--manual": manual = true; break;
                     case "--generate" when i + 1 < args.Length: generate = args[++i]; break;
                     case "--host" when i + 1 < args.Length: host = args[++i]; break;
                     case "--language" when i + 1 < args.Length: language = args[++i]; break;
@@ -70,22 +68,19 @@ namespace NestLight.Experiments
                 return written.Count == 0 ? 2 : 0;
             }
 
-            if (kind != "auto" && kind != "manual") { Console.Error.WriteLine("--kind is auto or manual"); return 2; }
-            ExperimentKind wanted = kind == "manual" ? ExperimentKind.Manual : ExperimentKind.Automatic;
-            IList<Experiment> all = Catalog.All();
+            IList<Experiment> all = manual ? Catalog.Manual() : Catalog.Automatic();
             if (list)
             {
-                foreach (Experiment e in all) Console.WriteLine(e.Id + "  " + (e.Kind == ExperimentKind.Manual ? "manual " : "auto   ") + e.Title);
+                foreach (Experiment e in all) Console.WriteLine(e.Id + "  " + e.Title);
                 return 0;
             }
-            all = all.Where(e => e.Kind == wanted).ToList();
 
             IList<Experiment> selected = all;
             if (only != null)
             {
                 var ids = new HashSet<string>(only.Split(',').Select(s => s.Trim()), StringComparer.OrdinalIgnoreCase);
                 selected = all.Where(e => ids.Contains(e.Id)).ToList();
-                if (selected.Count == 0) { Console.Error.WriteLine("No " + kind + " experiment matches " + only); return 2; }
+                if (selected.Count == 0) { Console.Error.WriteLine("No experiment matches " + only); return 2; }
             }
 
             string repoRoot = FindRepoRoot();

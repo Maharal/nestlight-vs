@@ -11,28 +11,23 @@ What grows is the cost **per edit**, proportional to the file size: every new sn
 
 ## Automatic and manual experiments
 
-Besides the unit tests (`NestLight.Tests`, which say whether the code is right) there are two kinds of experiment, and the *Test* column of the index says which one each is:
+Besides the unit tests (`NestLight.Tests`, which say whether the code is right) the experiments are split by folder in [NestLight.Experiments/Experiments](../NestLight.Experiments/Experiments):
 
-| Kind | Who decides the criterion | What the harness does | How to run |
-|---|---|---|---|
-| **Automatic** | the code | measures, applies the criterion and writes the report | `dotnet run -c Release --project NestLight.Experiments` (add `--kind auto`) |
-| **Manual** | a person in Visual Studio | writes the kit (the files to open and a `PROTOCOL.md` with the steps) and reports the criterion as undecided | `dotnet run -c Release --project NestLight.Experiments -- --kind manual --manual-dir <dir>` |
-
-In the code the kind is `Experiment.Kind`; a manual experiment derives from `ManualExperiment` and lists its steps. E10, E11 and E26 are manual but still only described here; E40 is the first one with a kit. `--list` shows the kind of each experiment, and a plain run runs the automatic ones only.
+| Folder | What it is | How to run |
+|---|---|---|
+| `Automatic/` | own corpora and synthetic files; the default run | `dotnet run -c Release --project NestLight.Experiments` |
+| `Manual/` | run on demand, over the code the generator writes for each host x embedded language combination | `dotnet run -c Release --project NestLight.Experiments -- --manual` |
 
 ### The code generator
 
 [CombinationGenerator](../NestLight.Experiments/Generator/CombinationGenerator.cs) writes source code for every combination of **host** (JavaScript, C#, Python, C++), **embedded language** (the 11 of the README), **way to mark the string** (tag, bare id, `language=id`) and **interpolation** (with or without). One sample of typical code per language lives in [LanguageSamples](../NestLight.Experiments/Generator/LanguageSamples.cs) and each host knows how to carry it (template literal, `$$"""` raw string, `rf"""`, `R"x(...)x"`), escaping what the host needs. A combination the plugin does not color is listed with its reason and not generated (tags outside JavaScript, interpolation in C++, `json` and `regex` in C#): 168 of 264 are applicable.
 
-Automatic and manual experiments use the same files: E39 checks them with the real pipeline, and E40 hands them to a person.
-
 ```
-# write the files, e.g. to open them in Visual Studio (3 copies of the sample in each)
-dotnet run -c Release --project NestLight.Experiments -- --generate out
+dotnet run -c Release --project NestLight.Experiments -- --generate out                 # one file per combination, 3 copies of the sample each
 dotnet run -c Release --project NestLight.Experiments -- --generate out --host python --language sql --repeat 1000   # one big file
 ```
 
-To add a language, add its sample to `LanguageSamples` (and its id to `Languages`); to add a host, add a `Reason` rule and a writer to the generator. A new automatic experiment over the matrix goes through `CombinationGenerator.Applicable()` and `CombinationCheck.Check`.
+To add a language, add its sample to `LanguageSamples`; to add a host, add a rule to `Reason` and a writer to the generator. A new manual experiment goes in `Experiments/Manual/` and loops over `CombinationGenerator.Applicable()` and `CombinationCheck.Check`.
 
 ## How it works
 
@@ -99,8 +94,7 @@ All the criteria below were written before the run that decided them, except tho
 | [E36](#e36-should-words-of-two-letters-be-offered) | Should words of two letters be offered? | Automated, generated code | Closed | Not met: the criterion could not be met; E38 |
 | [E37](#e37-does-the-similar-words-stage-make-noise-with-short-prefixes-and-what-removes-it) | Does the similar-words stage make noise with short prefixes? | Automated, generated code | Done | Not met; kept as it is |
 | [E38](#e38-should-words-of-two-letters-be-offered-e36-with-a-criterion-that-can-be-met) | E36 with a criterion that can be met | Automated, generated code | Done | Adopted: two-letter words last |
-| [E39](#e39-every-host-with-every-embedded-language) | Does every host work with every embedded language? | Automated, generated code | Done | Met |
-| [E40](#e40-every-host-with-every-embedded-language-in-visual-studio) | Is that what the user sees in Visual Studio? | Manual, generated code | Planned (needs a build) | |
+| [E39](#e39-every-host-with-every-embedded-language) | Does every host work with every embedded language? | Manual, generated code | Done | Met |
 
 ## Latest runs
 
@@ -599,7 +593,7 @@ The first runs were on commit `70e9ffd` (.NET 8 in Release, a 4-core Linux machi
 
 **Result.** Met in the three runs: 0 violations in 86,900 carets, 21,275 similar items checked against the definition.
 
-## Combinations of host and language (E39 and E40)
+## Combinations of host and language (E39)
 
 ## E39: every host with every embedded language
 
@@ -607,21 +601,11 @@ The first runs were on commit `70e9ffd` (.NET 8 in Release, a 4-core Linux machi
 
 **Hypothesis.** The unit tests try each host with some languages and each language mostly in a JavaScript host. A combination nobody wrote a test for may be missed or read as another language.
 
-**Test.** Automatic. The [generator](#the-code-generator) writes a file for each of the 168 applicable combinations; each is run through the scan and the highlighter at 1 and at 200 copies of the sample and compared with what the generator put there (strings, interpolations, language, tokens inside the strings). The time to highlight 200 copies is reported by host and language.
+**Test.** Manual (`Experiments/Manual`). The [generator](#the-code-generator) writes a file for each of the 168 applicable combinations; each is run through the scan and the highlighter at 1 and at 200 copies of the sample and compared with what the generator put there (strings, interpolations, language, tokens inside the strings). The time to highlight 200 copies is reported by host and language.
 
 **Criterion.** Every applicable combination passes at both sizes.
 
 **Result.** Met on the first run: 168 combinations, 0 failing checks. Times for 200 copies are between 0.4 and 4 ms in every host.
-
-## E40: every host with every embedded language, in Visual Studio
-
-**Status:** Planned (needs a build in Visual Studio 2022 and 2026)
-
-**Hypothesis.** E39 shows the pipeline finds and tokenizes every combination, not what the person sees: the colors of the theme, completion inside the string and not outside it, the colors following an edit.
-
-**Test (manual).** `--kind manual` writes the 168 files of E39 (3 copies each) and a `PROTOCOL.md`; open them in Visual Studio with the extension and follow the steps.
-
-**Criterion.** In every file the colors are there and match the language, Ctrl+Space inside the string offers the keywords of the language, and no typing step leaves the colors wrong or freezes the editor.
 
 ## Context ranking (E28 to E38)
 
