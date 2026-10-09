@@ -6,7 +6,7 @@ namespace NestLight.Highlighting
 {
     /// <summary>
     /// Remembers the result of the last scan. The classifier and the completion ask for the strings of the same snapshot one after
-    /// the other, and scanning is the largest part of both (EA14): with the same text instance, the second one is free.
+    /// the other, and scanning is the largest part of both (EA10): with the same text instance, the second one is free.
     /// The text is compared by reference, which is cheap and never wrong; a different instance with the same content is just a miss.
     /// The text is held weakly, so the cache never keeps a copy of a large file alive.
     /// </summary>

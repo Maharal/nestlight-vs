@@ -14,15 +14,17 @@ namespace NestLight.Experiments
   dotnet run -c Release --project NestLight.Experiments -- [options]
 
   --only EA01,EA05   run only these experiments
-  --manual <dir>   the manual experiments (Experiments/Manual): generate the code of every host x embedded language combination,
-                   run the plugin over it and write the artifacts (Markdown and HTML) of each combination, to read and judge (--host and --language narrow it)
-  --generate <dir> write that code, one file per combination, and exit (--host, --language and --repeat narrow or enlarge it)
+  --manual [dir]   the manual experiments (Experiments/Manual): generate the code of every host x embedded language combination,
+                   run the plugin over it and write the artifacts (Markdown and HTML) of each combination, to read and judge (--host and --language narrow it).
+                   Default folder: artifacts/EM01/<time of the run>
+  --generate [dir] write that code, one file per combination, and exit (--host, --language and --repeat narrow or enlarge it).
+                   Default folder: artifacts/generated/<time of the run>
   --host h         with --generate or --manual: javascript, csharp, python or cpp
   --language l     with --generate or --manual: html, css, sql, json, graphql, xml, markdown, yaml, regex, glsl or wgsl
   --repeat n       with --generate: copies of the sample in each file (default 3)
   --list           list the experiments and exit
   --quick          smoke run with small sizes (numbers are not worth keeping)
-  --out <dir>      where to write the report (default: reports; with --quick: the temp folder)
+  --out <dir>      where to write the report, named by the time of the run (default: reports; with --quick: the temp folder)
   --corpus <dir>   write the generated corpus of 500 snippets for each language and count the strings the scanner finds in it
   --priors <file>  write NestLight/Completion/KeywordUse.cs from the generated corpus
   --review <dir>   type words of hand-written files, run the completion of the plugin and write the inputs and the top 20 as JSON, to be read
@@ -46,8 +48,8 @@ namespace NestLight.Experiments
                     case "--list": list = true; break;
                     case "--only" when i + 1 < args.Length: only = args[++i]; break;
                     case "--out" when i + 1 < args.Length: outDir = args[++i]; break;
-                    case "--manual" when i + 1 < args.Length: review = args[++i]; break;
-                    case "--generate" when i + 1 < args.Length: generate = args[++i]; break;
+                    case "--manual": review = i + 1 < args.Length && !args[i + 1].StartsWith("--") ? args[++i] : ""; break;
+                    case "--generate": generate = i + 1 < args.Length && !args[i + 1].StartsWith("--") ? args[++i] : ""; break;
                     case "--host" when i + 1 < args.Length: host = args[++i]; break;
                     case "--language" when i + 1 < args.Length: language = args[++i]; break;
                     case "--repeat" when i + 1 < args.Length && int.TryParse(args[i + 1], out repeat) && repeat > 0: i++; break;
@@ -61,9 +63,12 @@ namespace NestLight.Experiments
             Func<Combination, bool> filter = c =>
                 (host == null || string.Equals(CombinationGenerator.Folder(c.Host), host, StringComparison.OrdinalIgnoreCase))
                 && (language == null || string.Equals(c.Language, language, StringComparison.OrdinalIgnoreCase));
-            if (review != null) return CombinationReview.Run(review, filter);
+            string stamp = DateTime.UtcNow.ToString("yyyy-MM-dd_HH-mm-ss'Z'", System.Globalization.CultureInfo.InvariantCulture);
+            if (review != null)
+                return EM01_CombinationReview.Run(review.Length > 0 ? review : Path.Combine(FindRepoRoot(), "artifacts", EM01_CombinationReview.Id, stamp), filter);
             if (generate != null)
             {
+                if (generate.Length == 0) generate = Path.Combine(FindRepoRoot(), "artifacts", "generated", stamp);
                 var written = CombinationGenerator.WriteAll(generate, repeat, filter);
                 Console.WriteLine(written.Count + " files written to " + generate);
                 return written.Count == 0 ? 2 : 0;
@@ -105,7 +110,8 @@ namespace NestLight.Experiments
 
             string report = ReportWriter.Write(results, env, settings);
             Directory.CreateDirectory(outDir);
-            string name = string.Format("experiments-{0:yyyy-MM-dd}-{1}{2}{3}.md", env.Utc, env.Commit, env.Dirty ? "-dirty" : "", settings.Quick ? "-quick" : "");
+            // a report belongs to the moment it ran: the name is the time (UTC), then the commit
+            string name = string.Format(System.Globalization.CultureInfo.InvariantCulture, "{0:yyyy-MM-dd_HH-mm-ss}Z-{1}{2}{3}.md", env.Utc, env.Commit, env.Dirty ? "-dirty" : "", settings.Quick ? "-quick" : "");
             string path = Path.Combine(outDir, name);
             File.WriteAllText(path, report, new UTF8Encoding(false));
             Console.WriteLine("Report: " + path);

@@ -1,0 +1,7 @@
+# EA24: does the schema read from the SQL of the document help?
+
+**Hypothesis.** The tables and columns the SQL of the file talks about ([SqlSchema](../../../NestLight/Completion/Languages/SqlSchema.cs): a `CREATE TABLE`, the `FROM` and `JOIN` of the statement, the aliases, the column list of an `INSERT`, the `SET` of an `UPDATE`) tell which table to offer after `FROM` and which columns belong after `u.` or in the select list. That is more precise than the previous word, because an alias means a different table in every statement. The reader is a scan of the common shapes, not a parser.
+
+**Test.** EA21's probes reported by the place of the caret: the order by distance alone; the previous word, the language and the grammar (what the plugin ran with); the same plus the schema; the schema alone. Files with a `CREATE TABLE` for each table and joins with the aliases `t` and `o` reused for a different table in every statement. Also, apart from the criterion, 200 short files (4 functions each), where the previous word has little history. Also the start of a session with `select u.comp| from users u` typed at the end of files of 1,200 to 60,000 lines, where every SQL string in the window is read.
+
+**Criterion.** At least 1 point better within the first 5 over all the reachable cases; the places that need a table or a column (`sql:table`, `sql:member`, `sql:expression`) do not fall; the session under 16 ms at 60,000 lines in every host.

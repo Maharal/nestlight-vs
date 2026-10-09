@@ -125,13 +125,13 @@ Beyond the unit tests, which check what the plugin colors, a suite of **experime
 
 ```
 dotnet run -c Release --project NestLight.Experiments                      # the automatic experiments
-dotnet run -c Release --project NestLight.Experiments -- --manual out      # the manual review: artifacts to read, in out/
-dotnet run -c Release --project NestLight.Experiments -- --generate out    # only the generated code for every combination
+dotnet run -c Release --project NestLight.Experiments -- --manual          # the manual review: artifacts to read, in artifacts/EM01/<time>/
+dotnet run -c Release --project NestLight.Experiments -- --generate        # only the generated code for every combination, in artifacts/generated/<time>/
 ```
 
-The automatic run executes every automatic experiment and writes a Markdown report with the tables, the analysis and whether each criterion held to `reports/experiments-<date>-<commit>.md` (not versioned: each report is valid only for its commit and machine). Options: `--only EA03,EA05`, `--list`, `--quick` (a smoke run, numbers not worth keeping) and `--out <dir>`.
+The automatic run executes every automatic experiment and writes a Markdown report with the tables, the analysis and whether each criterion held to `reports/<time>-<commit>.md`. Options: `--only EA03,EA05`, `--list`, `--quick` (a smoke run, numbers not worth keeping) and `--out <dir>`.
 
-The experiments are defined in [docs/experiments.md](docs/experiments.md). The *Experiments* workflow runs the suite on Windows, on the same runtime as Visual Studio (`net48`), and uploads the report.
+Reports (`reports/`) and artifacts (`artifacts/`) are named by the time of the run and are not versioned: only timeless documentation goes to GitHub. The experiments are defined in [docs/experiments.md](docs/experiments.md), and each one has a document beside its source (`NestLight.Experiments/Experiments/`). The *Experiments* workflow runs the suite on Windows, on the same runtime as Visual Studio (`net48`), and uploads the report.
 
 ## Limitations
 
