@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using NestLight.Common;
+using NestLight.Completion;
 using NestLight.Highlighting;
 using Xunit;
 
@@ -165,6 +166,28 @@ namespace NestLight.Tests
             string sources = VisualStudioSources();
             foreach (FieldInfo f in Names())
                 Assert.True(sources.Contains("ClassificationTypeNames = ClassificationNames." + f.Name + ")]"), "no format for " + f.Name);
+        }
+
+        [Fact]
+        public void Every_kind_of_suggestion_icon_has_an_image_in_the_list()
+        {
+            string sources = VisualStudioSources();
+            foreach (SuggestionIcon icon in Enum.GetValues(typeof(SuggestionIcon)))
+                Assert.True(sources.Contains("case SuggestionIcon." + icon + ":"), "no image for the icon " + icon);
+            // each is drawn with a moniker of the image catalog of Visual Studio, and the suggestion gets one (it was an empty image once)
+            Assert.DoesNotContain("default(ImageElement)", sources);
+            Assert.Contains("KnownMonikers.", sources);
+            Assert.Contains("SuggestionIcons.Of(", sources);
+            Assert.Contains("SuggestionIcons.IsSimilar(", sources);
+        }
+
+        [Fact]
+        public void The_images_of_the_icons_are_all_different()
+        {
+            var monikers = System.Text.RegularExpressions.Regex.Matches(VisualStudioSources(), @"new ImageElement\(KnownMonikers\.(\w+)\.ToImageId\(\)")
+                .Cast<System.Text.RegularExpressions.Match>().Select(m => m.Groups[1].Value).ToList();
+            Assert.True(monikers.Count >= Enum.GetValues(typeof(SuggestionIcon)).Length + 1); // one for each icon and one for the similar ones
+            Assert.Equal(monikers.Count, monikers.Distinct().Count());
         }
 
         [Fact]
