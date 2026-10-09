@@ -10,12 +10,18 @@ namespace NestLight.Highlighting
     /// The text is compared by reference, which is cheap and never wrong; a different instance with the same content is just a miss.
     /// The text is held weakly, so the cache never keeps a copy of a large file alive.
     /// </summary>
+    /// <remarks>
+    /// A miss is cheap too when the scanner can resume (<see cref="IResumableHostScanner"/>) and the text of the last scan is still
+    /// alive: the new text is compared with it and only the lines around the edit are scanned again (<see cref="IncrementalHostScan"/>).
+    /// If that text has been collected, the scan is whole, as it always was.
+    /// </remarks>
     internal sealed class CachingHostScanner : IHostScanner
     {
         private readonly IHostScanner _inner;
         private readonly object _gate = new object();
         private WeakReference<string> _text;
         private IReadOnlyList<EmbeddedString> _result;
+        private HostScan _scan; // of the same text, when the scanner can resume
 
         public CachingHostScanner(IHostScanner inner)
         {
@@ -28,12 +34,23 @@ namespace NestLight.Highlighting
             if (text == null) return _inner.Scan(text);
             lock (_gate)
             {
-                string known;
-                if (_text != null && _text.TryGetTarget(out known) && ReferenceEquals(known, text)) return _result;
+                string known = null;
+                if (_text != null) _text.TryGetTarget(out known);
+                if (known != null && ReferenceEquals(known, text)) return _result;
 
-                IReadOnlyList<EmbeddedString> result = _inner.Scan(text); // a failure is not cached
+                IReadOnlyList<EmbeddedString> result;
+                HostScan scan = null;
+                var resumable = _inner as IResumableHostScanner;
+                if (resumable == null) result = _inner.Scan(text); // a failure is not cached
+                else
+                {
+                    if (_scan != null && known != null) scan = IncrementalHostScan.Update(resumable, _scan, known, text);
+                    if (scan == null) scan = resumable.ScanAll(text);
+                    result = scan.Strings;
+                }
                 _text = new WeakReference<string>(text);
                 _result = result;
+                _scan = scan;
                 return result;
             }
         }

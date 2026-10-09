@@ -100,6 +100,9 @@ namespace NestLight.Common
             _languages = languages;
         }
 
+        /// <summary>A marker comment is waiting for the string it marks.</summary>
+        public bool Pending { get { return _id != null; } }
+
         /// <summary>Call for every comment; a comment that is not a marker cancels the previous one.</summary>
         public void Comment(string text, int bodyStart, int bodyEnd, int commentEnd)
         {

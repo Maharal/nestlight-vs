@@ -9,14 +9,17 @@ namespace NestLight.Hosts
     /// (<c>html`...`</c>, <c>ui.html`...`</c>) or by a marker comment (<c>/* css */</c>, <c>// language=sql</c>).
     /// Skips comments and ordinary strings. Templates nested in a <c>${}</c> are found at every level.
     /// </summary>
-    internal sealed class JavaScriptHostScanner : IHostScanner
+    internal sealed class JavaScriptHostScanner : IResumableHostScanner
     {
         private readonly AcceptedEmbeddedLanguages _languages;
+        private readonly int _safePointGap;
 
-        public JavaScriptHostScanner(AcceptedEmbeddedLanguages languages)
+        /// <param name="safePointGap">The distance between the safe points a scan keeps to resume from (see <see cref="SafePoints"/>).</param>
+        public JavaScriptHostScanner(AcceptedEmbeddedLanguages languages, int safePointGap = SafePoints.DefaultGap)
         {
             if (languages == null) throw new ArgumentNullException("languages");
             _languages = languages;
+            _safePointGap = safePointGap;
         }
 
         public IReadOnlyList<EmbeddedString> Scan(string text)
@@ -28,20 +31,42 @@ namespace NestLight.Hosts
             return result;
         }
 
+        public HostScan ScanAll(string text)
+        {
+            var result = new List<EmbeddedString>();
+            if (text.IndexOf('`') < 0) return new HostScan(result, new int[0]);
+            var safe = new SafePoints(_safePointGap);
+            new Run(text, _languages, result, safe, 0).ScanCode(false);
+            result.Sort((a, b) => a.OuterStart.CompareTo(b.OuterStart));
+            return new HostScan(result, safe.ToArray());
+        }
+
+        public HostScan Resume(string text, int from, int minStop, Func<int, bool> knownSafe)
+        {
+            var result = new List<EmbeddedString>();
+            var safe = new SafePoints(minStop, knownSafe, _safePointGap);
+            new Run(text, _languages, result, safe, from).ScanCode(false);
+            result.Sort((a, b) => a.OuterStart.CompareTo(b.OuterStart));
+            return new HostScan(result, safe.ToArray(), safe.StoppedAt);
+        }
+
         private sealed class Run
         {
             private readonly string _t;
             private readonly AcceptedEmbeddedLanguages _languages;
             private readonly List<EmbeddedString> _result;
             private readonly MarkerTracker _markers;
+            private readonly SafePoints _safe;
             private int _i;
 
-            public Run(string text, AcceptedEmbeddedLanguages languages, List<EmbeddedString> result)
+            public Run(string text, AcceptedEmbeddedLanguages languages, List<EmbeddedString> result, SafePoints safe = null, int start = 0)
             {
                 _t = text;
                 _languages = languages;
                 _result = result;
                 _markers = new MarkerTracker(languages);
+                _safe = safe;
+                _i = start;
             }
 
             public void ScanCode(bool stopAtCloseBrace)
@@ -82,6 +107,11 @@ namespace NestLight.Hosts
                     {
                         if (stopAtCloseBrace && depth == 0) return;
                         if (depth > 0) depth--;
+                        _i++;
+                    }
+                    else if (c == '\n' && _safe != null && !stopAtCloseBrace && !_markers.Pending)
+                    {
+                        if (_safe.Reached(_i)) return;
                         _i++;
                     }
                     else

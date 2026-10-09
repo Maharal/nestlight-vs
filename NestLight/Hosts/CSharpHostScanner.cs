@@ -9,14 +9,17 @@ namespace NestLight.Hosts
     /// (<c>$</c>, <c>$$</c>...), marked by a comment before the string.
     /// An interpolation of a raw string opens with as many braces as there are <c>$</c>.
     /// </summary>
-    internal sealed class CSharpHostScanner : IHostScanner
+    internal sealed class CSharpHostScanner : IResumableHostScanner
     {
         private readonly AcceptedEmbeddedLanguages _languages;
+        private readonly int _safePointGap;
 
-        public CSharpHostScanner(AcceptedEmbeddedLanguages languages)
+        /// <param name="safePointGap">The distance between the safe points a scan keeps to resume from (see <see cref="SafePoints"/>).</param>
+        public CSharpHostScanner(AcceptedEmbeddedLanguages languages, int safePointGap = SafePoints.DefaultGap)
         {
             if (languages == null) throw new ArgumentNullException("languages");
             _languages = languages;
+            _safePointGap = safePointGap;
         }
 
         public IReadOnlyList<EmbeddedString> Scan(string text)
@@ -27,20 +30,41 @@ namespace NestLight.Hosts
             return result;
         }
 
+        public HostScan ScanAll(string text)
+        {
+            var result = new List<EmbeddedString>();
+            var safe = new SafePoints(_safePointGap);
+            new Run(text, _languages, result, safe, 0).ScanCode(0);
+            result.Sort((a, b) => a.OuterStart.CompareTo(b.OuterStart));
+            return new HostScan(result, safe.ToArray());
+        }
+
+        public HostScan Resume(string text, int from, int minStop, Func<int, bool> knownSafe)
+        {
+            var result = new List<EmbeddedString>();
+            var safe = new SafePoints(minStop, knownSafe, _safePointGap);
+            new Run(text, _languages, result, safe, from).ScanCode(0);
+            result.Sort((a, b) => a.OuterStart.CompareTo(b.OuterStart));
+            return new HostScan(result, safe.ToArray(), safe.StoppedAt);
+        }
+
         private sealed class Run
         {
             private readonly string _t;
             private readonly List<EmbeddedString> _result;
             private readonly MarkerTracker _markers;
             private readonly AcceptedEmbeddedLanguages _languages;
+            private readonly SafePoints _safe;
             private int _i;
 
-            public Run(string text, AcceptedEmbeddedLanguages languages, List<EmbeddedString> result)
+            public Run(string text, AcceptedEmbeddedLanguages languages, List<EmbeddedString> result, SafePoints safe = null, int start = 0)
             {
                 _t = text;
                 _languages = languages;
                 _result = result;
                 _markers = new MarkerTracker(languages);
+                _safe = safe;
+                _i = start;
             }
 
             /// <summary>
@@ -107,6 +131,11 @@ namespace NestLight.Hosts
                         _i++;
                         while (_i < _t.Length && !(_t[_i] == '}' && BraceRun(_i) >= closeRun)) _i++;
                         if (_i < _t.Length) return _i;
+                    }
+                    else if (c == '\n' && _safe != null && closeRun == 0 && !_markers.Pending)
+                    {
+                        if (_safe.Reached(_i)) return -1;
+                        _i++;
                     }
                     else
                     {
