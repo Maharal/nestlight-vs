@@ -42,6 +42,12 @@ namespace NestLight.Completion
         }
 
         // words that are offered but not colored: the tokenizers know them as plain identifiers or by a prefix, so they are not in For()
+        internal static string[] ExtraFor(string embeddedLanguageId)
+        {
+            string[] extra;
+            return embeddedLanguageId != null && Extra.TryGetValue(embeddedLanguageId, out extra) ? extra : new string[0];
+        }
+
         private static readonly Dictionary<string, string[]> Extra = new Dictionary<string, string[]>(StringComparer.OrdinalIgnoreCase)
         {
             { "glsl", new[] { "main", "gl_FragColor", "gl_FragData", "gl_FragCoord", "gl_FragDepth", "gl_FrontFacing", "gl_PointCoord", "gl_PointSize", "gl_Position", "gl_VertexID", "gl_InstanceID" } },

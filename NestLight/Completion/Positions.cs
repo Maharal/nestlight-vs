@@ -132,7 +132,7 @@ namespace NestLight.Completion
         private static readonly HashSet<string> SqlClauses = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
             { "select", "from", "where", "group", "order", "having", "set", "values", "into", "update", "join", "on", "limit" };
 
-        private static Position Sql(string text, int floor, CompletionSite site)
+        internal static Position Sql(string text, int floor, CompletionSite site)
         {
             // read the statement up to the caret: the last two words, what lies between the last one and the caret, the clause
             // (a parenthesis opens a clause of its own: the ORDER BY of an OVER( ) is not the clause of the select list)
@@ -268,7 +268,7 @@ namespace NestLight.Completion
 
         private static readonly string[] CssRuleAtRules = { "@media", "@supports", "@layer", "@container", "@document" };
 
-        private static Position Css(string text, int floor, CompletionSite site)
+        internal static Position Css(string text, int floor, CompletionSite site)
         {
             var blocks = new List<CssBlock>(); // innermost last; none: the top level
             if (site.InlineDeclarations) blocks.Add(CssBlock.Declarations); // the value of a style attribute starts inside a rule
@@ -387,7 +387,7 @@ namespace NestLight.Completion
         private static readonly HashSet<string> VoidElements = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
             { "area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta", "source", "track", "wbr", "path", "circle", "rect", "line", "ellipse", "polygon", "polyline", "stop", "use" };
 
-        private static Position Html(string text, int floor, CompletionSite site)
+        internal static Position Html(string text, int floor, CompletionSite site)
         {
             // the last '<' or '>' before the caret says whether it is in a tag
             int open = -1;
@@ -549,7 +549,7 @@ namespace NestLight.Completion
             return i;
         }
 
-        private static Position Glsl(string text, int floor, CompletionSite site)
+        internal static Position Glsl(string text, int floor, CompletionSite site)
         {
             int lineStart = LineStart(text, site.Start, floor);
             string line = text.Substring(lineStart, site.Start - lineStart).TrimStart();
@@ -562,7 +562,7 @@ namespace NestLight.Completion
             return null;
         }
 
-        private static Position Wgsl(string text, int floor, CompletionSite site)
+        internal static Position Wgsl(string text, int floor, CompletionSite site)
         {
             if (site.Start > floor && text[site.Start - 1] == '@') return new Position("wgsl:attribute", WgslAttributes, onlyWords: true);
             int lineStart = LineStart(text, site.Start, floor);
@@ -586,7 +586,7 @@ namespace NestLight.Completion
 
         // ---- JSON and YAML ----------------------------------------------------------------------------------------------
 
-        private static Position Json(string text, int floor, CompletionSite site)
+        internal static Position Json(string text, int floor, CompletionSite site)
         {
             // a key is a string right after '{' or ',' inside an object; the keywords (true, false, null) are values
             var stack = new List<char>();
@@ -611,7 +611,7 @@ namespace NestLight.Completion
             return null; // a value outside a string: true, false and null belong there
         }
 
-        private static Position Yaml(string text, int floor, CompletionSite site)
+        internal static Position Yaml(string text, int floor, CompletionSite site)
         {
             int lineStart = site.Start;
             while (lineStart > floor && text[lineStart - 1] != '\n') lineStart--;
