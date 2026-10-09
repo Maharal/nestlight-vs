@@ -33,7 +33,8 @@ namespace NestLight.Experiments
                 hand[language] = CorpusProbes.Probes(written, language, 400, new[] { 1, 2 });
             }
 
-            var features = CompletionFeatures.Default;
+            // the engine as it was when the experiment was written: the plugin default now has the two-letter tier on
+            var features = new CompletionFeatures(previousWord: true, sameLanguageWords: true, grammar: true, wordsBeforeKeywords: true, keywordPriors: KeywordUse.Default, headKeywords: 12);
             var shortLast = new CompletionFeatures(previousWord: true, sameLanguageWords: true, grammar: true, wordsBeforeKeywords: true, keywordPriors: KeywordUse.Default, headKeywords: 12, shortWordsLast: true);
             var variants = new Func<IHostScanner, CompletionEngine>[]
             {

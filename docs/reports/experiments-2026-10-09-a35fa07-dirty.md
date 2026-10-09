@@ -2,8 +2,8 @@
 
 | | |
 |---|---|
-| Date | 2026-10-09 01:38 UTC |
-| Commit | `da3853e` (**uncommitted changes**: this run cannot be reproduced from the commit) |
+| Date | 2026-10-09 01:42 UTC |
+| Commit | `a35fa07` (**uncommitted changes**: this run cannot be reproduced from the commit) |
 | Runtime | .NET 10.0.0, Release |
 | Machine | CPU not identified, 16 logical cores |
 | OS | Linux Mint 22 |
@@ -16,20 +16,20 @@ Definitions of the experiments: [docs/experiments.md](../experiments.md). Each r
 | Id | Experiment | Criterion | Finding |
 |---|---|---|---|
 | E19 | Does the tokenizer agree with the vocabulary? | Met | vocabulary and tokenizers agree |
-| E22 | Sharing the scan and not creating the words of the completion | Met | worst case with the scan shared 1.25 ms at 60000 lines |
-| E23 | Does the second stage of the completion fit in a frame? | Met | worst case with the second stage forced 8.88 ms at 60000 lines |
+| E22 | Sharing the scan and not creating the words of the completion | Met | worst case with the scan shared 1.36 ms at 60000 lines |
+| E23 | Does the second stage of the completion fit in a frame? | Met | worst case with the second stage forced 8.76 ms at 60000 lines |
 | E24 | Does the second stage recover the word after one mistake, and which tie-break works? | Met | best tie-break (nearest to the caret (the engine)) 72.0% within the first 5 |
 | E25 | Does the second stage get in the way when the prefix is right? | Met | with FuzzyBelow = 1 similar items are added in 1.1% of the cases |
 | E27 | Completion with similar words on incomplete and cut code | Met | 0 violations in 86900 carets, 21275 similar items checked |
-| E28 | Does the word before the caret help to rank the suggestions? | Met | within the first 5: 72.5% to 85.5% (+13.0 points); worst session 3.11 ms |
-| E29 | Do the words of the same language come first? | Met | within the first 5: previous word 85.5%, with the language 88.1% (+2.6 points); worst session 4.11 ms |
-| E30 | Does the place in the grammar help to rank the suggestions? | Met | within the first 5: 88.1% to 97.8% (+9.8 points); worst session 4.11 ms |
+| E28 | Does the word before the caret help to rank the suggestions? | Met | within the first 5: 72.5% to 85.5% (+13.0 points); worst session 3.15 ms |
+| E29 | Do the words of the same language come first? | Met | within the first 5: previous word 85.5%, with the language 88.1% (+2.6 points); worst session 4.16 ms |
+| E30 | Does the place in the grammar help to rank the suggestions? | Met | within the first 5: 88.1% to 97.8% (+9.8 points); worst session 4.13 ms |
 | E33 | Completion with the context rankings on incomplete and cut code | Met | 0 violations in 85633 carets, 29806 similar items checked |
 | E34 | Where the place of the caret says nothing, do the words of the file and the most used keywords come first? | Not met | best: Both within the first 5 73.9% to 76.1% (+2.2 points); hand-written +9.9 |
 | E35 | Do a few keywords still come before the words of the file? | Met | best: 12 keywords in front within the first 5 73.9% to 76.9% (+3.0 points); hand-written +11.2 |
 | E36 | Should words of two letters be offered? | Not met | no variant meets the criterion |
 | E37 | Does the similar-words stage make noise with short prefixes, and what removes it? | Not met | no variant meets the criterion |
-| E38 | Should words of two letters be offered? (E36 with a criterion that can be met) | Met | adopt: Minimum 2, the words of 2 letters +4.4 points |
+| E38 | Should words of two letters be offered? (E36 with a criterion that can be met) | Met | adopt: Two-letter words last, the words of 2 letters +7.9 points |
 
 *Criterion met* is the statement of each experiment's own criterion, not a good/bad grade: see *If met* and *If not met* under each experiment.
 
@@ -74,39 +74,39 @@ Definitions of the experiments: [docs/experiments.md](../experiments.md). Each r
 
 | Host | Shape | Lines | Characters | Nothing shared | Scan shared | Suggest alone | Suggestions |
 |---|---|---|---|---|---|---|---|
-| JavaScript | typical code | 1200 | 41771 | 337 µs | 109 µs | 101 µs | 1 |
-| JavaScript | typical code | 12000 | 417611 | 2.95 ms | 989 µs | 1.02 ms | 1 |
-| JavaScript | typical code | 60000 | 2088011 | 11.63 ms | 1.21 ms | 1.18 ms | 1 |
-| JavaScript | distinct words | 1200 | 24011 | 142 µs | 75 µs | 86 µs | 100 |
-| JavaScript | distinct words | 12000 | 240011 | 1.21 ms | 653 µs | 588 µs | 100 |
-| JavaScript | distinct words | 60000 | 1200011 | 5.95 ms | 1.19 ms | 1.26 ms | 100 |
-| CSharp | typical code | 1200 | 35058 | 271 µs | 88 µs | 87 µs | 1 |
-| CSharp | typical code | 12000 | 349703 | 2.85 ms | 848 µs | 839 µs | 1 |
-| CSharp | typical code | 60000 | 1748126 | 10.99 ms | 1.23 ms | 1.20 ms | 1 |
-| CSharp | distinct words | 1200 | 24032 | 169 µs | 104 µs | 74 µs | 100 |
-| CSharp | distinct words | 12000 | 240032 | 1.42 ms | 598 µs | 582 µs | 100 |
-| CSharp | distinct words | 60000 | 1200032 | 5.43 ms | 1.18 ms | 1.18 ms | 100 |
-| Python | typical code | 1200 | 29494 | 392 µs | 77 µs | 75 µs | 1 |
-| Python | typical code | 12000 | 294167 | 4.15 ms | 720 µs | 712 µs | 1 |
-| Python | typical code | 60000 | 1470512 | 17.77 ms | 1.22 ms | 1.20 ms | 1 |
-| Python | distinct words | 1200 | 18026 | 200 µs | 58 µs | 87 µs | 100 |
-| Python | distinct words | 12000 | 180026 | 1.81 ms | 451 µs | 405 µs | 100 |
-| Python | distinct words | 60000 | 900026 | 8.19 ms | 1.13 ms | 1.12 ms | 100 |
-| Cpp | typical code | 1200 | 32804 | 243 µs | 84 µs | 82 µs | 1 |
-| Cpp | typical code | 12000 | 325951 | 2.43 ms | 805 µs | 805 µs | 1 |
-| Cpp | typical code | 60000 | 1629061 | 9.51 ms | 1.25 ms | 1.22 ms | 1 |
-| Cpp | distinct words | 1200 | 24036 | 174 µs | 102 µs | 74 µs | 100 |
-| Cpp | distinct words | 12000 | 240036 | 1.53 ms | 614 µs | 579 µs | 100 |
-| Cpp | distinct words | 60000 | 1200036 | 5.91 ms | 1.21 ms | 1.23 ms | 100 |
+| JavaScript | typical code | 1200 | 41771 | 339 µs | 109 µs | 109 µs | 1 |
+| JavaScript | typical code | 12000 | 417611 | 2.86 ms | 988 µs | 1.04 ms | 1 |
+| JavaScript | typical code | 60000 | 2088011 | 10.72 ms | 1.20 ms | 1.18 ms | 1 |
+| JavaScript | distinct words | 1200 | 24011 | 141 µs | 77 µs | 75 µs | 100 |
+| JavaScript | distinct words | 12000 | 240011 | 1.21 ms | 635 µs | 583 µs | 100 |
+| JavaScript | distinct words | 60000 | 1200011 | 4.33 ms | 1.18 ms | 1.19 ms | 100 |
+| CSharp | typical code | 1200 | 35058 | 277 µs | 88 µs | 127 µs | 1 |
+| CSharp | typical code | 12000 | 349703 | 2.76 ms | 836 µs | 840 µs | 1 |
+| CSharp | typical code | 60000 | 1748126 | 10.99 ms | 1.21 ms | 1.19 ms | 1 |
+| CSharp | distinct words | 1200 | 24032 | 163 µs | 104 µs | 75 µs | 100 |
+| CSharp | distinct words | 12000 | 240032 | 1.41 ms | 580 µs | 584 µs | 100 |
+| CSharp | distinct words | 60000 | 1200032 | 5.36 ms | 1.19 ms | 1.19 ms | 100 |
+| Python | typical code | 1200 | 29494 | 393 µs | 78 µs | 75 µs | 1 |
+| Python | typical code | 12000 | 294167 | 4.04 ms | 713 µs | 707 µs | 1 |
+| Python | typical code | 60000 | 1470512 | 17.78 ms | 1.23 ms | 1.21 ms | 1 |
+| Python | distinct words | 1200 | 18026 | 199 µs | 92 µs | 56 µs | 100 |
+| Python | distinct words | 12000 | 180026 | 1.83 ms | 434 µs | 400 µs | 100 |
+| Python | distinct words | 60000 | 900026 | 8.24 ms | 1.36 ms | 1.12 ms | 100 |
+| Cpp | typical code | 1200 | 32804 | 248 µs | 84 µs | 83 µs | 1 |
+| Cpp | typical code | 12000 | 325951 | 2.39 ms | 800 µs | 796 µs | 1 |
+| Cpp | typical code | 60000 | 1629061 | 9.50 ms | 1.24 ms | 1.22 ms | 1 |
+| Cpp | distinct words | 1200 | 24036 | 172 µs | 105 µs | 76 µs | 100 |
+| Cpp | distinct words | 12000 | 240036 | 1.53 ms | 606 µs | 578 µs | 100 |
+| Cpp | distinct words | 60000 | 1200036 | 5.95 ms | 1.19 ms | 1.22 ms | 100 |
 
 **Analysis.**
 
-- The slowest session with the scan shared at 60000 lines is Cpp, typical code: 1.25 ms (the frame budget is 16 ms).
+- The slowest session with the scan shared at 60000 lines is Python, distinct words: 1.36 ms (the frame budget is 16 ms).
 - "Nothing shared" is the start of a session as the editor makes it without the shared scan: Locate twice and Suggest. E16 measured one Locate and Suggest.
 
 **Criterion met.** Completion fits in a frame on any file the classifier can handle.
 
-*Ran in 7.2 s.*
+*Ran in 7.1 s.*
 
 ## E23: Does the second stage of the completion fit in a frame?
 
@@ -120,64 +120,64 @@ Definitions of the experiments: [docs/experiments.md](../experiments.md). Each r
 
 | Host | Shape | Typed | Lines | Characters | Second stage off | Second stage forced | Allocated off | Allocated forced | Similar items |
 |---|---|---|---|---|---|---|---|---|---|
-| JavaScript | typical code | comp | 1200 | 41771 | 108 µs | 197 µs | 10 KB | 10 KB | 1 |
-| JavaScript | typical code | comp | 12000 | 417611 | 984 µs | 1.88 ms | 66 KB | 67 KB | 1 |
-| JavaScript | typical code | comp | 60000 | 2088011 | 1.22 ms | 2.50 ms | 66 KB | 67 KB | 1 |
-| JavaScript | typical code | cmop | 1200 | 41771 | 94 µs | 188 µs | 1 KB | 2 KB | 1 |
-| JavaScript | typical code | cmop | 12000 | 417611 | 909 µs | 1.84 ms | 1 KB | 2 KB | 1 |
-| JavaScript | typical code | cmop | 60000 | 2088011 | 1.11 ms | 2.21 ms | 1 KB | 2 KB | 1 |
-| JavaScript | distinct words | comp | 1200 | 24011 | 82 µs | 76 µs | 67 KB | 67 KB | 0 |
-| JavaScript | distinct words | comp | 12000 | 240011 | 602 µs | 616 µs | 291 KB | 291 KB | 0 |
-| JavaScript | distinct words | comp | 60000 | 1200011 | 1.27 ms | 1.21 ms | 547 KB | 547 KB | 0 |
-| JavaScript | distinct words | cmop | 1200 | 24011 | 54 µs | 420 µs | 1 KB | 168 KB | 10 |
-| JavaScript | distinct words | cmop | 12000 | 240011 | 512 µs | 3.68 ms | 1 KB | 1.5 MB | 10 |
-| JavaScript | distinct words | cmop | 60000 | 1200011 | 1.06 ms | 7.95 ms | 1 KB | 3.2 MB | 10 |
-| CSharp | typical code | comp | 1200 | 35058 | 88 µs | 160 µs | 10 KB | 10 KB | 1 |
-| CSharp | typical code | comp | 12000 | 349703 | 876 µs | 1.56 ms | 66 KB | 66 KB | 1 |
-| CSharp | typical code | comp | 60000 | 1748126 | 1.27 ms | 2.21 ms | 66 KB | 66 KB | 1 |
-| CSharp | typical code | cmop | 1200 | 35058 | 80 µs | 153 µs | 1 KB | 2 KB | 1 |
-| CSharp | typical code | cmop | 12000 | 349703 | 772 µs | 1.44 ms | 1 KB | 2 KB | 1 |
-| CSharp | typical code | cmop | 60000 | 1748126 | 1.11 ms | 2.07 ms | 1 KB | 2 KB | 1 |
-| CSharp | distinct words | comp | 1200 | 24032 | 76 µs | 78 µs | 67 KB | 67 KB | 0 |
-| CSharp | distinct words | comp | 12000 | 240032 | 592 µs | 600 µs | 291 KB | 291 KB | 0 |
-| CSharp | distinct words | comp | 60000 | 1200032 | 1.27 ms | 1.35 ms | 547 KB | 547 KB | 0 |
-| CSharp | distinct words | cmop | 1200 | 24032 | 54 µs | 430 µs | 1 KB | 168 KB | 10 |
-| CSharp | distinct words | cmop | 12000 | 240032 | 513 µs | 3.90 ms | 1 KB | 1.5 MB | 10 |
-| CSharp | distinct words | cmop | 60000 | 1200032 | 1.05 ms | 7.38 ms | 1 KB | 3.2 MB | 10 |
-| Python | typical code | comp | 1200 | 29494 | 75 µs | 146 µs | 10 KB | 10 KB | 1 |
-| Python | typical code | comp | 12000 | 294167 | 733 µs | 1.32 ms | 66 KB | 66 KB | 1 |
-| Python | typical code | comp | 60000 | 1470512 | 1.24 ms | 2.23 ms | 130 KB | 130 KB | 1 |
-| Python | typical code | cmop | 1200 | 29494 | 67 µs | 135 µs | 1 KB | 2 KB | 1 |
-| Python | typical code | cmop | 12000 | 294167 | 647 µs | 1.23 ms | 1 KB | 2 KB | 1 |
-| Python | typical code | cmop | 60000 | 1470512 | 1.11 ms | 2.10 ms | 1 KB | 2 KB | 1 |
-| Python | distinct words | comp | 1200 | 18026 | 59 µs | 57 µs | 67 KB | 67 KB | 0 |
-| Python | distinct words | comp | 12000 | 180026 | 444 µs | 441 µs | 291 KB | 291 KB | 0 |
-| Python | distinct words | comp | 60000 | 900026 | 1.40 ms | 1.12 ms | 1.0 MB | 1.0 MB | 0 |
-| Python | distinct words | cmop | 1200 | 18026 | 36 µs | 392 µs | 1 KB | 168 KB | 10 |
-| Python | distinct words | cmop | 12000 | 180026 | 324 µs | 3.73 ms | 1 KB | 1.5 MB | 10 |
-| Python | distinct words | cmop | 60000 | 900026 | 898 µs | 8.88 ms | 1 KB | 3.7 MB | 10 |
-| Cpp | typical code | comp | 1200 | 32804 | 84 µs | 158 µs | 10 KB | 10 KB | 1 |
-| Cpp | typical code | comp | 12000 | 325951 | 807 µs | 1.47 ms | 66 KB | 66 KB | 1 |
-| Cpp | typical code | comp | 60000 | 1629061 | 1.25 ms | 2.28 ms | 130 KB | 130 KB | 1 |
-| Cpp | typical code | cmop | 1200 | 32804 | 75 µs | 150 µs | 1 KB | 2 KB | 1 |
-| Cpp | typical code | cmop | 12000 | 325951 | 723 µs | 1.39 ms | 1 KB | 2 KB | 1 |
-| Cpp | typical code | cmop | 60000 | 1629061 | 1.12 ms | 2.14 ms | 1 KB | 2 KB | 1 |
-| Cpp | distinct words | comp | 1200 | 24036 | 76 µs | 76 µs | 67 KB | 67 KB | 0 |
-| Cpp | distinct words | comp | 12000 | 240036 | 585 µs | 578 µs | 291 KB | 291 KB | 0 |
-| Cpp | distinct words | comp | 60000 | 1200036 | 1.34 ms | 1.34 ms | 547 KB | 547 KB | 0 |
-| Cpp | distinct words | cmop | 1200 | 24036 | 54 µs | 421 µs | 1 KB | 168 KB | 10 |
-| Cpp | distinct words | cmop | 12000 | 240036 | 502 µs | 3.82 ms | 1 KB | 1.5 MB | 10 |
-| Cpp | distinct words | cmop | 60000 | 1200036 | 1.05 ms | 7.93 ms | 1 KB | 3.2 MB | 10 |
+| JavaScript | typical code | comp | 1200 | 41771 | 109 µs | 200 µs | 10 KB | 10 KB | 1 |
+| JavaScript | typical code | comp | 12000 | 417611 | 983 µs | 1.89 ms | 66 KB | 67 KB | 1 |
+| JavaScript | typical code | comp | 60000 | 2088011 | 1.20 ms | 2.27 ms | 66 KB | 67 KB | 1 |
+| JavaScript | typical code | cmop | 1200 | 41771 | 92 µs | 191 µs | 1 KB | 2 KB | 1 |
+| JavaScript | typical code | cmop | 12000 | 417611 | 897 µs | 1.81 ms | 1 KB | 2 KB | 1 |
+| JavaScript | typical code | cmop | 60000 | 2088011 | 1.08 ms | 2.17 ms | 1 KB | 2 KB | 1 |
+| JavaScript | distinct words | comp | 1200 | 24011 | 76 µs | 77 µs | 67 KB | 67 KB | 0 |
+| JavaScript | distinct words | comp | 12000 | 240011 | 582 µs | 578 µs | 291 KB | 291 KB | 0 |
+| JavaScript | distinct words | comp | 60000 | 1200011 | 1.18 ms | 1.18 ms | 547 KB | 547 KB | 0 |
+| JavaScript | distinct words | cmop | 1200 | 24011 | 54 µs | 417 µs | 1 KB | 168 KB | 10 |
+| JavaScript | distinct words | cmop | 12000 | 240011 | 505 µs | 3.71 ms | 1 KB | 1.5 MB | 10 |
+| JavaScript | distinct words | cmop | 60000 | 1200011 | 1.05 ms | 8.24 ms | 1 KB | 3.2 MB | 10 |
+| CSharp | typical code | comp | 1200 | 35058 | 88 µs | 164 µs | 10 KB | 10 KB | 1 |
+| CSharp | typical code | comp | 12000 | 349703 | 845 µs | 1.54 ms | 66 KB | 66 KB | 1 |
+| CSharp | typical code | comp | 60000 | 1748126 | 1.21 ms | 2.16 ms | 66 KB | 66 KB | 1 |
+| CSharp | typical code | cmop | 1200 | 35058 | 79 µs | 155 µs | 1 KB | 2 KB | 1 |
+| CSharp | typical code | cmop | 12000 | 349703 | 761 µs | 1.44 ms | 1 KB | 2 KB | 1 |
+| CSharp | typical code | cmop | 60000 | 1748126 | 1.10 ms | 2.06 ms | 1 KB | 2 KB | 1 |
+| CSharp | distinct words | comp | 1200 | 24032 | 76 µs | 76 µs | 67 KB | 67 KB | 0 |
+| CSharp | distinct words | comp | 12000 | 240032 | 574 µs | 572 µs | 291 KB | 291 KB | 0 |
+| CSharp | distinct words | comp | 60000 | 1200032 | 1.18 ms | 1.18 ms | 547 KB | 547 KB | 0 |
+| CSharp | distinct words | cmop | 1200 | 24032 | 54 µs | 436 µs | 1 KB | 168 KB | 10 |
+| CSharp | distinct words | cmop | 12000 | 240032 | 505 µs | 3.53 ms | 1 KB | 1.5 MB | 10 |
+| CSharp | distinct words | cmop | 60000 | 1200032 | 1.04 ms | 7.91 ms | 1 KB | 3.2 MB | 10 |
+| Python | typical code | comp | 1200 | 29494 | 75 µs | 141 µs | 10 KB | 10 KB | 1 |
+| Python | typical code | comp | 12000 | 294167 | 713 µs | 1.30 ms | 66 KB | 66 KB | 1 |
+| Python | typical code | comp | 60000 | 1470512 | 1.22 ms | 2.20 ms | 130 KB | 130 KB | 1 |
+| Python | typical code | cmop | 1200 | 29494 | 67 µs | 134 µs | 1 KB | 2 KB | 1 |
+| Python | typical code | cmop | 12000 | 294167 | 636 µs | 1.23 ms | 1 KB | 2 KB | 1 |
+| Python | typical code | cmop | 60000 | 1470512 | 1.09 ms | 2.08 ms | 1 KB | 2 KB | 1 |
+| Python | distinct words | comp | 1200 | 18026 | 58 µs | 58 µs | 67 KB | 67 KB | 0 |
+| Python | distinct words | comp | 12000 | 180026 | 395 µs | 401 µs | 291 KB | 291 KB | 0 |
+| Python | distinct words | comp | 60000 | 900026 | 1.13 ms | 1.09 ms | 1.0 MB | 1.0 MB | 0 |
+| Python | distinct words | cmop | 1200 | 18026 | 36 µs | 386 µs | 1 KB | 168 KB | 10 |
+| Python | distinct words | cmop | 12000 | 180026 | 359 µs | 3.27 ms | 1 KB | 1.5 MB | 10 |
+| Python | distinct words | cmop | 60000 | 900026 | 990 µs | 8.76 ms | 1 KB | 3.7 MB | 10 |
+| Cpp | typical code | comp | 1200 | 32804 | 83 µs | 156 µs | 10 KB | 10 KB | 1 |
+| Cpp | typical code | comp | 12000 | 325951 | 793 µs | 1.47 ms | 66 KB | 66 KB | 1 |
+| Cpp | typical code | comp | 60000 | 1629061 | 1.25 ms | 2.26 ms | 130 KB | 130 KB | 1 |
+| Cpp | typical code | cmop | 1200 | 32804 | 75 µs | 151 µs | 1 KB | 2 KB | 1 |
+| Cpp | typical code | cmop | 12000 | 325951 | 715 µs | 1.39 ms | 1 KB | 2 KB | 1 |
+| Cpp | typical code | cmop | 60000 | 1629061 | 1.10 ms | 2.13 ms | 1 KB | 2 KB | 1 |
+| Cpp | distinct words | comp | 1200 | 24036 | 77 µs | 74 µs | 67 KB | 67 KB | 0 |
+| Cpp | distinct words | comp | 12000 | 240036 | 581 µs | 578 µs | 291 KB | 291 KB | 0 |
+| Cpp | distinct words | comp | 60000 | 1200036 | 1.34 ms | 1.33 ms | 547 KB | 547 KB | 0 |
+| Cpp | distinct words | cmop | 1200 | 24036 | 54 µs | 422 µs | 1 KB | 168 KB | 10 |
+| Cpp | distinct words | cmop | 12000 | 240036 | 512 µs | 3.85 ms | 1 KB | 1.5 MB | 10 |
+| Cpp | distinct words | cmop | 60000 | 1200036 | 1.05 ms | 7.91 ms | 1 KB | 3.2 MB | 10 |
 
 **Analysis.**
 
-- The slowest session with the second stage forced at 60000 lines is Python, distinct words, typed cmop: 8.88 ms (the frame budget is 16 ms).
+- The slowest session with the second stage forced at 60000 lines is Python, distinct words, typed cmop: 8.76 ms (the frame budget is 16 ms).
 - Allocated is what the session allocates (the same meaning as E05): the difference between forced and off is the cost of the second stage; no string is created for a word that is too far, only a small record to skip its next occurrences.
 - In the typical file there are few distinct words and nearly all of them fail the first-letter filter; in the file of distinct words every word is a candidate and, for `cmop`, every one is one edit away.
 
 **Criterion met.** The second stage needs no cache of the distinct words and no index.
 
-*Ran in 12.8 s.*
+*Ran in 12.5 s.*
 
 ## E24: Does the second stage recover the word after one mistake, and which tie-break works?
 
@@ -335,28 +335,28 @@ Definitions of the experiments: [docs/experiments.md](../experiments.md). Each r
 
 | Host | Lines | Characters | By distance alone | Previous word first |
 |---|---|---|---|---|
-| JavaScript | 1200 | 58758 | 335 µs | 340 µs |
-| JavaScript | 12000 | 577746 | 2.61 ms | 2.62 ms |
-| JavaScript | 60000 | 2875519 | 3.01 ms | 3.02 ms |
-| CSharp | 1200 | 68232 | 349 µs | 351 µs |
-| CSharp | 12000 | 670891 | 2.42 ms | 2.41 ms |
-| CSharp | 60000 | 3339512 | 2.81 ms | 2.81 ms |
-| Python | 1200 | 59971 | 349 µs | 348 µs |
-| Python | 12000 | 588954 | 2.71 ms | 2.72 ms |
-| Python | 60000 | 2931279 | 3.08 ms | 3.11 ms |
-| Cpp | 1200 | 59936 | 326 µs | 324 µs |
-| Cpp | 12000 | 588276 | 2.47 ms | 2.48 ms |
-| Cpp | 60000 | 2927538 | 2.79 ms | 2.79 ms |
+| JavaScript | 1200 | 58758 | 333 µs | 335 µs |
+| JavaScript | 12000 | 577746 | 2.64 ms | 2.64 ms |
+| JavaScript | 60000 | 2875519 | 3.04 ms | 3.05 ms |
+| CSharp | 1200 | 68232 | 352 µs | 349 µs |
+| CSharp | 12000 | 670891 | 2.41 ms | 2.43 ms |
+| CSharp | 60000 | 3339512 | 2.82 ms | 2.84 ms |
+| Python | 1200 | 59971 | 349 µs | 346 µs |
+| Python | 12000 | 588954 | 2.73 ms | 2.74 ms |
+| Python | 60000 | 2931279 | 3.15 ms | 3.15 ms |
+| Cpp | 1200 | 59936 | 312 µs | 314 µs |
+| Cpp | 12000 | 588276 | 2.45 ms | 2.45 ms |
+| Cpp | 60000 | 2927538 | 2.77 ms | 2.79 ms |
 
 **Analysis.**
 
 - The gain over all the reachable cases is +13.0 points within the first 5; the worst language changes by +1.4 points.
-- The slowest session with the previous word at the largest size is Python at 60000 lines: 3.11 ms (the frame budget is 16 ms).
+- The slowest session with the previous word at the largest size is Python at 60000 lines: 3.15 ms (the frame budget is 16 ms).
 - The corpus is generated. It has the structure the idea looks for (the values of a property, the table after `from`), because the generator was written with it; real code may repeat its structure more or less than that.
 
 **Criterion met.** Keep the previous word on.
 
-*Ran in 35.9 s.*
+*Ran in 36.5 s.*
 
 ## E29: Do the words of the same language come first?
 
@@ -409,28 +409,28 @@ Definitions of the experiments: [docs/experiments.md](../experiments.md). Each r
 
 | Host | Lines | Characters | By distance alone | Words of the language | Previous word | Previous word and language |
 |---|---|---|---|---|---|---|
-| JavaScript | 1200 | 58758 | 333 µs | 352 µs | 333 µs | 350 µs |
-| JavaScript | 12000 | 577746 | 2.62 ms | 2.82 ms | 2.62 ms | 2.81 ms |
-| JavaScript | 60000 | 2875519 | 3.00 ms | 4.05 ms | 2.99 ms | 4.06 ms |
-| CSharp | 1200 | 68232 | 349 µs | 370 µs | 351 µs | 372 µs |
-| CSharp | 12000 | 670891 | 2.43 ms | 2.61 ms | 2.42 ms | 2.61 ms |
-| CSharp | 60000 | 3339512 | 2.75 ms | 3.88 ms | 2.80 ms | 3.83 ms |
-| Python | 1200 | 59971 | 351 µs | 369 µs | 352 µs | 368 µs |
-| Python | 12000 | 588954 | 2.71 ms | 2.90 ms | 2.72 ms | 2.91 ms |
-| Python | 60000 | 2931279 | 3.14 ms | 4.14 ms | 3.06 ms | 4.11 ms |
-| Cpp | 1200 | 59936 | 317 µs | 331 µs | 317 µs | 332 µs |
-| Cpp | 12000 | 588276 | 2.45 ms | 2.58 ms | 2.47 ms | 2.59 ms |
-| Cpp | 60000 | 2927538 | 2.81 ms | 3.45 ms | 2.82 ms | 3.48 ms |
+| JavaScript | 1200 | 58758 | 338 µs | 355 µs | 340 µs | 354 µs |
+| JavaScript | 12000 | 577746 | 2.62 ms | 2.81 ms | 2.63 ms | 2.82 ms |
+| JavaScript | 60000 | 2875519 | 2.97 ms | 3.99 ms | 3.00 ms | 4.03 ms |
+| CSharp | 1200 | 68232 | 346 µs | 371 µs | 347 µs | 370 µs |
+| CSharp | 12000 | 670891 | 2.40 ms | 2.60 ms | 2.40 ms | 2.62 ms |
+| CSharp | 60000 | 3339512 | 2.75 ms | 3.82 ms | 2.76 ms | 3.80 ms |
+| Python | 1200 | 59971 | 350 µs | 368 µs | 350 µs | 371 µs |
+| Python | 12000 | 588954 | 2.73 ms | 2.94 ms | 2.75 ms | 2.91 ms |
+| Python | 60000 | 2931279 | 3.14 ms | 4.14 ms | 3.12 ms | 4.16 ms |
+| Cpp | 1200 | 59936 | 316 µs | 333 µs | 314 µs | 330 µs |
+| Cpp | 12000 | 588276 | 2.45 ms | 2.59 ms | 2.47 ms | 2.58 ms |
+| Cpp | 60000 | 2927538 | 2.78 ms | 3.47 ms | 2.78 ms | 3.55 ms |
 
 **Analysis.**
 
 - The words of the language alone move the share within the first 5 from 72.5% to 77.3%; added to the previous word, +2.6 points; the worst language changes by +1.1 points.
-- The slowest session with both at the largest size is Python at 60000 lines: 4.11 ms (the frame budget is 16 ms).
+- The slowest session with both at the largest size is Python at 60000 lines: 4.16 ms (the frame budget is 16 ms).
 - The corpus is generated: its host variables are named after the same nouns as the tables, so a host word with the same first letters is common by construction. How often real code has that is not measured.
 
 **Criterion met.** Keep the words of the language first.
 
-*Ran in 70.3 s.*
+*Ran in 70.0 s.*
 
 ## E30: Does the place in the grammar help to rank the suggestions?
 
@@ -512,28 +512,28 @@ Definitions of the experiments: [docs/experiments.md](../experiments.md). Each r
 
 | Host | Lines | Characters | By distance alone | Grammar | Previous word and language | All three |
 |---|---|---|---|---|---|---|
-| JavaScript | 1200 | 58758 | 337 µs | 336 µs | 355 µs | 360 µs |
-| JavaScript | 12000 | 577746 | 2.61 ms | 2.62 ms | 2.81 ms | 2.81 ms |
-| JavaScript | 60000 | 2875519 | 2.99 ms | 2.97 ms | 3.96 ms | 4.04 ms |
-| CSharp | 1200 | 68232 | 353 µs | 351 µs | 368 µs | 372 µs |
-| CSharp | 12000 | 670891 | 2.42 ms | 2.42 ms | 2.61 ms | 2.61 ms |
-| CSharp | 60000 | 3339512 | 2.77 ms | 3.03 ms | 4.01 ms | 3.90 ms |
-| Python | 1200 | 59971 | 351 µs | 353 µs | 367 µs | 370 µs |
-| Python | 12000 | 588954 | 2.73 ms | 2.74 ms | 2.98 ms | 2.98 ms |
-| Python | 60000 | 2931279 | 3.09 ms | 3.10 ms | 4.08 ms | 4.11 ms |
-| Cpp | 1200 | 59936 | 318 µs | 316 µs | 330 µs | 335 µs |
-| Cpp | 12000 | 588276 | 2.62 ms | 2.87 ms | 2.73 ms | 2.66 ms |
-| Cpp | 60000 | 2927538 | 2.93 ms | 2.92 ms | 3.58 ms | 3.67 ms |
+| JavaScript | 1200 | 58758 | 334 µs | 337 µs | 353 µs | 351 µs |
+| JavaScript | 12000 | 577746 | 2.64 ms | 2.63 ms | 2.82 ms | 2.83 ms |
+| JavaScript | 60000 | 2875519 | 3.01 ms | 2.97 ms | 3.96 ms | 4.02 ms |
+| CSharp | 1200 | 68232 | 352 µs | 351 µs | 369 µs | 369 µs |
+| CSharp | 12000 | 670891 | 2.42 ms | 2.42 ms | 2.60 ms | 2.60 ms |
+| CSharp | 60000 | 3339512 | 2.75 ms | 2.77 ms | 3.82 ms | 3.81 ms |
+| Python | 1200 | 59971 | 359 µs | 365 µs | 379 µs | 376 µs |
+| Python | 12000 | 588954 | 2.75 ms | 2.76 ms | 2.96 ms | 2.96 ms |
+| Python | 60000 | 2931279 | 3.17 ms | 3.09 ms | 4.13 ms | 4.13 ms |
+| Cpp | 1200 | 59936 | 319 µs | 325 µs | 332 µs | 328 µs |
+| Cpp | 12000 | 588276 | 2.45 ms | 2.44 ms | 2.58 ms | 2.58 ms |
+| Cpp | 60000 | 2927538 | 2.76 ms | 2.76 ms | 3.44 ms | 3.43 ms |
 
 **Analysis.**
 
 - The grammar alone moves the share within the first 5 from 72.5% to 88.5%; added to the previous word and the language, +9.8 points; the worst of SQL, CSS and HTML changes by +7.8 points.
-- The slowest session with all three at the largest size is Python at 60000 lines: 4.11 ms (the frame budget is 16 ms).
+- The slowest session with all three at the largest size is Python at 60000 lines: 4.13 ms (the frame budget is 16 ms).
 - The corpus is generated by the same person who wrote the rules of the grammar, and it follows them: the attributes of a tag are the ones in the table of attributes, the values of a property the ones in the table of values. A real file will have words the tables do not know, and the grammar then costs nothing but gains nothing. This experiment says the rules do not get in the way of code that follows them, not how often real code does.
 
 **Criterion met.** Keep the grammar on.
 
-*Ran in 72.6 s.*
+*Ran in 70.6 s.*
 
 ## E33: Completion with the context rankings on incomplete and cut code
 
@@ -561,7 +561,7 @@ Definitions of the experiments: [docs/experiments.md](../experiments.md). Each r
 
 **Criterion met.** Completion can be triggered anywhere in a file being edited, with the context rankings on.
 
-*Ran in 3.8 s.*
+*Ran in 3.7 s.*
 
 ## E34: Where the place of the caret says nothing, do the words of the file and the most used keywords come first?
 
@@ -700,7 +700,7 @@ Definitions of the experiments: [docs/experiments.md](../experiments.md). Each r
 
 | Variant | 2-letter words: cases | 2-letter: first | 2-letter: first 5 | Longer: cases | Longer: first | Longer: first 5 |
 |---|---|---|---|---|---|---|
-| Minimum 3 (as it is) | 144 | 77.8% | 93.1% | 2585 | 78.5% | 95.2% |
+| Minimum 3 (as it is) | 144 | 77.8% | 85.2% | 2585 | 78.5% | 95.2% |
 | Minimum 2 | 144 | 83.6% | 97.5% | 2585 | 78.4% | 95.1% |
 | Two-letter words last | 144 | 77.8% | 93.1% | 2585 | 78.5% | 95.2% |
 
@@ -708,20 +708,20 @@ Definitions of the experiments: [docs/experiments.md](../experiments.md). Each r
 
 | Language | 2-letter cases | 2-letter: Minimum 3 (as it is) | 2-letter: Minimum 2 | 2-letter: Two-letter words last | Longer: Minimum 3 (as it is) | Longer: Minimum 2 | Longer: Two-letter words last |
 |---|---|---|---|---|---|---|---|
-| sql | 38 | 80.2% | 93.1% | 80.2% | 99.1% | 98.9% | 99.1% |
+| sql | 38 | 69.0% | 93.1% | 80.2% | 99.1% | 98.9% | 99.1% |
 | css | 1 | 100.0% | 100.0% | 100.0% | 78.6% | 78.5% | 78.6% |
 | html | 26 | 100.0% | 100.0% | 100.0% | 99.0% | 99.0% | 99.0% |
 | graphql | 32 | 95.8% | 96.9% | 95.8% | 94.1% | 94.1% | 94.1% |
-| json | 6 | 100.0% | 100.0% | 100.0% | 96.5% | 96.5% | 96.5% |
-| yaml | 14 | 93.2% | 100.0% | 93.2% | 97.6% | 97.2% | 97.6% |
-| glsl | 10 | 100.0% | 100.0% | 100.0% | 98.9% | 98.9% | 98.9% |
-| wgsl | 14 | 100.0% | 100.0% | 100.0% | 99.8% | 99.8% | 99.8% |
+| json | 6 | 52.6% | 100.0% | 100.0% | 96.5% | 96.5% | 96.5% |
+| yaml | 14 | 84.1% | 100.0% | 93.2% | 97.6% | 97.2% | 97.6% |
+| glsl | 10 | 80.0% | 100.0% | 100.0% | 98.9% | 98.9% | 98.9% |
+| wgsl | 14 | 95.5% | 100.0% | 100.0% | 99.8% | 99.8% | 99.8% |
 
 **The hand-written files of the review (another source)**
 
 | Variant | 2-letter words: cases | 2-letter: first | 2-letter: first 5 | Longer: cases | Longer: first | Longer: first 5 |
 |---|---|---|---|---|---|---|
-| Minimum 3 (as it is) | 39 | 65.8% | 97.4% | 554 | 72.4% | 95.8% |
+| Minimum 3 (as it is) | 39 | 62.4% | 77.8% | 554 | 72.4% | 95.8% |
 | Minimum 2 | 39 | 68.4% | 99.1% | 554 | 72.1% | 95.7% |
 | Two-letter words last | 39 | 65.8% | 97.4% | 554 | 72.4% | 95.8% |
 
@@ -729,19 +729,19 @@ Definitions of the experiments: [docs/experiments.md](../experiments.md). Each r
 
 | Language | 2-letter cases | 2-letter: Minimum 3 (as it is) | 2-letter: Minimum 2 | 2-letter: Two-letter words last | Longer: Minimum 3 (as it is) | Longer: Minimum 2 | Longer: Two-letter words last |
 |---|---|---|---|---|---|---|---|
-| sql | 12 | 94.7% | 100.0% | 94.7% | 98.6% | 98.4% | 98.6% |
+| sql | 12 | 78.9% | 100.0% | 94.7% | 98.6% | 98.4% | 98.6% |
 | css | 0 | 0.0% | 0.0% | 0.0% | 76.8% | 76.8% | 76.8% |
 | html | 10 | 100.0% | 100.0% | 100.0% | 97.4% | 97.4% | 97.4% |
 | graphql | 6 | 100.0% | 100.0% | 100.0% | 97.1% | 97.1% | 97.1% |
 | json | 0 | 0.0% | 0.0% | 0.0% | 100.0% | 100.0% | 100.0% |
-| yaml | 2 | 85.7% | 85.7% | 85.7% | 100.0% | 100.0% | 100.0% |
-| glsl | 2 | 100.0% | 100.0% | 100.0% | 95.0% | 95.0% | 95.0% |
-| wgsl | 4 | 100.0% | 100.0% | 100.0% | 99.6% | 99.6% | 99.6% |
+| yaml | 2 | 0.0% | 85.7% | 85.7% | 100.0% | 100.0% | 100.0% |
+| glsl | 2 | 71.4% | 100.0% | 100.0% | 95.0% | 95.0% | 95.0% |
+| wgsl | 4 | 35.7% | 100.0% | 100.0% | 99.6% | 99.6% | 99.6% |
 
 **Analysis.**
 
-- Minimum 2: the words of 2 letters +4.4 points, the longer ones -0.1 (worst language -0.4); hand-written: +1.7 and -0.1 (does not meet)
-- Two-letter words last: the words of 2 letters 0.0 points, the longer ones 0.0 (worst language 0.0); hand-written: 0.0 and 0.0 (does not meet)
+- Minimum 2: the words of 2 letters +12.3 points, the longer ones -0.1 (worst language -0.4); hand-written: +21.4 and -0.1 (does not meet)
+- Two-letter words last: the words of 2 letters +7.9 points, the longer ones 0.0 (worst language 0.0); hand-written: +19.7 and 0.0 (does not meet)
 - The corpus is generated; 2-letter words in it are the ones the generators write (`id`, `db`, `as`, `on`, `uv`...).
 
 **Criterion not met.** Offer them only where the place says a short word is likely (after a dot, after a word that was followed by one before).
@@ -820,7 +820,7 @@ Definitions of the experiments: [docs/experiments.md](../experiments.md). Each r
 
 | Variant | 2-letter words: cases | 2-letter: first | 2-letter: first 5 | Longer: cases | Longer: first | Longer: first 5 |
 |---|---|---|---|---|---|---|
-| Minimum 3 (as it is) | 144 | 77.8% | 93.1% | 2585 | 78.5% | 95.2% |
+| Minimum 3 (as it is) | 144 | 77.8% | 85.2% | 2585 | 78.5% | 95.2% |
 | Minimum 2 | 144 | 83.6% | 97.5% | 2585 | 78.4% | 95.1% |
 | Two-letter words last | 144 | 77.8% | 93.1% | 2585 | 78.5% | 95.2% |
 
@@ -828,20 +828,20 @@ Definitions of the experiments: [docs/experiments.md](../experiments.md). Each r
 
 | Language | 2-letter cases | 2-letter: Minimum 3 (as it is) | 2-letter: Minimum 2 | 2-letter: Two-letter words last | Longer: Minimum 3 (as it is) | Longer: Minimum 2 | Longer: Two-letter words last |
 |---|---|---|---|---|---|---|---|
-| sql | 38 | 80.2% | 93.1% | 80.2% | 99.1% | 98.9% | 99.1% |
+| sql | 38 | 69.0% | 93.1% | 80.2% | 99.1% | 98.9% | 99.1% |
 | css | 1 | 100.0% | 100.0% | 100.0% | 78.6% | 78.5% | 78.6% |
 | html | 26 | 100.0% | 100.0% | 100.0% | 99.0% | 99.0% | 99.0% |
 | graphql | 32 | 95.8% | 96.9% | 95.8% | 94.1% | 94.1% | 94.1% |
-| json | 6 | 100.0% | 100.0% | 100.0% | 96.5% | 96.5% | 96.5% |
-| yaml | 14 | 93.2% | 100.0% | 93.2% | 97.6% | 97.2% | 97.6% |
-| glsl | 10 | 100.0% | 100.0% | 100.0% | 98.9% | 98.9% | 98.9% |
-| wgsl | 14 | 100.0% | 100.0% | 100.0% | 99.8% | 99.8% | 99.8% |
+| json | 6 | 52.6% | 100.0% | 100.0% | 96.5% | 96.5% | 96.5% |
+| yaml | 14 | 84.1% | 100.0% | 93.2% | 97.6% | 97.2% | 97.6% |
+| glsl | 10 | 80.0% | 100.0% | 100.0% | 98.9% | 98.9% | 98.9% |
+| wgsl | 14 | 95.5% | 100.0% | 100.0% | 99.8% | 99.8% | 99.8% |
 
 **The hand-written files of the review (another source)**
 
 | Variant | 2-letter words: cases | 2-letter: first | 2-letter: first 5 | Longer: cases | Longer: first | Longer: first 5 |
 |---|---|---|---|---|---|---|
-| Minimum 3 (as it is) | 39 | 65.8% | 97.4% | 554 | 72.4% | 95.8% |
+| Minimum 3 (as it is) | 39 | 62.4% | 77.8% | 554 | 72.4% | 95.8% |
 | Minimum 2 | 39 | 68.4% | 99.1% | 554 | 72.1% | 95.7% |
 | Two-letter words last | 39 | 65.8% | 97.4% | 554 | 72.4% | 95.8% |
 
@@ -849,19 +849,19 @@ Definitions of the experiments: [docs/experiments.md](../experiments.md). Each r
 
 | Language | 2-letter cases | 2-letter: Minimum 3 (as it is) | 2-letter: Minimum 2 | 2-letter: Two-letter words last | Longer: Minimum 3 (as it is) | Longer: Minimum 2 | Longer: Two-letter words last |
 |---|---|---|---|---|---|---|---|
-| sql | 12 | 94.7% | 100.0% | 94.7% | 98.6% | 98.4% | 98.6% |
+| sql | 12 | 78.9% | 100.0% | 94.7% | 98.6% | 98.4% | 98.6% |
 | css | 0 | 0.0% | 0.0% | 0.0% | 76.8% | 76.8% | 76.8% |
 | html | 10 | 100.0% | 100.0% | 100.0% | 97.4% | 97.4% | 97.4% |
 | graphql | 6 | 100.0% | 100.0% | 100.0% | 97.1% | 97.1% | 97.1% |
 | json | 0 | 0.0% | 0.0% | 0.0% | 100.0% | 100.0% | 100.0% |
-| yaml | 2 | 85.7% | 85.7% | 85.7% | 100.0% | 100.0% | 100.0% |
-| glsl | 2 | 100.0% | 100.0% | 100.0% | 95.0% | 95.0% | 95.0% |
-| wgsl | 4 | 100.0% | 100.0% | 100.0% | 99.6% | 99.6% | 99.6% |
+| yaml | 2 | 0.0% | 85.7% | 85.7% | 100.0% | 100.0% | 100.0% |
+| glsl | 2 | 71.4% | 100.0% | 100.0% | 95.0% | 95.0% | 95.0% |
+| wgsl | 4 | 35.7% | 100.0% | 100.0% | 99.6% | 99.6% | 99.6% |
 
 **Analysis.**
 
-- Minimum 2: the words of 2 letters +4.4 points, the longer ones -0.1 (worst language -0.4); hand-written: +1.7 and -0.1 (meets)
-- Two-letter words last: the words of 2 letters 0.0 points, the longer ones 0.0 (worst language 0.0); hand-written: 0.0 and 0.0 (does not meet)
+- Minimum 2: the words of 2 letters +12.3 points, the longer ones -0.1 (worst language -0.4); hand-written: +21.4 and -0.1 (meets)
+- Two-letter words last: the words of 2 letters +7.9 points, the longer ones 0.0 (worst language 0.0); hand-written: +19.7 and 0.0 (meets)
 - The corpus is generated; 2-letter words in it are the ones the generators write (`id`, `db`, `as`, `on`, `uv`...).
 
 **Criterion met.** Offer the two-letter words in the way of that variant.
