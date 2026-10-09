@@ -35,7 +35,7 @@ dotnet run -c Release --project NestLight.Experiments -- --generate out         
 dotnet run -c Release --project NestLight.Experiments -- --generate out --host python --language sql --repeat 1000   # one big file
 ```
 
-To add a language, add its sample to `LanguageSamples`; to add a host, add a rule to `Reason` and a writer to the generator. A new automatic check over the matrix goes through `CombinationGenerator.Applicable()` and `CombinationCheck.Check` (EA32); a new section of the manual review goes in `EM01_CombinationReview.Review`.
+To add a language, add its sample to `LanguageSamples`; to add a host, add a rule to `Reason` and a writer to the generator. A new automatic check over the matrix goes through `CombinationGenerator.Applicable()` and `CombinationCheck.Check` (EA31); a new section of the manual review goes in `EM01_CombinationReview.Review`.
 
 ## How it works
 
@@ -85,25 +85,24 @@ An experiment is one source file with a document of the same name beside it: `Ex
 | [EA09](../NestLight.Experiments/Experiments/Automatic/EA09_Malformed.md) | Does bad input make the cost explode? | Automatic |
 | [EA10](../NestLight.Experiments/Experiments/Automatic/EA10_CompletionLatency.md) | Is completion fast on large files? | Automatic |
 | [EA11](../NestLight.Experiments/Experiments/Automatic/EA11_CompletionLimits.md) | Do the limits of the completion change its cost? | Automatic |
-| [EA12](../NestLight.Experiments/Experiments/Automatic/EA12_CompletionRobustness.md) | Can completion be triggered anywhere in a file being edited? | Automatic |
-| [EA13](../NestLight.Experiments/Experiments/Automatic/EA13_VocabularyConsistency.md) | Does the tokenizer agree with the vocabulary? | Automatic |
-| [EA14](../NestLight.Experiments/Experiments/Automatic/EA14_RankingQuality.md) | Is nearest-first the best order for the words of the document? | Automatic |
-| [EA15](../NestLight.Experiments/Experiments/Automatic/EA15_ScopeAndSavings.md) | Which words should completion offer? | Automatic |
-| [EA16](../NestLight.Experiments/Experiments/Automatic/EA16_CompletionFastPath.md) | Does sharing the scan and not creating the words bring completion under a frame? | Automatic |
-| [EA17](../NestLight.Experiments/Experiments/Automatic/EA17_SimilarLatency.md) | Does the second stage of the completion fit in a frame? | Automatic |
-| [EA18](../NestLight.Experiments/Experiments/Automatic/EA18_SimilarRecovery.md) | Does the second stage recover the word after one mistake? | Automatic |
-| [EA19](../NestLight.Experiments/Experiments/Automatic/EA19_SimilarNoise.md) | Does it get in the way when the prefix is right? | Automatic |
-| [EA20](../NestLight.Experiments/Experiments/Automatic/EA20_SimilarRobustness.md) | Is completion still robust with the second stage? | Automatic |
-| [EA21](../NestLight.Experiments/Experiments/Automatic/EA21_PreviousWord.md) | Does the word before the caret help to rank the suggestions? | Automatic |
-| [EA22](../NestLight.Experiments/Experiments/Automatic/EA22_SameLanguageWords.md) | Do the words of the same language come first? | Automatic |
-| [EA23](../NestLight.Experiments/Experiments/Automatic/EA23_GrammarPosition.md) | Does the place in the grammar help to rank the suggestions? | Automatic |
-| [EA24](../NestLight.Experiments/Experiments/Automatic/EA24_SqlSchema.md) | Does the schema read from the SQL of the document help? | Automatic |
-| [EA25](../NestLight.Experiments/Experiments/Automatic/EA25_CountAndDistance.md) | Do the words used most often come before the nearest ones? | Automatic |
-| [EA26](../NestLight.Experiments/Experiments/Automatic/EA26_ContextRobustness.md) | Is completion robust with the context rankings on? | Automatic |
-| [EA27](../NestLight.Experiments/Experiments/Automatic/EA27_KeywordOrder.md) | Do the words of the file and the most used keywords come first where no rule decides? | Automatic |
-| [EA28](../NestLight.Experiments/Experiments/Automatic/EA28_HeadKeywords.md) | Do a few keywords still come before the words of the file? | Automatic |
-| [EA29](../NestLight.Experiments/Experiments/Automatic/EA29_ShortWords.md) | Should words of two letters be offered? | Automatic |
-| [EA30](../NestLight.Experiments/Experiments/Automatic/EA30_SimilarNoiseShortPrefix.md) | Does the similar-words stage make noise with short prefixes? | Automatic |
-| [EA31](../NestLight.Experiments/Experiments/Automatic/EA31_ShortWordsRestated.md) | EA29 with a criterion that can be met | Automatic |
-| [EA32](../NestLight.Experiments/Experiments/Automatic/EA32_CombinationMatrix.md) | Does every host work with every embedded language? | Automatic |
+| [EA12](../NestLight.Experiments/Experiments/Automatic/EA12_VocabularyConsistency.md) | Does the tokenizer agree with the vocabulary? | Automatic |
+| [EA13](../NestLight.Experiments/Experiments/Automatic/EA13_RankingQuality.md) | Is nearest-first the best order for the words of the document? | Automatic |
+| [EA14](../NestLight.Experiments/Experiments/Automatic/EA14_ScopeAndSavings.md) | Which words should completion offer? | Automatic |
+| [EA15](../NestLight.Experiments/Experiments/Automatic/EA15_CompletionFastPath.md) | Does sharing the scan and not creating the words bring completion under a frame? | Automatic |
+| [EA16](../NestLight.Experiments/Experiments/Automatic/EA16_SimilarLatency.md) | Does the second stage of the completion fit in a frame? | Automatic |
+| [EA17](../NestLight.Experiments/Experiments/Automatic/EA17_SimilarRecovery.md) | Does the second stage recover the word after one mistake? | Automatic |
+| [EA18](../NestLight.Experiments/Experiments/Automatic/EA18_SimilarNoise.md) | Does it get in the way when the prefix is right? | Automatic |
+| [EA19](../NestLight.Experiments/Experiments/Automatic/EA19_SimilarRobustness.md) | Is completion still robust with the second stage? | Automatic |
+| [EA20](../NestLight.Experiments/Experiments/Automatic/EA20_PreviousWord.md) | Does the word before the caret help to rank the suggestions? | Automatic |
+| [EA21](../NestLight.Experiments/Experiments/Automatic/EA21_SameLanguageWords.md) | Do the words of the same language come first? | Automatic |
+| [EA22](../NestLight.Experiments/Experiments/Automatic/EA22_GrammarPosition.md) | Does the place in the grammar help to rank the suggestions? | Automatic |
+| [EA23](../NestLight.Experiments/Experiments/Automatic/EA23_SqlSchema.md) | Does the schema read from the SQL of the document help? | Automatic |
+| [EA24](../NestLight.Experiments/Experiments/Automatic/EA24_CountAndDistance.md) | Do the words used most often come before the nearest ones? | Automatic |
+| [EA25](../NestLight.Experiments/Experiments/Automatic/EA25_ContextRobustness.md) | Is completion robust with the context rankings on? | Automatic |
+| [EA26](../NestLight.Experiments/Experiments/Automatic/EA26_KeywordOrder.md) | Do the words of the file and the most used keywords come first where no rule decides? | Automatic |
+| [EA27](../NestLight.Experiments/Experiments/Automatic/EA27_HeadKeywords.md) | Do a few keywords still come before the words of the file? | Automatic |
+| [EA28](../NestLight.Experiments/Experiments/Automatic/EA28_ShortWords.md) | Should words of two letters be offered? | Automatic |
+| [EA29](../NestLight.Experiments/Experiments/Automatic/EA29_SimilarNoiseShortPrefix.md) | Does the similar-words stage make noise with short prefixes? | Automatic |
+| [EA30](../NestLight.Experiments/Experiments/Automatic/EA30_ShortWordsRestated.md) | EA28 with a criterion that can be met | Automatic |
+| [EA31](../NestLight.Experiments/Experiments/Automatic/EA31_CombinationMatrix.md) | Does every host work with every embedded language? | Automatic |
 | [EM01](../NestLight.Experiments/Experiments/Manual/EM01_CombinationReview.md) | What does the plugin do, case by case, with every host and language? | Manual |

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <PackageManifest Version="2.0.0" xmlns="http://schemas.microsoft.com/developer/vsx-schema/2011" xmlns:d="http://schemas.microsoft.com/developer/vsx-schema-design/2011">
   <Metadata>
-    <Identity Id="NestLight.2c9a41b8-5d3e-4f7a-8b16-e0a7c3d94f52" Version="0.3.0" Language="en-US" Publisher="Raphael Augusto" />
+    <Identity Id="NestLight.2c9a41b8-5d3e-4f7a-8b16-e0a7c3d94f52" Version="0.4.0" Language="en-US" Publisher="Raphael Augusto" />
     <DisplayName>NestLight</DisplayName>
     <Description xml:space="preserve">Syntax highlighting for languages embedded in strings: HTML, CSS, SQL, JSON, GraphQL, XML, Markdown, YAML, regular expressions and shaders (GLSL, WGSL) inside JavaScript / TypeScript, C#, Python and C++ strings. Strings are marked by a tag (html`...`) or a marker comment (// language=sql). Interpolations are left to the host code. It also completes keywords of those languages and words already in the file, inside those strings.</Description>
     <License>LICENSE.txt</License>

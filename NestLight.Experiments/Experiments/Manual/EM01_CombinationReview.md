@@ -1,6 +1,6 @@
 # EM01: review of every host with every embedded language
 
-**Hypothesis.** EA32 says every combination is found and tokenized, not whether the colors and the suggestions are good. Reading what the plugin does with each combination, one by one, finds what a count cannot: a word that should have a color and has none, a suggestion that does not belong (a variable of the host offered inside SQL), a caret in host code that gets a site.
+**Hypothesis.** EA31 says every combination is found and tokenized, not whether the colors and the suggestions are good. Reading what the plugin does with each combination, one by one, finds what a count cannot: a word that should have a color and has none, a suggestion that does not belong (a variable of the host offered inside SQL), a caret in host code that gets a site.
 
 **Test (manual).** `--manual <dir>` generates the 168 combinations ([EM01_CombinationReview](EM01_CombinationReview.cs)), runs the plugin over them and writes, for each one, a Markdown file and an HTML page (the artifacts) in `<dir>/<host>/`:
 - the generated **source**;

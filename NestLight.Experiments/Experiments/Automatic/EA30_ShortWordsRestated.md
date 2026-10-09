@@ -1,0 +1,3 @@
+# EA30: should words of two letters be offered? (EA28 with a criterion that can be met)
+
+**Criterion.** The same test as EA28. A variant closes at least half of the distance to 100% for the words of 2 letters on the test files and on the hand-written files, and lowers the longer words by no more than 0.5 point overall and 1 point in any language (1 point on the hand-written files). Among the variants that meet it, the one that lowers the longer words least is adopted, then the one that gains most. It was written **after** EA28's numbers: the numbers are the same, the criterion is the one EA28 should have had.
