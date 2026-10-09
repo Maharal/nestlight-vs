@@ -64,6 +64,7 @@ All the criteria below were written before the run that decided them, except tho
 | [E26](#e26-do-the-similar-suggestions-show-up-in-visual-studio) | Do the similar suggestions show up in Visual Studio? | Manual | Planned (needs a build) | |
 | [E27](#e27-completion-with-similar-words-on-incomplete-and-cut-code) | Is completion still robust with the second stage? | Automated | Done | Met: 0 violations |
 | [E28](#e28-does-the-word-before-the-caret-help-to-rank-the-suggestions) | Does the word before the caret help to rank the suggestions? | Automated, generated code | Done | Adopted: criterion met |
+| [E29](#e29-do-the-words-of-the-same-language-come-first) | Do the words of the same language come first? | Automated, generated code | Done | Adopted: criterion met |
 
 ## Latest runs
 
@@ -586,9 +587,27 @@ The editor sorts the list by the sort text of each item, which is the text unles
 
 **Cost.** One more comparison per candidate that passes the prefix test, and a record of the previous word during the pass. On the hot path of E22 (the session with the scan shared, 60,000 lines) the median went from about 1.27 to about 1.40 ms with the feature off, measured against `main` on the same machine in the same session: +10%, above the 5% bound the second stage kept, and still far from a frame.
 
-**Limits.** The words after the same word are found in the whole window, strings and host code alike; E29 asks whether to restrict them. A word shorter than 3 letters is only offered when it follows the context (`BY`).
+**Limits.** The words after the same word are found in the whole window, strings and host code alike; E29 puts the words of the language first. A word shorter than 3 letters is only offered when it follows the context (`BY`).
 
 **Revisit when.** E26 shows how the order looks in the editor, or real files show that the previous word predicts worse than here.
+
+## E29: do the words of the same language come first?
+
+**Status:** Done · **Decision:** Adopted (`CompletionFeatures.SameLanguageWords`)
+
+**Hypothesis.** A word written in the code of another string of the same language (a column in another SQL string) is likelier than a word of the host code or of a string of another language that happens to start with the same letters, even when the other one is nearer to the caret. Putting the words of the language first, and taking the context of the previous word from them only, puts the meant word in the first 5 more often. It is E21's question (where should the words come from) asked as a ranking and not as a filter: nothing is dropped, the other words come after.
+
+**Test.** E28's probes, four variants: the order by distance alone; the words of the language first; the previous word; both. Interpolations are host code. Also the start of a session on files of 1,200 to 60,000 lines with the scan shared.
+
+**Criterion.** Adding the words of the language to the previous word is at least 2 points better within the first 5; no language more than 1 point worse; the session under 16 ms at 60,000 lines in every host.
+
+**Result.** Met. Within the first 5: 72.5% (distance alone), 77.3% (the language), 85.5% (previous word), **88.1%** (both): +2.6 points on top of the previous word. By language, with both against the previous word alone: HTML 70.7% to 77.4%, GraphQL 90.1% to 96.0%, SQL 88.1% to 89.8%, CSS 80.7% to 81.8%; none is worse. The slowest session is 5.11 ms at 60,000 lines (Python), against 4.13 ms without the scope.
+
+**What it says.** The scope helps most where the host shares names with the strings (HTML classes against variables, GraphQL fields), and least where the previous word already did the work (SQL). The gain is modest next to E28's; the generator names host variables after the same nouns as the tables, which makes the collision common.
+
+**Cost.** About 1 ms at 60,000 lines (the strings of the language are taken from the shared scan and merged into ranges, and the matches go into two lists). With the features off nothing of it runs.
+
+**Limits.** The second stage (similar words) does not use the scope. A string whose language the plugin does not know has no words of its own language to prefer, and its words are ranked as before.
 
 ## Notes on the context ranking
 

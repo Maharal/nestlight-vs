@@ -28,6 +28,7 @@ namespace NestLight.Experiments
                 new E25_SimilarNoise(),
                 new E27_SimilarRobustness(),
                 new E28_PreviousWord(),
+                new E29_SameLanguageWords(),
             };
         }
     }

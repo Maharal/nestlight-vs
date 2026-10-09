@@ -111,5 +111,76 @@ namespace NestLight.Tests
             Assert.Equal(3, Run(code, PreviousWord, maxItems: 3).Count);
             Assert.Equal(new[] { "orders", "users" }, Texts(Run(code, PreviousWord, maxItems: 3)).Take(2).ToArray());
         }
+
+        // ---- the words of the language of the string ----------------------------------------------------------------------
+
+        private static readonly CompletionFeatures Scope = new CompletionFeatures(sameLanguageWords: true);
+        private static readonly CompletionFeatures Both = new CompletionFeatures(previousWord: true, sameLanguageWords: true);
+
+        private static List<string> Words(string code, CompletionFeatures features)
+        {
+            return Run(code, features, 100000).Where(s => s.Kind == SuggestionKind.Word).Select(s => s.Text).ToList();
+        }
+
+        [Fact]
+        public void A_word_of_another_sql_string_comes_before_a_nearer_variable_of_the_host()
+        {
+            const string code = "sql`select a from customers`;\nconst customerId = 1;\nsql`select cu|`";
+            Assert.Equal(new[] { "customerId", "customers" }, Words(code, CompletionFeatures.None).ToArray());
+            Assert.Equal(new[] { "customers", "customerId" }, Words(code, Scope).ToArray());
+        }
+
+        [Fact]
+        public void An_interpolation_is_host_code_and_not_the_language_of_the_string()
+        {
+            const string code = "sql`select customers from ${customerExpr}; select cu|`";
+            Assert.Equal(new[] { "customerExpr", "customers" }, Words(code, CompletionFeatures.None).ToArray());
+            Assert.Equal(new[] { "customers", "customerExpr" }, Words(code, Scope).ToArray());
+        }
+
+        [Fact]
+        public void A_string_of_another_language_is_not_the_language_of_the_caret()
+        {
+            const string code = "sql`select customers`;\ncss`.customer { color: red }`;\nsql`select cu|`";
+            Assert.Equal(new[] { "customer", "customers" }, Words(code, CompletionFeatures.None).ToArray());
+            Assert.Equal(new[] { "customers", "customer" }, Words(code, Scope).ToArray());
+        }
+
+        [Fact]
+        public void Aliases_of_a_language_are_the_same_language()
+        {
+            Assert.True(Vocabularies.SameLanguage("html", "svg"));
+            Assert.True(Vocabularies.SameLanguage("YAML", "yml"));
+            Assert.True(Vocabularies.SameLanguage("xml", "XML"));
+            Assert.False(Vocabularies.SameLanguage("sql", "css"));
+            Assert.False(Vocabularies.SameLanguage(null, "sql"));
+
+            const string code = "svg`<g class='shape'>`;\nconst shapeId = 1;\nhtml`<div class='sh|'>`";
+            Assert.Equal(new[] { "shape", "shapeId" }, Words(code, Scope).ToArray());
+        }
+
+        [Fact]
+        public void The_scope_only_reorders_what_is_offered()
+        {
+            const string code = "sql`select a from customers`;\nconst customerId = 1;\ncss`.customer {}`;\nsql`select cu|`";
+            Assert.Equal(Words(code, CompletionFeatures.None).OrderBy(w => w), Words(code, Scope).OrderBy(w => w));
+        }
+
+        [Fact]
+        public void The_context_of_the_previous_word_is_taken_from_the_code_of_the_language_only()
+        {
+            const string code = "sql`select a from users`;\n// import x from vendors\nsql`select b from |`";
+            Assert.Equal("vendors", Texts(Run(code, PreviousWord))[0]);
+            Assert.Equal("users", Texts(Run(code, Both))[0]);
+        }
+
+        [Fact]
+        public void With_the_scope_many_strings_and_interpolations_are_handled()
+        {
+            string code = string.Concat(Enumerable.Range(0, 300).Select(i => "const v" + i + " = sql`select col" + i + " from ${t" + i + "} where x = 1`;\n")) + "sql`select co|`";
+            List<string> words = Words(code, Scope);
+            Assert.Equal(300, words.Count(w => w.StartsWith("col")));
+            Assert.DoesNotContain("t5", words);
+        }
     }
 }

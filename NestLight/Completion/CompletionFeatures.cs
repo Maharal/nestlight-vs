@@ -10,7 +10,7 @@ namespace NestLight.Completion
         public static readonly CompletionFeatures None = new CompletionFeatures();
 
         /// <summary>The features the plugin runs with: the ones whose experiment met its criterion.</summary>
-        public static readonly CompletionFeatures Default = new CompletionFeatures(previousWord: true);
+        public static readonly CompletionFeatures Default = new CompletionFeatures(previousWord: true, sameLanguageWords: true);
 
         /// <summary>
         /// The words that already followed the same word (and the same punctuation) elsewhere in the document come first:
@@ -18,9 +18,17 @@ namespace NestLight.Completion
         /// </summary>
         public readonly bool PreviousWord;
 
-        public CompletionFeatures(bool previousWord = false)
+        /// <summary>
+        /// The words found in the code of embedded strings of the same language as the caret's come before the other words of the
+        /// document (the host code, the strings of other languages): a column name written in some other SQL string is likelier than
+        /// a variable that happens to start with the same letters.
+        /// </summary>
+        public readonly bool SameLanguageWords;
+
+        public CompletionFeatures(bool previousWord = false, bool sameLanguageWords = false)
         {
             PreviousWord = previousWord;
+            SameLanguageWords = sameLanguageWords;
         }
     }
 }

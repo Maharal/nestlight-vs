@@ -41,6 +41,14 @@ namespace NestLight.Completion
             return languageId != null && ById.TryGetValue(languageId, out words) ? words : new string[0];
         }
 
+        /// <summary>Whether two ids name the same language (<c>html</c> and <c>svg</c> are one, <c>yaml</c> and <c>yml</c> too).</summary>
+        public static bool SameLanguage(string a, string b)
+        {
+            if (string.Equals(a, b, StringComparison.OrdinalIgnoreCase)) return true;
+            IReadOnlyList<string> x, y;
+            return a != null && b != null && ById.TryGetValue(a, out x) && ById.TryGetValue(b, out y) && ReferenceEquals(x, y);
+        }
+
         /// <summary>The keyword of the language that is spelled like the word, ignoring case, in the spelling of the vocabulary; null when there is none.</summary>
         public static string Find(string languageId, string word)
         {

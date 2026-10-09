@@ -158,16 +158,14 @@ namespace NestLight.Completion
 
             bool upper = Vocabularies.FollowsTypedCase(site.LanguageId) && prefix.Length > 0 && !HasLower(prefix);
 
-            // the words that followed the same word before come first; with the feature off nothing is scanned before the keywords
+            // the words that followed the same word before come first; with the features off nothing is scanned before the keywords
+            int[] scope = _features.SameLanguageWords ? CodeRanges(text, site) : null;
+            PreviousContext context = _features.PreviousWord ? ContextBefore(text, site) : default(PreviousContext);
             WordScan scan = null;
-            if (_features.PreviousWord)
+            if (context.Has)
             {
-                PreviousContext context = ContextBefore(text, site);
-                if (context.Has)
-                {
-                    scan = ScanWords(text, site, prefix, context);
-                    AddFollowing(text, site, scan, upper, seen, result);
-                }
+                scan = ScanWords(text, site, prefix, context, scope);
+                AddFollowing(text, site, scan, upper, seen, result);
             }
 
             foreach (string word in Vocabularies.For(site.LanguageId))
@@ -177,7 +175,7 @@ namespace NestLight.Completion
                 if (seen.Add(word)) result.Add(new Suggestion(upper ? word.ToUpperInvariant() : word, SuggestionKind.Keyword));
             }
 
-            foreach (string word in OrderedWords(text, site, scan ?? ScanWords(text, site, prefix, default(PreviousContext))))
+            foreach (string word in OrderedWords(text, site, scan ?? ScanWords(text, site, prefix, context, scope)))
             {
                 if (result.Count >= _maxItems) break;
                 if (seen.Add(word)) result.Add(new Suggestion(word, SuggestionKind.Word));
@@ -313,6 +311,9 @@ namespace NestLight.Completion
         {
             public readonly List<Match> Before = new List<Match>();
             public readonly List<Match> After = new List<Match>();
+            /// <summary>With <see cref="CompletionFeatures.SameLanguageWords"/>, the matches outside the code of the strings of the language; they come after the others.</summary>
+            public readonly List<Match> OtherBefore = new List<Match>();
+            public readonly List<Match> OtherAfter = new List<Match>();
             /// <summary>The matches that follow the same word and punctuation as the caret does (only with <see cref="CompletionFeatures.PreviousWord"/>).</summary>
             public readonly List<Match> Follows;
             public WordScan(bool context) { if (context) Follows = new List<Match>(); }
@@ -373,10 +374,39 @@ namespace NestLight.Completion
         }
 
         /// <summary>
+        /// The code of the strings of the caret's language as sorted, disjoint [start, end) pairs, flat: what is inside a string of the
+        /// language and outside its interpolations.
+        /// </summary>
+        private int[] CodeRanges(string text, CompletionSite site)
+        {
+            var pieces = new List<KeyValuePair<int, int>>();
+            foreach (EmbeddedString s in _scanner.Scan(text))
+            {
+                if (!Vocabularies.SameLanguage(s.LanguageId, site.LanguageId)) continue;
+                int end = Math.Min(s.End, text.Length), at = s.Start;
+                foreach (Interpolation x in s.Interpolations)
+                {
+                    if (x.Start > at) pieces.Add(new KeyValuePair<int, int>(at, Math.Min(x.Start, end)));
+                    at = Math.Max(at, x.End);
+                }
+                if (at < end) pieces.Add(new KeyValuePair<int, int>(at, end));
+            }
+            pieces.Sort((a, b) => a.Key.CompareTo(b.Key));
+
+            var merged = new List<int>(pieces.Count * 2);
+            foreach (var piece in pieces)
+            {
+                if (merged.Count > 0 && piece.Key <= merged[merged.Count - 1]) merged[merged.Count - 1] = Math.Max(merged[merged.Count - 1], piece.Value);
+                else { merged.Add(piece.Key); merged.Add(piece.Value); }
+            }
+            return merged.ToArray();
+        }
+
+        /// <summary>
         /// One pass over the window finds where the words that start with the prefix are, without creating a string.
         /// The word being typed is not a candidate for itself.
         /// </summary>
-        private WordScan ScanWords(string text, CompletionSite site, string prefix, PreviousContext context)
+        private WordScan ScanWords(string text, CompletionSite site, string prefix, PreviousContext context, int[] scope)
         {
             var scan = new WordScan(context.Has);
             int from = Math.Max(0, site.Caret - WordScanWindow);
@@ -386,6 +416,7 @@ namespace NestLight.Completion
             // a short word is only worth offering where the context says it belongs (the BY after GROUP)
             int shortest = context.Has ? Math.Min(_minWordLength, FollowMinWordLength) : _minWordLength;
             int previousStart = -1, previousLength = 0;
+            int range = 0; // the matches come in order, so a pointer into the ranges of scope is enough
             int i = from;
             while (i < to)
             {
@@ -402,9 +433,17 @@ namespace NestLight.Completion
                 if (length == prefix.Length) continue; // nothing to add
                 if (string.Compare(text, start, prefix, 0, prefix.Length, StringComparison.OrdinalIgnoreCase) != 0) continue;
                 var match = new Match(start, length);
-                bool follows = context.Has && beforeStart >= 0 && Follows(text, context, beforeStart, beforeLength, start);
+                bool inScope = true;
+                if (scope != null)
+                {
+                    while (range < scope.Length && scope[range + 1] <= start) range += 2;
+                    inScope = range < scope.Length && scope[range] <= start;
+                }
+                bool follows = inScope && context.Has && beforeStart >= 0 && Follows(text, context, beforeStart, beforeLength, start);
                 if (follows) scan.Follows.Add(match);
-                if (length >= _minWordLength) (start > site.Caret ? scan.After : scan.Before).Add(match);
+                if (length < _minWordLength) continue;
+                if (start > site.Caret) (inScope ? scan.After : scan.OtherAfter).Add(match);
+                else (inScope ? scan.Before : scan.OtherBefore).Add(match);
             }
             return scan;
         }
@@ -436,38 +475,41 @@ namespace NestLight.Completion
         /// </summary>
         private IEnumerable<string> OrderedWords(string text, CompletionSite site, WordScan scan)
         {
-            List<Match> before = scan.Before, after = scan.After;
-
             var emitted = new HashSet<string>(StringComparer.Ordinal);
             var byHash = new Dictionary<int, string>();
-            int b = before.Count - 1, a = 0;
-            while (b >= 0 || a < after.Count)
+            // the words of the code of the language, then the others (empty without the feature)
+            for (int tier = 0; tier < 2; tier++)
             {
-                Match m;
-                if (a >= after.Count) m = before[b--];
-                else if (b < 0) m = after[a++];
-                else
+                List<Match> before = tier == 0 ? scan.Before : scan.OtherBefore, after = tier == 0 ? scan.After : scan.OtherAfter;
+                int b = before.Count - 1, a = 0;
+                while (b >= 0 || a < after.Count)
                 {
-                    int behind = site.Caret - (before[b].Start + before[b].Length), ahead = after[a].Start - site.Caret;
-                    if (behind < ahead) m = before[b--];
-                    else if (ahead < behind) m = after[a++];
+                    Match m;
+                    if (a >= after.Count) m = before[b--];
+                    else if (b < 0) m = after[a++];
                     else
                     {
-                        // the same distance on both sides: alphabetical, so that the order does not depend on the side
-                        Match left = before[b], right = after[a];
-                        bool leftFirst = string.CompareOrdinal(text.Substring(left.Start, left.Length), text.Substring(right.Start, right.Length)) <= 0;
-                        m = leftFirst ? before[b--] : after[a++];
+                        int behind = site.Caret - (before[b].Start + before[b].Length), ahead = after[a].Start - site.Caret;
+                        if (behind < ahead) m = before[b--];
+                        else if (ahead < behind) m = after[a++];
+                        else
+                        {
+                            // the same distance on both sides: alphabetical, so that the order does not depend on the side
+                            Match left = before[b], right = after[a];
+                            bool leftFirst = string.CompareOrdinal(text.Substring(left.Start, left.Length), text.Substring(right.Start, right.Length)) <= 0;
+                            m = leftFirst ? before[b--] : after[a++];
+                        }
                     }
-                }
 
-                // a word that was already offered is recognized from its hash, without creating the string again
-                int hash = Hash(text, m.Start, m.Length);
-                string known;
-                if (byHash.TryGetValue(hash, out known) && known.Length == m.Length && string.CompareOrdinal(text, m.Start, known, 0, m.Length) == 0) continue;
-                string word = text.Substring(m.Start, m.Length);
-                if (!emitted.Add(word)) continue;
-                if (known == null) byHash[hash] = word;
-                yield return word;
+                    // a word that was already offered is recognized from its hash, without creating the string again
+                    int hash = Hash(text, m.Start, m.Length);
+                    string known;
+                    if (byHash.TryGetValue(hash, out known) && known.Length == m.Length && string.CompareOrdinal(text, m.Start, known, 0, m.Length) == 0) continue;
+                    string word = text.Substring(m.Start, m.Length);
+                    if (!emitted.Add(word)) continue;
+                    if (known == null) byHash[hash] = word;
+                    yield return word;
+                }
             }
         }
 
