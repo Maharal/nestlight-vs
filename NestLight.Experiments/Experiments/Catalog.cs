@@ -38,6 +38,8 @@ namespace NestLight.Experiments
                 new E36_ShortWords(),
                 new E37_SimilarNoiseShortPrefix(),
                 new E38_ShortWordsRestated(),
+                new E39_CombinationMatrix(),
+                new E40_ManualMatrix(),
             };
         }
     }

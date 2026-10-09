@@ -28,3 +28,6 @@ the test project, so the tests always run against the extension's real code. Kee
 - A language: `Lexer.Language("sql", code)` wraps the code in a JavaScript template and returns `type|text` for each token (backticks and a trailing backslash
   cannot be written there: use `Lexer.Seq(HostLanguage.Python, ...)` instead).
 - The whole pipeline: `Lexer.Lex(host, code)` / `Lexer.Texts(host, code, type)`.
+
+## Experiments
+The experiments are not unit tests: they measure and, for the manual ones, hand a kit to a person. They are split into automatic and manual, and a code generator writes a sample for every host x embedded language combination: see [docs/experiments.md](../docs/experiments.md#automatic-and-manual-experiments).
