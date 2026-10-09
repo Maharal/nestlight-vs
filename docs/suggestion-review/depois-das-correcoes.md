@@ -53,6 +53,32 @@ Entre os casos em que a palavra procurada existe no arquivo (529):
 - [HTML-45](html.md#html-45) `aria-label="M▮"`: antes `main` aparecia como tag; num valor de texto livre não deve aparecer tag.
 - [YAML-40](yaml.md#yaml-40) `on` no nome de uma chave: `on` (do GitHub Actions) deixou de ser oferecida como palavra-chave num nome de chave. É o preço de tirar `yes`/`no`/`off` desses lugares.
 
-## O que as correções não resolvem
+## Segunda rodada: a ordem quando nenhuma regra decide
 
-GraphQL, GLSL e WGSL não mudaram: o problema delas não é uma regra errada, é a **ordem quando o prefixo é vazio ou curto** (lista alfabética de palavras-chave antes dos nomes do arquivo) e o **mínimo de 3 letras**. Isso precisa de um experimento, que é o próximo passo.
+GraphQL, GLSL e WGSL não mudaram na primeira rodada: o problema delas não era uma regra errada, era a **ordem quando o prefixo é vazio ou curto** (lista alfabética de palavras-chave antes dos nomes do arquivo). Para medir isso gerei um corpus de **500 trechos para cada linguagem** (código no estilo de aplicações reais, escrito por geradores) e rodei os experimentos E34 e E35 (ver `docs/experiments.md`). Resultado adotado: onde nenhuma regra decide o lugar, as palavras do arquivo vêm antes das palavras-chave, e as palavras-chave vêm na ordem de quanto código as usa, com as 12 mais usadas ainda na frente.
+
+Nos mesmos 800 exemplos (529 em que a palavra existe no arquivo):
+
+| | Original | Depois das regras | Depois da ordem |
+|---|---|---|---|
+| Em 1º lugar | 281 | 303 | **339** |
+| Nos 5 primeiros | 382 | 395 | **444** |
+| Nos 20 primeiros | 445 | 453 | **474** |
+| Ctrl+Espaço, nos 20 primeiros (de 110) | 42 | 51 | **71** |
+
+| Linguagem | Em 1º: original → depois da ordem | Nos 5 primeiros: original → depois da ordem |
+|---|---|---|
+| GLSL | 36 → **56** | 55 → **78** |
+| WGSL | 37 → **48** | 52 → **70** |
+| GraphQL | 35 → **39** | 46 → **51** |
+| SQL | 56 → **66** | 76 → **83** |
+| HTML | 36 → 46 | 51 → **60** |
+| CSS, JSON, YAML | sem mudança relevante | sem mudança relevante |
+
+**Cuidado com este número:** a ordem das palavras-chave por uso foi aprendida de código **gerado por mim**, não de projetos reais. Os 800 exemplos foram escritos à mão (outra fonte), por isso servem de conferência, mas quem escreveu tudo sou eu. O próximo passo natural é o plugin aprender essa ordem com os arquivos do próprio usuário.
+
+## O que ainda não foi resolvido
+
+- Palavras de 1 e 2 letras (`id`, `db`, `uv`, `in`) continuam sem ser sugeridas.
+- A correção de erro de digitação ainda inventa ruído em prefixos de 3 letras que não são erro.
+- O vocabulário que falta continua faltando em parte (funções de GLSL, `gl_FragColor`, atributos de WGSL, papéis ARIA).

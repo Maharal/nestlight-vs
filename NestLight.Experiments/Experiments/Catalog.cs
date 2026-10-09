@@ -33,6 +33,8 @@ namespace NestLight.Experiments
                 new E31_SqlSchema(),
                 new E32_CountAndDistance(),
                 new E33_ContextRobustness(),
+                new E34_KeywordOrder(),
+                new E35_HeadKeywords(),
             };
         }
     }

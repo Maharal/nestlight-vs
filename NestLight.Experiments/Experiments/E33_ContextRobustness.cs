@@ -10,7 +10,7 @@ namespace NestLight.Experiments
         public override string Method { get { return "E27's test (every prefix cut at a stride, every single-character deletion at a stride, the caret at the end, at the start and at 5 random positions, and the same position with a mistake in the word), over 50 structured files, with every feature of CompletionFeatures on."; } }
         public override string IfMet { get { return "Completion can be triggered anywhere in a file being edited, with the context rankings on."; } }
 
-        protected override CompletionFeatures Features { get { return new CompletionFeatures(previousWord: true, sameLanguageWords: true, grammar: true, schema: true, order: WordOrder.Blend); } }
+        protected override CompletionFeatures Features { get { return new CompletionFeatures(previousWord: true, sameLanguageWords: true, grammar: true, schema: true, order: WordOrder.Blend, wordsBeforeKeywords: true, keywordPriors: KeywordUse.Default, headKeywords: 12); } }
         protected override bool Structured { get { return true; } }
     }
 }

@@ -48,6 +48,51 @@ namespace NestLight.Experiments
             File.WriteAllText(Path.Combine(outDir, "cases.json"), json.ToString(), new UTF8Encoding(false));
         }
 
+        /// <summary>Writes the generated corpus (all the documents of each language) and tells how many embedded strings the scanner finds in it.</summary>
+        public static void DumpCorpus(string outDir)
+        {
+            Directory.CreateDirectory(outDir);
+            ILanguageRegistry languages = NestLightComposition.CreateLanguages();
+            IHostScanner scanner = NestLightComposition.CreateScanner(HostLanguage.JavaScript, languages);
+            foreach (string language in RealisticCorpus.Languages)
+            {
+                var documents = RealisticCorpus.Documents(language, RealisticCorpus.SnippetsPerLanguage, 1);
+                int strings = 0, wrong = 0;
+                var text = new StringBuilder();
+                for (int i = 0; i < documents.Count; i++)
+                {
+                    foreach (EmbeddedString s in scanner.Scan(documents[i].Text))
+                    {
+                        strings++;
+                        if (!Vocabularies.SameLanguage(s.LanguageId, language) && !(language == "html" && s.LanguageId == "svg")) wrong++;
+                    }
+                    text.Append("// ---- ").Append(language).Append(" file ").Append(i + 1).Append(documents[i].Train ? " (train)" : " (test)").Append('\n').Append(documents[i].Text).Append('\n');
+                }
+                File.WriteAllText(Path.Combine(outDir, language + ".txt"), text.ToString(), new UTF8Encoding(false));
+                Console.WriteLine(language + ": " + documents.Count + " files, " + documents.Sum(x => x.Snippets) + " snippets, " + strings + " strings found, " + wrong + " of another language, " + text.Length / 1024 + " KB");
+            }
+        }
+
+        /// <summary>Writes the order of the keywords by use, learned from the generated corpus, as the C# file the plugin compiles.</summary>
+        public static void WritePriors(string path)
+        {
+            var sb = new StringBuilder();
+            sb.Append("using System.Collections.Generic;\n\nnamespace NestLight.Completion\n{\n");
+            sb.Append("    /// <summary>\n    /// The keywords of each language from the most used to the least used, learned from the corpus of generated code of the experiments\n");
+            sb.Append("    /// (NestLight.Experiments, <c>--priors</c>): a starting point, not what real projects use. Only the first ones matter: the rest are alphabetical.\n    /// </summary>\n");
+            sb.Append("    internal static class KeywordUse\n    {\n        public static readonly IReadOnlyDictionary<string, IReadOnlyList<string>> Default = new Dictionary<string, IReadOnlyList<string>>(System.StringComparer.OrdinalIgnoreCase)\n        {\n");
+            foreach (string language in RealisticCorpus.Languages)
+            {
+                var documents = RealisticCorpus.Documents(language, RealisticCorpus.SnippetsPerLanguage, 1);
+                var priors = CorpusProbes.Priors(documents, language).Take(80).ToList();
+                sb.Append("            { \"").Append(language).Append("\", new[] { ").Append(string.Join(", ", priors.Select(w => "\"" + w + "\""))).Append(" } },\n");
+                if (language == "html") sb.Append("            { \"svg\", new[] { ").Append(string.Join(", ", priors.Select(w => "\"" + w + "\""))).Append(" } },\n");
+            }
+            sb.Append("        };\n    }\n}\n");
+            File.WriteAllText(path, sb.ToString(), new UTF8Encoding(false));
+            Console.WriteLine("Wrote " + path);
+        }
+
         private static List<string> Cases(string language, string[] documents)
         {
             ILanguageRegistry languages = NestLightComposition.CreateLanguages();

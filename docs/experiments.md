@@ -69,6 +69,8 @@ All the criteria below were written before the run that decided them, except tho
 | [E31](#e31-does-the-schema-read-from-the-sql-of-the-document-help) | Does the schema read from the SQL of the document help? | Automated, generated code | Done | Not adopted: criterion not met |
 | [E32](#e32-do-the-words-used-most-often-come-before-the-nearest-ones) | Do the words used most often come before the nearest ones? | Automated, generated code | Done | Not adopted: criterion not met |
 | [E33](#e33-completion-with-the-context-rankings-on-incomplete-and-cut-code) | Is completion robust with the context rankings on? | Automated | Done | Met: 0 violations |
+| [E34](#e34-where-the-place-of-the-caret-says-nothing-do-the-words-of-the-file-and-the-most-used-keywords-come-first) | Do the words of the file and the most used keywords come first where no rule decides? | Automated, generated code | Done | Not met (+2.2); E35 refines it |
+| [E35](#e35-do-a-few-keywords-still-come-before-the-words-of-the-file) | Do a few keywords still come before the words of the file? | Automated, generated code | Done | Adopted: criterion met by a hair (+3.0) |
 
 ## Latest runs
 
@@ -567,7 +569,7 @@ The first runs were on commit `70e9ffd` (.NET 8 in Release, a 4-core Linux machi
 
 **Result.** Met in the three runs: 0 violations in 86,900 carets, 21,275 similar items checked against the definition.
 
-## Context ranking (E28 to E33)
+## Context ranking (E28 to E35)
 
 Until here the list depended only on what was typed: the keywords, then the words of the document nearest to the caret first. These experiments ask whether the list gets better when it also looks at where the caret is. Each idea is a flag of [CompletionFeatures](../NestLight/Completion/CompletionFeatures.cs) and an experiment decides whether it is on in the plugin (`CompletionFeatures.Default`).
 
@@ -683,9 +685,41 @@ The editor sorts the list by the sort text of each item, which is the text unles
 
 **Result.** Met: 0 violations, 29,786 similar items checked against the definition.
 
+## E34: where the place of the caret says nothing, do the words of the file and the most used keywords come first?
+
+**Status:** Done · **Decision:** Not met as written; E35 refines it
+
+**Hypothesis.** The review of 800 suggestions (`docs/suggestion-review`) found that, without a rule for the place, the list is the vocabulary in alphabetical order, cut at 100, with the words of the file after it: with nothing or one letter typed the word that is wanted is often out of the first five or out of the list (GLSL, WGSL, GraphQL, and the keyword soup in the others). The words of the file first, and the keywords in the order of how much code uses them, should put it among the first five more often.
+
+**Test.** A corpus of 500 snippets for each of the 8 languages ([the generators](../NestLight.Experiments/Corpus), 50 files of 10 snippets each; `--corpus <dir>` writes it). The even files are used to learn how often each keyword is used, the odd files to measure: 600 words per language, typed with no letter (a request with Ctrl+Space) and with one letter. A second test on the hand-written files of the review, which come from another source. Four variants of the engine the plugin runs: as it is; the words of the file before the keywords; the keywords by use; both.
+
+**Criterion.** Over the words typed with 0 or 1 letter, the best of the three variants at least 3 points better within the first 5 on the test files; no language more than 1 point worse; not worse on the hand-written files.
+
+**Result.** Not met. On the test files "both" gives 73.9% to 76.1% within the first 5 (+2.2 points); the words of the file first alone 75.6%, the keywords by use alone 76.0%. By language the gain is large in GLSL (71.8% to 82.0%) and WGSL (82.8% to 87.7%) and HTML (85.9% to 88.6%), nothing in CSS, and it **loses** in JSON (75.2% to 73.2%) and GraphQL (60.9% to 59.8%), so the worst language is -2.0. On the hand-written files it gains everywhere but JSON: 58.3% to 68.2% (+9.9), GLSL 23.2% to 55.8%, WGSL 35.1% to 58.6%, JSON 81.2% to 50.0%.
+
+**What it says.** The loss in JSON is the words of the file pushing `true`, `false` and `null` down, which are the few keywords that are always right in a value. That points at the fix, which is E35.
+
+## E35: do a few keywords still come before the words of the file?
+
+**Status:** Done · **Decision:** Adopted (`WordsBeforeKeywords`, `KeywordPriors` and `HeadKeywords = 12`), by a hair
+
+**Hypothesis.** Put only the few most used keywords of the language before the words of the file and the others after them; that keeps E34's gain and removes its loss.
+
+**Test.** E34's files, words and priors. The engine as it is; the words of the file first with the keywords by use (0 keywords in front); and the same with the 3, 6 and 12 most used keywords in front. E35 was written after seeing E34: the variants react to its tables, and the test files are the same, so a gain is partly fitted to them. The hand-written files are the check.
+
+**Criterion.** The best variant with keywords in front at least 3 points better within the first 5 on the test files; no language more than 1 point worse; not worse on the hand-written files.
+
+**Result.** Met, at the limit. The best is 12 keywords in front: 73.9% to 76.9% within the first 5 (**+3.0** points, the criterion is 3); no language is worse (GraphQL 60.9% to 61.8%, JSON 75.2% to 75.2%, GLSL 71.8% to 82.6%, WGSL 82.8% to 89.9%, HTML 85.9% to 88.6%). On the hand-written files: 58.3% to 69.4% (+11.1), JSON back to 81.2%, GLSL 23.2% to 60.9%, WGSL 35.1% to 60.1%, GraphQL 55.0% to 62.1%.
+
+**On the 800 suggestions of the review**, with the plugin's engine: the word is first in 339 cases (281 before the corrections of the grammar, 303 after them), among the first five in 444 (382, 395); with Ctrl+Space among the first twenty in 71 of 110 (42, 51). GLSL goes from 36 to 56 first places and WGSL from 37 to 48.
+
+**What it says, and what it does not.** The order of the keywords by use is a **prior learned from generated code**: it says which keywords this corpus uses, not which ones real projects use. The generators and the person reading the result are the same, and training and test files come from the same generators; the hand-written files are the only independent check. The prior is in [KeywordUse](../NestLight/Completion/KeywordUse.cs), written by `dotnet run --project NestLight.Experiments -- --priors <file>`, and is meant to be replaced by what the files of the user say.
+
+**Revisit when.** There are real files to learn the order from, or the plugin learns it from the files the user opens.
+
 ## Notes on the context ranking
 
-- **What the plugin runs with** (`CompletionFeatures.Default`): the previous word (E28), the words of the language (E29) and the grammar (E30). Within the first 5, on the generated files: 72.5% with the order by distance alone, 85.5% with the previous word, 88.1% with the language, 97.2% with the grammar. The schema (E31) and the order by count (E32) stay in the code, off.
+- **What the plugin runs with** (`CompletionFeatures.Default`): the previous word (E28), the words of the language (E29), the grammar (E30) and, where no rule decides, the words of the file first with the 12 most used keywords in front of them (E35). Within the first 5, on the generated files: 72.5% with the order by distance alone, 85.5% with the previous word, 88.1% with the language, 97.2% with the grammar. The schema (E31) and the order by count (E32) stay in the code, off.
 - **What the numbers are not.** Every context experiment ran on code made by a generator that was written with the same structure the features look for (a schema for the SQL, a value table for the CSS, an attribute table for the HTML). The gains say that the ideas work on code that has that structure. How much real code does is the open question, and the first thing to measure with files from real projects. The hit rate of 97% is a ceiling that real code will not reach.
 - **After the review of 800 suggestions** (`docs/suggestion-review`) the places of the grammar were corrected and extended (E30 rerun: 88.1% to 97.8%). The review is by hand-written files and is a different measure from E28 to E33, which use generated code.
 - **The order reaches the screen** only through the sort text of each item (`NestLightCompletionSource`), which has not been compiled or run in this work.

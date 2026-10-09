@@ -178,12 +178,22 @@ namespace NestLight.Completion
 
             // what the grammar expects at the caret, then (where the place says so) the words of the document, then the other keywords
             if (position != null) AddExpected(position.Expected, site, prefix, upper, seen, result);
-            bool wordsFirst = position != null && position.WordsFirst;
+            bool wordsFirst = position != null ? position.WordsFirst : _features.WordsBeforeKeywords;
+            if (wordsFirst && position == null && _features.HeadKeywords > 0)
+            {
+                // the most used keywords still go first where the words of the file do
+                foreach (string word in _features.OrderKeywords(site.LanguageId, Vocabularies.For(site.LanguageId)).Take(_features.HeadKeywords))
+                {
+                    if (result.Count >= _maxItems) return result;
+                    if (!StartsWithIgnoreCase(word, prefix) || word.Length == prefix.Length) continue;
+                    if (seen.Add(word)) result.Add(new Suggestion(upper ? word.ToUpperInvariant() : word, SuggestionKind.Keyword));
+                }
+            }
             if (wordsFirst) AddWords(text, site, prefix, context, scope, ref scan, seen, result);
             if (position != null && position.Secondary.Count > 0) AddExpected(position.Secondary, site, prefix, upper, seen, result);
 
             List<string> unlikely = null;
-            foreach (string word in position != null && position.OnlyWords ? new string[0] : Vocabularies.For(site.LanguageId))
+            foreach (string word in position != null && position.OnlyWords ? new string[0] : _features.OrderKeywords(site.LanguageId, Vocabularies.For(site.LanguageId)))
             {
                 if (result.Count >= _maxItems) return result;
                 if (!StartsWithIgnoreCase(word, prefix) || word.Length == prefix.Length) continue;

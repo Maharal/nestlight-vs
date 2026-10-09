@@ -15,11 +15,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - Completion inside embedded strings: keywords of the language of the string (SQL, CSS, HTML / SVG, GraphQL, JSON, YAML, GLSL, WGSL) and words that already exist in the document, nearest to the caret first.
 
 ### Changed
+- Where the place of the caret has no rule (GLSL, WGSL, GraphQL, and the places the rules do not know) the words of the file come before the keywords, and the keywords are offered in the order of how much code uses them, with the 12 most used still in front (experiment E35; hand-written examples: 58.3% to 69.4% within the first 5). The order is learned from a generated corpus (`KeywordUse`).
 - Corrections found by a review of 800 suggestions (`docs/suggestion-review`): after `GROUP BY` the next clauses; the clause of a parenthesis is its own; nothing but words of the file inside literals, comments, class names, JSON keys and strings, YAML keys, attribute values and text; columns, types and constraints in `CREATE TABLE`; pseudo-classes, at-rules, `transition`/`animation` values and functions in CSS; the open element after `</`; attributes the tag already has are not offered again; the word already after the caret no longer counts as following the context. On the same 800 examples the word is first in 303 cases instead of 281.
 - The classifier and the completion share one scan per snapshot, and the completion creates a word only when it offers it: the start of a session on a 60,000-line file falls from 12-32 ms to under 3 ms (E22).
 
 ### Experiments
-- E28 to E33 for the context rankings (previous word, language, grammar, SQL schema, count and distance, robustness) and a generated corpus with structure.
+- A generated corpus of 500 snippets for each of the 8 languages (`--corpus`), E34 and E35 for the order of the keywords, and E28 to E33 for the context rankings (previous word, language, grammar, SQL schema, count and distance, robustness) and a generated corpus with structure.
 - E16 to E22 for the completion (latency, limits, robustness, vocabulary against tokenizers, order and scope of the words) and a seeded generator of code for them.
 
 ## [0.1.0] - 2026-10-06
