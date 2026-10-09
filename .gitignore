@@ -55,3 +55,8 @@ CodeCoverage/
 *.VisualState.xml
 TestResult.xml
 nunit-*.xml
+
+# Reports written by NestLight.Experiments
+/reports/
+# Artifacts of the manual experiments (what the plugin did on generated code)
+/artifacts/

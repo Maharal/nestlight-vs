@@ -1,0 +1,7 @@
+# EA27: where the place of the caret says nothing, do the words of the file and the most used keywords come first?
+
+**Hypothesis.** A review of 800 hand-checked suggestions found that, without a rule for the place, the list is the vocabulary in alphabetical order, cut at 100, with the words of the file after it: with nothing or one letter typed the word that is wanted is often out of the first five or out of the list (GLSL, WGSL, GraphQL, and the keyword soup in the others). The words of the file first, and the keywords in the order of how much code uses them, should put it among the first five more often.
+
+**Test.** A corpus of 500 snippets for each of the 8 languages ([the generators](../../../NestLight.Experiments/Corpus), 50 files of 10 snippets each; `--corpus <dir>` writes it). The even files are used to learn how often each keyword is used, the odd files to measure: 600 words per language, typed with no letter (a request with Ctrl+Space) and with one letter. A second test on the hand-written files of the review, which come from another source. Four variants of the engine the plugin runs: as it is; the words of the file before the keywords; the keywords by use; both.
+
+**Criterion.** Over the words typed with 0 or 1 letter, the best of the three variants at least 3 points better within the first 5 on the test files; no language more than 1 point worse; not worse on the hand-written files.

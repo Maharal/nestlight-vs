@@ -87,7 +87,7 @@ To build from source, open `NestLight/NestLight.csproj` with the **Visual Studio
 
 To run the tests, use **Test > Run All Tests** in Visual Studio or `dotnet test NestLight.Tests` from a terminal.
 
-Releases are built by CI (VSIX plus a test report) and follow [Semantic Versioning](https://semver.org); see [RELEASING.md](RELEASING.md) and the [changelog](CHANGELOG.md).
+Releases are built by CI (VSIX plus a test report) and follow [Semantic Versioning](https://semver.org); see [RELEASING.md](RELEASING.md).
 
 Colors are under **Tools > Options > Environment > Fonts and Colors > Text Editor**, in the items named **Template &lt;Language&gt; ...**.
 
@@ -118,15 +118,20 @@ Adding a host means writing a scanner and a provider. Adding a language means wr
 
 ## Experiments
 
-Beyond the unit tests, which check what the plugin colors, a suite of **experiments** checks how well it performs. Each experiment is a hypothesis (for example, "the text copy on every edit is worth removing") with an automated test and a criterion written in advance. They live in their own project, `NestLight.Experiments`, and are not part of `dotnet test`.
+Beyond the unit tests, which check what the plugin colors, a suite of **experiments** checks how well it performs. Each experiment is a hypothesis (for example, "the text copy on every edit is worth removing") with a test and a criterion written in advance. They live in their own project, `NestLight.Experiments`, and are not part of `dotnet test`. There are two kinds:
+
+- **Automatic** (`EAnn`): the code measures and decides whether the criterion held.
+- **Manual** (`EMnn`): a qualitative test without Visual Studio. The code runs the plugin over generated code and writes artifacts (the source, the final view of the colors as text and as an HTML page, the completion, case by case), and a person or an AI agent reads them and judges the quality. It has no criterion; its result is a list of findings. What is tried by hand inside Visual Studio is not documented as an experiment.
 
 ```
-dotnet run -c Release --project NestLight.Experiments
+dotnet run -c Release --project NestLight.Experiments                      # the automatic experiments
+dotnet run -c Release --project NestLight.Experiments -- --manual          # the manual review: artifacts to read, in artifacts/EM01/<time>/
+dotnet run -c Release --project NestLight.Experiments -- --generate        # only the generated code for every combination, in artifacts/generated/<time>/
 ```
 
-The run executes every experiment and writes a Markdown report with the tables, the analysis and whether each criterion held to `docs/reports/experiments-<date>-<commit>.md`. The reports are versioned: each one is valid only for its commit and machine, so a new run adds a file instead of replacing the old one. Options: `--only E03,E05`, `--list`, `--quick` (a smoke run, numbers not worth keeping) and `--out <dir>`.
+The automatic run executes every automatic experiment and writes a Markdown report with the tables, the analysis and whether each criterion held to `reports/<time>-<commit>.md`. Options: `--only EA03,EA05`, `--list`, `--quick` (a smoke run, numbers not worth keeping) and `--out <dir>`.
 
-The experiments and their results are described in [docs/experiments.md](docs/experiments.md). The *Experiments* workflow runs the suite on Windows, on the same runtime as Visual Studio (`net48`), and uploads the report.
+Reports (`reports/`) and artifacts (`artifacts/`) are named by the time of the run and are not versioned: only timeless documentation goes to GitHub. The experiments are defined in [docs/experiments.md](docs/experiments.md), and each one has a document beside its source (`NestLight.Experiments/Experiments/`). The *Experiments* workflow runs the suite on Windows, on the same runtime as Visual Studio (`net48`), and uploads the report.
 
 ## Limitations
 
