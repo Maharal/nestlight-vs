@@ -6,16 +6,17 @@ The main question behind the performance experiments: does NestLight slow Visual
 
 ## Automatic and manual experiments
 
-The ids say which kind it is, and each kind is numbered from 1: **EAnn** are automatic (class `EAnn_Name`, in `Experiments/Automatic/`), **EMnn** are manual (in `Experiments/Manual/`). 
+An experiment is a hypothesis, a test that can answer it and a criterion. There are two kinds, numbered separately from 1: **EAnn** (automatic, class `EAnn_Name` in `Experiments/Automatic/`) and **EMnn** (manual, in `Experiments/Manual/`).
 
-The experiments are split by folder in [NestLight.Experiments/Experiments](../NestLight.Experiments/Experiments):
-
-| Folder | What it is | How to run |
+| | Automatic | Manual |
 |---|---|---|
-| `Automatic/` | they measure, apply their own criterion and write the report | `dotnet run -c Release --project NestLight.Experiments` |
-| `Manual/` | a qualitative review with no criterion: one file per host x embedded language combination, to be read case by case | `dotnet run -c Release --project NestLight.Experiments -- --manual <dir>` |
+| Who judges | the code: it measures and applies the criterion | a person, or Claude, reading what the plugin did |
+| Criterion | written before the run; the result is *met* or *not met* | none: the result is a list of findings, each with its file and case |
+| Input | its own corpora and synthetic files, or the generator | always the code that the generator writes |
+| Output | a report with tables and analysis, in `reports/` | one file per case, to be read one by one |
+| Run | `dotnet run -c Release --project NestLight.Experiments` | `dotnet run -c Release --project NestLight.Experiments -- --manual <dir>` |
 
-"Manual" is for whoever reads: running it is one command. [CombinationReview](../NestLight.Experiments/Experiments/Manual/CombinationReview.cs) generates the code of every combination, runs the plugin over it and writes for each one the source, the strings found, every token with its type, the words of the string that got no color, the completion for each word typed with 1 and 2 letters (site, place in the grammar, rank of the intended word, top 10) and the carets in host code and in interpolations, where the plugin must offer nothing. `INDEX.md` counts the gaps, the misses and the wrong sites to say what to read first; a count is a pointer, not a verdict (plain text in Markdown is a gap that is correct). `--host` and `--language` narrow the run.
+"Manual" is about who reads, not about who runs: both kinds are one command. A manual experiment is for what a count cannot tell, such as a word that should have a color and has none, or a suggestion that does not belong. [CombinationReview](../NestLight.Experiments/Experiments/Manual/CombinationReview.cs) (EM01) generates the code of every combination, runs the plugin over it and writes for each one the source, the strings found, every token with its type, the words of the string that got no color, the completion for each word typed with 1 and 2 letters (site, place in the grammar, rank of the intended word, top 10) and the carets in host code and in interpolations, where the plugin must offer nothing. `INDEX.md` counts the gaps, the misses and the wrong sites to say what to read first; a count is a pointer, not a verdict (plain text in Markdown is a gap that is correct). `--host` and `--language` narrow the run.
 
 ### The code generator
 
@@ -26,7 +27,7 @@ dotnet run -c Release --project NestLight.Experiments -- --generate out         
 dotnet run -c Release --project NestLight.Experiments -- --generate out --host python --language sql --repeat 1000   # one big file
 ```
 
-To add a language, add its sample to `LanguageSamples`; to add a host, add a rule to `Reason` and a writer to the generator. A new check over the matrix goes through `CombinationGenerator.Applicable()` and `CombinationCheck.Check` (EA36); a new section of the review goes in `CombinationReview.Review`.
+To add a language, add its sample to `LanguageSamples`; to add a host, add a rule to `Reason` and a writer to the generator. A new automatic check over the matrix goes through `CombinationGenerator.Applicable()` and `CombinationCheck.Check` (EA36); a new section of the manual review goes in `CombinationReview.Review`.
 
 ## How it works
 
@@ -47,48 +48,45 @@ The *Experiments* workflow runs the same suite on Windows, on `net48` (the runti
 
 ## Index
 
-| Id | Question | Test |
+| Id | Question | Kind |
 |---|---|---|
-| [EA01](#ea01-baseline-cost-of-one-highlight-call) | How much does one `Highlight` call cost? | Automated |
-| [EA02](#ea02-skip-the-scan-when-the-text-has-no-language-id) | Does skipping the scan without language ids help? | Automated |
-| [EA03](#ea03-the-text-copy-on-every-edit) | How much does the `GetText()` copy cost? | Automated |
-| [EA04](#ea04-the-language-registry-built-per-buffer) | Does building the registry per buffer matter? | Automated |
-| [EA05](#ea05-where-highlight-allocates) | Where do the allocations of `Highlight` come from? | Automated |
-| [EA06](#ea06-number-of-marked-strings) | Does the cost stay linear as the strings multiply? | Automated |
-| [EA07](#ea07-many-interpolations-in-one-string) | Does one string with many interpolations scale? | Automated |
-| [EA08](#ea08-throughput-of-each-embedded-language) | Is any tokenizer much slower than the others? | Automated |
-| [EA09](#ea09-malformed-and-pathological-input) | Does bad input make the cost explode? | Automated |
-| [EA10](#ea10-incremental-analysis) | Is re-analyzing only the edited strings worth it? | Both |
-| [EA11](#ea11-clip-tokens-without-rescanning-the-interpolations) | Does fixing the quadratic clipping make EA07 linear? | Automated |
-| [EA12](#ea12-fewer-allocations-in-the-scan) | How much does the scan's allocation fall if comments stop allocating? | Automated |
-| [EA13](#ea13-why-the-cost-grows-faster-than-the-text-above-400k-characters) | What makes the cost superlinear on very large strings? | Automated |
-| [EA14](#ea14-completion-latency-against-the-size-of-the-file) | Is completion fast on large files? | Automated |
-| [EA15](#ea15-do-the-limits-of-the-completion-change-its-cost) | Do the limits of the completion change its cost? | Automated |
-| [EA16](#ea16-completion-on-incomplete-and-cut-code) | Can completion be triggered anywhere in a file being edited? | Automated |
-| [EA17](#ea17-does-the-tokenizer-agree-with-the-vocabulary) | Does the tokenizer agree with the vocabulary? | Automated |
-| [EA18](#ea18-order-of-the-words-of-the-document) | Is nearest-first the best order for the words of the document? | Automated, generated code |
-| [EA19](#ea19-where-the-words-come-from-and-how-many-keystrokes-completion-saves) | Which words should completion offer? | Automated, generated code |
-| [EA20](#ea20-sharing-the-scan-and-not-creating-the-words-of-the-completion) | Does sharing the scan and not creating the words bring completion under a frame? | Automated |
-| [EA21](#ea21-does-the-second-stage-of-the-completion-fit-in-a-frame) | Does the second stage of the completion fit in a frame? | Automated |
-| [EA22](#ea22-does-the-second-stage-recover-the-word-after-one-mistake-and-which-tie-break-works) | Does the second stage recover the word after one mistake? | Automated, generated code |
-| [EA23](#ea23-does-the-second-stage-get-in-the-way-when-the-prefix-is-right) | Does it get in the way when the prefix is right? | Automated, generated code |
-| [EA24](#ea24-completion-with-similar-words-on-incomplete-and-cut-code) | Is completion still robust with the second stage? | Automated |
-| [EA25](#ea25-does-the-word-before-the-caret-help-to-rank-the-suggestions) | Does the word before the caret help to rank the suggestions? | Automated, generated code |
-| [EA26](#ea26-do-the-words-of-the-same-language-come-first) | Do the words of the same language come first? | Automated, generated code |
-| [EA27](#ea27-does-the-place-in-the-grammar-help-to-rank-the-suggestions) | Does the place in the grammar help to rank the suggestions? | Automated, generated code |
-| [EA28](#ea28-does-the-schema-read-from-the-sql-of-the-document-help) | Does the schema read from the SQL of the document help? | Automated, generated code |
-| [EA29](#ea29-do-the-words-used-most-often-come-before-the-nearest-ones) | Do the words used most often come before the nearest ones? | Automated, generated code |
-| [EA30](#ea30-completion-with-the-context-rankings-on-incomplete-and-cut-code) | Is completion robust with the context rankings on? | Automated |
-| [EA31](#ea31-where-the-place-of-the-caret-says-nothing-do-the-words-of-the-file-and-the-most-used-keywords-come-first) | Do the words of the file and the most used keywords come first where no rule decides? | Automated, generated code |
-| [EA32](#ea32-do-a-few-keywords-still-come-before-the-words-of-the-file) | Do a few keywords still come before the words of the file? | Automated, generated code |
-| [EA33](#ea33-should-words-of-two-letters-be-offered) | Should words of two letters be offered? | Automated, generated code |
-| [EA34](#ea34-does-the-similar-words-stage-make-noise-with-short-prefixes-and-what-removes-it) | Does the similar-words stage make noise with short prefixes? | Automated, generated code |
-| [EA35](#ea35-should-words-of-two-letters-be-offered-ea33-with-a-criterion-that-can-be-met) | EA33 with a criterion that can be met | Automated, generated code |
-| [EA36](#ea36-every-host-with-every-embedded-language) | Does every host work with every embedded language? | Automated, generated code |
-| [EM01](#em01-typing-latency-and-gc-inside-visual-studio) | What does the user feel while typing in a large file? | Manual |
-| [EM02](#em02-background-re-analysis) | Does analyzing off the UI thread improve typing latency? | Manual |
-| [EM03](#em03-do-the-similar-suggestions-show-up-in-visual-studio) | Do the similar suggestions show up in Visual Studio? | Manual |
-| [EM04](#em04-review-of-every-host-with-every-embedded-language) | What does the plugin do, case by case, with every host and language? | Manual, generated code |
+| [EA01](#ea01-baseline-cost-of-one-highlight-call) | How much does one `Highlight` call cost? | Automatic |
+| [EA02](#ea02-skip-the-scan-when-the-text-has-no-language-id) | Does skipping the scan without language ids help? | Automatic |
+| [EA03](#ea03-the-text-copy-on-every-edit) | How much does the `GetText()` copy cost? | Automatic |
+| [EA04](#ea04-the-language-registry-built-per-buffer) | Does building the registry per buffer matter? | Automatic |
+| [EA05](#ea05-where-highlight-allocates) | Where do the allocations of `Highlight` come from? | Automatic |
+| [EA06](#ea06-number-of-marked-strings) | Does the cost stay linear as the strings multiply? | Automatic |
+| [EA07](#ea07-many-interpolations-in-one-string) | Does one string with many interpolations scale? | Automatic |
+| [EA08](#ea08-throughput-of-each-embedded-language) | Is any tokenizer much slower than the others? | Automatic |
+| [EA09](#ea09-malformed-and-pathological-input) | Does bad input make the cost explode? | Automatic |
+| [EA10](#ea10-incremental-analysis) | Is re-analyzing only the edited strings worth it? | Automatic |
+| [EA11](#ea11-clip-tokens-without-rescanning-the-interpolations) | Does fixing the quadratic clipping make EA07 linear? | Automatic |
+| [EA12](#ea12-fewer-allocations-in-the-scan) | How much does the scan's allocation fall if comments stop allocating? | Automatic |
+| [EA13](#ea13-why-the-cost-grows-faster-than-the-text-above-400k-characters) | What makes the cost superlinear on very large strings? | Automatic |
+| [EA14](#ea14-completion-latency-against-the-size-of-the-file) | Is completion fast on large files? | Automatic |
+| [EA15](#ea15-do-the-limits-of-the-completion-change-its-cost) | Do the limits of the completion change its cost? | Automatic |
+| [EA16](#ea16-completion-on-incomplete-and-cut-code) | Can completion be triggered anywhere in a file being edited? | Automatic |
+| [EA17](#ea17-does-the-tokenizer-agree-with-the-vocabulary) | Does the tokenizer agree with the vocabulary? | Automatic |
+| [EA18](#ea18-order-of-the-words-of-the-document) | Is nearest-first the best order for the words of the document? | Automatic |
+| [EA19](#ea19-where-the-words-come-from-and-how-many-keystrokes-completion-saves) | Which words should completion offer? | Automatic |
+| [EA20](#ea20-sharing-the-scan-and-not-creating-the-words-of-the-completion) | Does sharing the scan and not creating the words bring completion under a frame? | Automatic |
+| [EA21](#ea21-does-the-second-stage-of-the-completion-fit-in-a-frame) | Does the second stage of the completion fit in a frame? | Automatic |
+| [EA22](#ea22-does-the-second-stage-recover-the-word-after-one-mistake-and-which-tie-break-works) | Does the second stage recover the word after one mistake? | Automatic |
+| [EA23](#ea23-does-the-second-stage-get-in-the-way-when-the-prefix-is-right) | Does it get in the way when the prefix is right? | Automatic |
+| [EA24](#ea24-completion-with-similar-words-on-incomplete-and-cut-code) | Is completion still robust with the second stage? | Automatic |
+| [EA25](#ea25-does-the-word-before-the-caret-help-to-rank-the-suggestions) | Does the word before the caret help to rank the suggestions? | Automatic |
+| [EA26](#ea26-do-the-words-of-the-same-language-come-first) | Do the words of the same language come first? | Automatic |
+| [EA27](#ea27-does-the-place-in-the-grammar-help-to-rank-the-suggestions) | Does the place in the grammar help to rank the suggestions? | Automatic |
+| [EA28](#ea28-does-the-schema-read-from-the-sql-of-the-document-help) | Does the schema read from the SQL of the document help? | Automatic |
+| [EA29](#ea29-do-the-words-used-most-often-come-before-the-nearest-ones) | Do the words used most often come before the nearest ones? | Automatic |
+| [EA30](#ea30-completion-with-the-context-rankings-on-incomplete-and-cut-code) | Is completion robust with the context rankings on? | Automatic |
+| [EA31](#ea31-where-the-place-of-the-caret-says-nothing-do-the-words-of-the-file-and-the-most-used-keywords-come-first) | Do the words of the file and the most used keywords come first where no rule decides? | Automatic |
+| [EA32](#ea32-do-a-few-keywords-still-come-before-the-words-of-the-file) | Do a few keywords still come before the words of the file? | Automatic |
+| [EA33](#ea33-should-words-of-two-letters-be-offered) | Should words of two letters be offered? | Automatic |
+| [EA34](#ea34-does-the-similar-words-stage-make-noise-with-short-prefixes-and-what-removes-it) | Does the similar-words stage make noise with short prefixes? | Automatic |
+| [EA35](#ea35-should-words-of-two-letters-be-offered-ea33-with-a-criterion-that-can-be-met) | EA33 with a criterion that can be met | Automatic |
+| [EA36](#ea36-every-host-with-every-embedded-language) | Does every host work with every embedded language? | Automatic |
+| [EM01](#em01-review-of-every-host-with-every-embedded-language) | What does the plugin do, case by case, with every host and language? | Manual |
 
 ## EA01: baseline cost of one `Highlight` call
 
@@ -166,7 +164,7 @@ The *Experiments* workflow runs the same suite on Windows, on `net48` (the runti
 
 **Hypothesis.** Re-analyzing only the strings hit by the edit and reusing the tokens of the rest is much cheaper than the full scan.
 
-**Test.** Automated: the cost of a one-character edit in the middle of a file against the full scan, over the EA01 sizes. Manual: the EM01 session. Plus a differential test: after any sequence of edits, the incremental tokens must equal the tokens of a full scan.
+**Test.** The cost of a one-character edit in the middle of a file against the full scan, over the EA01 sizes. Plus a differential test: after any sequence of edits, the incremental tokens must equal the tokens of a full scan.
 
 **Criterion.** At least 5x cheaper per edit at 60k lines, and the differential test passes on the existing samples and on random edits.
 
@@ -372,31 +370,7 @@ The *Experiments* workflow runs the same suite on Windows, on `net48` (the runti
 
 **Criterion.** Every applicable combination passes at both sizes.
 
-## EM01: typing latency and GC inside Visual Studio
-
-**Hypothesis.** In a real session, the gen2 collections caused by the text copy (EA03) and the analysis on the UI thread are enough to make typing in a large file noticeable.
-
-**Test (manual).** Open a large real file (generated code, a JS bundle of 5k to 50k lines), type continuously, and record the per-keystroke latency and the gen2 count and pause time with and without the extension. A fixed file and script, kept with the result, so runs can be repeated.
-
-**Criterion.** A p95 latency increase under 8 ms, and no gen2 pause above 20 ms.
-
-## EM02: background re-analysis
-
-**Hypothesis.** Returning the tokens of the previous snapshot and raising `ClassificationChanged` when the new analysis finishes takes the scan off the UI thread and improves typing latency.
-
-**Test (manual).** The EM01 session before and after the change.
-
-**Criterion.** The p95 latency in EM01 goes back to within 2 ms of the baseline without the extension.
-
-## EM03: do the similar suggestions show up in Visual Studio?
-
-**Hypothesis.** The item manager of the editor filters the list at every key against the text of the span. A similar item is created with a filter text equal to what was typed, and shows and inserts the word it suggests, so the manager keeps it. The documentation does not say whether the default filter tolerates this.
-
-**Test (manual).** In a marked string, type a word of 6 letters with a mistake, press Ctrl+Space, and keep typing.
-
-**Criterion.** The meant word is in the list at the first step.
-
-## EM04: review of every host with every embedded language
+## EM01: review of every host with every embedded language
 
 **Hypothesis.** EA36 says every combination is found and tokenized, not whether the colors and the suggestions are good. Reading what the plugin does with each combination, one by one, finds what a count cannot: a word that should have a color and has none, a suggestion that does not belong (a variable of the host offered inside SQL), a caret in host code that gets a site.
 

@@ -43,7 +43,7 @@ namespace NestLight.Experiments
             outcome.Headline = "possible saving " + Measure.Ms(saving400k) + " per edit at 400k characters";
             outcome.Analysis.Add("At 400,000 characters, removing the copy would save at most " + Measure.Ms(saving400k) + " per edit (the \"highlight only\" column is the best case: reading from a snapshot instead of a string would be slower).");
             outcome.Analysis.Add("Gen2 collections over the " + settings.Edits + " edits of every size: " + gen2WithCopy + " with the copy, " + gen2Without + " without it.");
-            outcome.Analysis.Add("The benchmark process has a tiny heap; a gen2 collection in Visual Studio walks a much larger one, so the real cost of the collections is probably higher (see EM01).");
+            outcome.Analysis.Add("The benchmark process has a tiny heap; a gen2 collection in Visual Studio walks a much larger one, so the real cost of the collections is probably higher.");
             return outcome;
         }
     }

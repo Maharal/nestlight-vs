@@ -118,13 +118,18 @@ Adding a host means writing a scanner and a provider. Adding a language means wr
 
 ## Experiments
 
-Beyond the unit tests, which check what the plugin colors, a suite of **experiments** checks how well it performs. Each experiment is a hypothesis (for example, "the text copy on every edit is worth removing") with an automated test and a criterion written in advance. They live in their own project, `NestLight.Experiments`, and are not part of `dotnet test`.
+Beyond the unit tests, which check what the plugin colors, a suite of **experiments** checks how well it performs. Each experiment is a hypothesis (for example, "the text copy on every edit is worth removing") with a test and a criterion written in advance. They live in their own project, `NestLight.Experiments`, and are not part of `dotnet test`. There are two kinds:
+
+- **Automatic** (`EAnn`): the code measures and decides whether the criterion held.
+- **Manual** (`EMnn`): the code runs the plugin over generated code, one file per host x embedded language combination, and a person reads the files case by case. It has no criterion; its result is a list of findings.
 
 ```
-dotnet run -c Release --project NestLight.Experiments
+dotnet run -c Release --project NestLight.Experiments                      # the automatic experiments
+dotnet run -c Release --project NestLight.Experiments -- --manual out      # the manual review: files to read, in out/
+dotnet run -c Release --project NestLight.Experiments -- --generate out    # only the generated code for every combination
 ```
 
-The run executes every experiment and writes a Markdown report with the tables, the analysis and whether each criterion held to `reports/experiments-<date>-<commit>.md` (not versioned: each report is valid only for its commit and machine). Options: `--only EA03,EA05`, `--list`, `--quick` (a smoke run, numbers not worth keeping) and `--out <dir>`.
+The automatic run executes every automatic experiment and writes a Markdown report with the tables, the analysis and whether each criterion held to `reports/experiments-<date>-<commit>.md` (not versioned: each report is valid only for its commit and machine). Options: `--only EA03,EA05`, `--list`, `--quick` (a smoke run, numbers not worth keeping) and `--out <dir>`.
 
 The experiments are defined in [docs/experiments.md](docs/experiments.md). The *Experiments* workflow runs the suite on Windows, on the same runtime as Visual Studio (`net48`), and uploads the report.
 
