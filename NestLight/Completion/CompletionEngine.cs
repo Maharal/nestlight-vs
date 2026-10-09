@@ -85,7 +85,7 @@ namespace NestLight.Completion
         private const int CancellationStride = 256;
         private const int MaxWordLength = 64;
         /// <summary>Documents larger than this are only scanned for words around the caret.</summary>
-        internal const int WordScanWindow = 500000;
+        private const int WordScanWindow = 500000;
 
         private readonly IHostScanner _scanner;
         private readonly int _maxItems;
@@ -96,16 +96,6 @@ namespace NestLight.Completion
         private readonly bool _fuzzyFirstLetter;
         private readonly CompletionFeatures _features;
         private readonly ICompletionLanguages _languages;
-
-        // the words of the last text asked for, with and without the dash in the words: the index of one text is made from the one before
-        private readonly object _indexGate = new object();
-        private readonly IndexedText _plainWords = new IndexedText(), _dashWords = new IndexedText();
-
-        private sealed class IndexedText
-        {
-            public string Text;
-            public WordIndex Index;
-        }
 
         /// <param name="matcher">Enables the second stage when not null.</param>
         /// <param name="fuzzyBelow">The second stage runs only when the first one returned fewer items than this (1: only when nothing matched).</param>
@@ -535,14 +525,6 @@ namespace NestLight.Completion
 
             // a short word is only worth offering where the context says it belongs (the BY after GROUP)
             int shortest = context.Has || _features.ShortWordsLast ? Math.Min(_minWordLength, FollowMinWordLength) : _minWordLength;
-
-            // the words kept in memory stand for the scan when they cover the window (the whole text)
-            if (_features.WordIndex && from == 0 && to == text.Length)
-            {
-                ScanIndexed(IndexOf(text, dash), scan, text, site, prefix, context, scope, shortest);
-                return scan;
-            }
-
             int previousStart = -1, previousLength = 0;
             bool nextSeen = false; // the first word after the caret is what the text already says comes next, not a word that followed the context
             int range = 0; // the matches come in order, so a pointer into the ranges of scope is enough
@@ -550,9 +532,9 @@ namespace NestLight.Completion
             while (i < to)
             {
                 char first = text[i];
-                if (!WordIndex.StartsWord(first, dash)) { i++; continue; }
+                if (!(char.IsLetter(first) || first == '_' || (dash && first == '-'))) { i++; continue; }
                 int start = i;
-                while (i < to && WordIndex.InWord(text[i], dash)) i++;
+                while (i < to && (char.IsLetterOrDigit(text[i]) || text[i] == '_' || (dash && text[i] == '-'))) i++;
                 int length = i - start;
                 int beforeStart = previousStart, beforeLength = previousLength;
                 previousStart = start; previousLength = length;
@@ -563,64 +545,24 @@ namespace NestLight.Completion
                 if (start <= site.Caret && site.Caret <= i) continue; // the word under the caret
                 if (length == prefix.Length) continue; // nothing to add
                 if (string.Compare(text, start, prefix, 0, prefix.Length, StringComparison.OrdinalIgnoreCase) != 0) continue;
-                Classify(scan, text, site, context, scope, ref range, start, length, beforeStart, beforeLength, isNext);
+                var match = new WordMatch(start, length);
+                bool inScope = true;
+                if (scope != null)
+                {
+                    while (range < scope.Length && scope[range + 1] <= start) range += 2;
+                    inScope = range < scope.Length && scope[range] <= start;
+                }
+                bool follows = inScope && !isNext && context.Has && beforeStart >= 0 && Follows(text, context, beforeStart, beforeLength, start);
+                if (follows) scan.Follows.Add(match);
+                if (length < _minWordLength)
+                {
+                    if (_features.ShortWordsLast) (start > site.Caret ? scan.ShortAfter : scan.ShortBefore).Add(match);
+                    continue;
+                }
+                if (start > site.Caret) (inScope ? scan.After : scan.OtherAfter).Add(match);
+                else (inScope ? scan.Before : scan.OtherBefore).Add(match);
             }
             return scan;
-        }
-
-        /// <summary>The same pass over the words kept in memory: only the words whose first letter is the typed one are looked at.</summary>
-        private void ScanIndexed(WordIndex index, WordScan scan, string text, CompletionSite site, string prefix, PreviousContext context, int[] scope, int shortest)
-        {
-            int next = index.FirstAtOrAfter(site.End); // the first word after the caret
-            bool typed = prefix.Length > 0;
-            char key = typed ? char.ToUpperInvariant(prefix[0]) : '\0';
-            int range = 0;
-            for (int k = 0; k < index.Count; k++)
-            {
-                if (typed && index.Key(k) != key) continue;
-                int start = index.Start(k), length = index.Length(k);
-                if (length < shortest || length > MaxWordLength) continue;
-                if (start <= site.Caret && site.Caret <= start + length) continue; // the word under the caret
-                if (length == prefix.Length) continue; // nothing to add
-                if (string.Compare(text, start, prefix, 0, prefix.Length, StringComparison.OrdinalIgnoreCase) != 0) continue;
-                int beforeStart = k > 0 ? index.Start(k - 1) : -1, beforeLength = k > 0 ? index.Length(k - 1) : 0;
-                Classify(scan, text, site, context, scope, ref range, start, length, beforeStart, beforeLength, k == next);
-            }
-        }
-
-        /// <summary>A word that starts with the prefix: in which list of the scan it goes.</summary>
-        private void Classify(WordScan scan, string text, CompletionSite site, PreviousContext context, int[] scope, ref int range,
-            int start, int length, int beforeStart, int beforeLength, bool isNext)
-        {
-            var match = new WordMatch(start, length);
-            bool inScope = true;
-            if (scope != null)
-            {
-                while (range < scope.Length && scope[range + 1] <= start) range += 2;
-                inScope = range < scope.Length && scope[range] <= start;
-            }
-            bool follows = inScope && !isNext && context.Has && beforeStart >= 0 && Follows(text, context, beforeStart, beforeLength, start);
-            if (follows) scan.Follows.Add(match);
-            if (length < _minWordLength)
-            {
-                if (_features.ShortWordsLast) (start > site.Caret ? scan.ShortAfter : scan.ShortBefore).Add(match);
-                return;
-            }
-            if (start > site.Caret) (inScope ? scan.After : scan.OtherAfter).Add(match);
-            else (inScope ? scan.Before : scan.OtherBefore).Add(match);
-        }
-
-        /// <summary>The words of the text, kept from one request to the next: the index of the last text is updated to this one.</summary>
-        private WordIndex IndexOf(string text, bool dash)
-        {
-            IndexedText held = dash ? _dashWords : _plainWords;
-            lock (_indexGate)
-            {
-                if (held.Index == null) held.Index = WordIndex.Build(text, dash);
-                else if (!ReferenceEquals(held.Text, text)) held.Index = held.Index.Update(held.Text, text);
-                held.Text = text;
-                return held.Index;
-            }
         }
 
         /// <summary>The words that followed the same word before, the nearest occurrence first; a keyword of the language keeps its own spelling.</summary>

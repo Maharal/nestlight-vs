@@ -76,13 +76,6 @@ namespace NestLight.Completion
         /// <summary>For a prefix of 3 letters or less, similar words come from the document only, not from the keywords of the language.</summary>
         public readonly bool ShortSimilarFromFileOnly;
 
-        /// <summary>
-        /// The words of the document are kept in memory (<see cref="WordIndex"/>) and brought up to date after each edit by reading again
-        /// only the words around it, instead of reading the whole text for words at every request. The suggestions are the same; only
-        /// the cost changes. A text larger than the window of the word scan is read as before.
-        /// </summary>
-        public readonly bool WordIndex;
-
         /// <summary>The keywords of the language in the order they are offered.</summary>
         public IReadOnlyList<string> OrderKeywords(ICompletionLanguage language)
         {
@@ -98,13 +91,12 @@ namespace NestLight.Completion
         public CompletionFeatures(bool previousWord = false, bool sameLanguageWords = false, bool grammar = false, bool schema = false,
             IWordRanker ranker = null, bool wordsBeforeKeywords = false,
             bool keywordPriority = false, int headKeywords = 0,
-            bool shortWordsLast = false, int fuzzyMinPrefix = 3, int shortSimilarCap = 0, bool shortSimilarFromFileOnly = false, bool wordIndex = false)
+            bool shortWordsLast = false, int fuzzyMinPrefix = 3, int shortSimilarCap = 0, bool shortSimilarFromFileOnly = false)
         {
             ShortWordsLast = shortWordsLast;
             FuzzyMinPrefix = fuzzyMinPrefix;
             ShortSimilarCap = shortSimilarCap;
             ShortSimilarFromFileOnly = shortSimilarFromFileOnly;
-            WordIndex = wordIndex;
             HeadKeywords = headKeywords;
             WordsBeforeKeywords = wordsBeforeKeywords;
             KeywordPriority = keywordPriority;

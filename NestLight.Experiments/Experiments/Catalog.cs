@@ -40,7 +40,6 @@ namespace NestLight.Experiments
                 new EA29_SimilarNoiseShortPrefix(),
                 new EA30_ShortWordsRestated(),
                 new EA31_CombinationMatrix(),
-                new EA32_WordIndex(),
             };
         }
     }

@@ -1,7 +1,0 @@
-# EA32: keeping the words of the document in memory
-
-**Hypothesis.** Every request for suggestions reads the whole text for the words that start with what was typed. The words could be kept in memory (where each one starts and how long it is, in order) and brought up to date after each keystroke by reading again only the words around the edit, so that a request only looks at the words that start with the typed letter.
-
-**Test.** EA10's files (typical code, and one new word per line), 1,200, 12,000 and 60,000 lines, with the marked SQL string in the middle of the file, as an edit is. A person typing `comp000` letter by letter: seven texts, one character apart, each a new string instance, with `Locate` + `Suggest` for each (the scan of the host is shared by both, as in the plugin). Three ways to answer: reading the text at every request (as it is), the index built again at every request, and the index updated from the one of the text before (`CompletionFeatures.WordIndex`). Time of `Suggest` alone, per request. The suggestions of the three are compared request by request. Also the same text asked twice (a second Ctrl+Space), and the memory of the index.
-
-**Criterion.** With the index updated after each edit, `Suggest` is at least twice as fast as reading the text at the largest size, in every host and shape; and the three ways give the same suggestions at every request in every case.

@@ -105,5 +105,4 @@ An experiment is one source file with a document of the same name beside it: `Ex
 | [EA29](../NestLight.Experiments/Experiments/Automatic/EA29_SimilarNoiseShortPrefix.md) | Does the similar-words stage make noise with short prefixes? | Automatic |
 | [EA30](../NestLight.Experiments/Experiments/Automatic/EA30_ShortWordsRestated.md) | EA28 with a criterion that can be met | Automatic |
 | [EA31](../NestLight.Experiments/Experiments/Automatic/EA31_CombinationMatrix.md) | Does every host work with every embedded language? | Automatic |
-| [EA32](../NestLight.Experiments/Experiments/Automatic/EA32_WordIndex.md) | Does keeping the words of the document in memory make a request faster? | Automatic |
 | [EM01](../NestLight.Experiments/Experiments/Manual/EM01_CombinationReview.md) | What does the plugin do, case by case, with every host and language? | Manual |
