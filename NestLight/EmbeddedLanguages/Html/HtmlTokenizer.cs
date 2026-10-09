@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using NestLight.Common;
 
-namespace NestLight.Languages
+namespace NestLight.EmbeddedLanguages
 {
     /// <summary>
     /// Error-tolerant HTML tokenizer. Interpolations were already masked, so they work in any position:

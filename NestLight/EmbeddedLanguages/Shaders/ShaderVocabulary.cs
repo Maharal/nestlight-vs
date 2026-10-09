@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 
-namespace NestLight.Languages
+namespace NestLight.EmbeddedLanguages
 {
     /// <summary>The word lists of GLSL and WGSL.</summary>
     internal static class ShaderVocabulary

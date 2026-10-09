@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using NestLight.Common;
 
-namespace NestLight.Languages
+namespace NestLight.EmbeddedLanguages
 {
     /// <summary>
     /// A C-like shader language (GLSL, WGSL): keywords, types, built-ins, numbers and comments.

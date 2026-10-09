@@ -2,7 +2,7 @@ using System;
 using NestLight.Common;
 using NestLight.Completion;
 using NestLight.Hosts;
-using NestLight.Languages;
+using NestLight.EmbeddedLanguages;
 
 namespace NestLight.Highlighting
 {

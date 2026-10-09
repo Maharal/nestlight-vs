@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using NestLight.Common;
 
-namespace NestLight.Languages
+namespace NestLight.EmbeddedLanguages
 {
     /// <summary>
     /// YAML: keys, scalars, anchors / aliases / tags and comments. Works one line at a time, remembering

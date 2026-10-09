@@ -123,7 +123,7 @@ namespace NestLight.Tests
             Assert.Throws<ArgumentNullException>(() => new NestLight.Hosts.CSharpHostScanner(null));
             Assert.Throws<ArgumentNullException>(() => new NestLight.Hosts.PythonHostScanner(null));
             Assert.Throws<ArgumentNullException>(() => new NestLight.Hosts.CppHostScanner(null));
-            Assert.Throws<ArgumentNullException>(() => new NestLight.Languages.HtmlTokenizer(null));
+            Assert.Throws<ArgumentNullException>(() => new NestLight.EmbeddedLanguages.HtmlTokenizer(null));
             Assert.Throws<ArgumentNullException>(() => new AcceptedEmbeddedLanguages(null));
         }
     }

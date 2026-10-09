@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using NestLight.Common;
 
-namespace NestLight.Languages
+namespace NestLight.EmbeddedLanguages
 {
     /// <summary>
     /// Markdown: headings, emphasis and strong text, code spans and fenced blocks, links and list markers.

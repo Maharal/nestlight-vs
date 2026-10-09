@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using NestLight.Common;
 
-namespace NestLight.Languages
+namespace NestLight.EmbeddedLanguages
 {
     /// <summary>Regular expressions: groups, character classes, quantifiers, escapes and anchors.</summary>
     internal sealed class RegexTokenizer : IEmbeddedLanguageTokenizer

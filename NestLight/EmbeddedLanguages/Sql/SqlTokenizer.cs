@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using NestLight.Common;
 
-namespace NestLight.Languages
+namespace NestLight.EmbeddedLanguages
 {
     /// <summary>SQL: keywords, identifiers (bare and quoted), literals, operators and comments.</summary>
     internal sealed class SqlTokenizer : IEmbeddedLanguageTokenizer

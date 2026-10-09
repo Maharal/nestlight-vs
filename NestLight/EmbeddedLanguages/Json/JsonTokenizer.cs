@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using NestLight.Common;
 
-namespace NestLight.Languages
+namespace NestLight.EmbeddedLanguages
 {
     /// <summary>JSON: keys, strings, numbers, literals (<c>true</c>, <c>false</c>, <c>null</c>) and punctuation.</summary>
     internal sealed class JsonTokenizer : IEmbeddedLanguageTokenizer

@@ -5,7 +5,7 @@ The extension project. See the [main README](../README.md) for what it highlight
 ## Layout
 - `Common/`: model, interfaces, marker rules, text helpers
 - `Hosts/`: scanners for JavaScript / TypeScript, C#, Python and C++
-- `Languages/`: tokenizers for HTML, CSS, SQL, JSON, GraphQL, XML, Markdown, YAML, regular expressions and shaders (GLSL, WGSL)
+- `EmbeddedLanguages/`: tokenizers for HTML, CSS, SQL, JSON, GraphQL, XML, Markdown, YAML, regular expressions and shaders (GLSL, WGSL)
 - `Highlighting/`: engine, language registry, snapshot cache and the composition root (`NestLightComposition`)
 - `VisualStudio/`: MEF classifier providers, classification types and default formats
 
@@ -20,7 +20,7 @@ Dependencies are passed through constructors. Only `VisualStudio/` references th
 Tools > Options > Environment > Fonts and Colors > "Text Editor" > items "Template <Language> ...".
 
 ## Adding a language
-1. Write a tokenizer in `Languages/` (`IEmbeddedLanguageTokenizer`) and add it to `NestLightComposition.CreateEmbeddedLanguages`.
+1. Write a tokenizer in `EmbeddedLanguages/` (`IEmbeddedLanguageTokenizer`) and add it to `NestLightComposition.CreateEmbeddedLanguages`.
 2. Add its names to `Common/ClassificationNames.cs` and declare the types and default colors in `VisualStudio/`.
    A test fails until every name has both.
 

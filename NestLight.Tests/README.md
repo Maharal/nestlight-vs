@@ -9,7 +9,7 @@ They cover the whole pipeline without depending on the Visual Studio SDK.
 | `Hosts/CSharpHostScannerTests.cs` | regular, verbatim and raw strings, `$` / `$$` interpolation, escapes, format specifiers, the `json` / `regex` exclusion |
 | `Hosts/PythonHostScannerTests.cs` | quote styles and prefixes, f-strings and t-strings, replacement fields, escapes |
 | `Hosts/CppHostScannerTests.cs` | raw string literals, delimiters and prefixes, digit separators |
-| `Languages/*TokenizerTests.cs` | the tokens of each embedded language (HTML, CSS, SQL, JSON, GraphQL, XML, Markdown, YAML, regex, shaders) |
+| `EmbeddedLanguages/*TokenizerTests.cs` | the tokens of each embedded language (HTML, CSS, SQL, JSON, GraphQL, XML, Markdown, YAML, regex, shaders) |
 | `Highlighting/HighlightEngineTests.cs` | the engine against fake scanners and tokenizers (decoding, masking, mapping back), interpolation tokens per host, nesting at every level |
 | `Highlighting/SnapshotTokenCacheTests.cs` | caching per snapshot, span queries, failures never escaping |
 | `Completion/CompletionEngineTests.cs` | where completion applies (marked strings only, never inside an interpolation, innermost string), the keywords of each language, SQL case, and the words of the document (ranking, no self-suggestion, limits, large files) |
@@ -20,7 +20,7 @@ They cover the whole pipeline without depending on the Visual Studio SDK.
 - Visual Studio: *Test > Test Explorer > Run All* (restore the NuGet packages first).
 - Command line, in this project's folder: `dotnet test`
 
-The project targets `net48`, like the extension. The source folders `Common`, `Hosts`, `Languages` and `Highlighting` of `../NestLight` are linked into
+The project targets `net48`, like the extension. The source folders `Common`, `Hosts`, `EmbeddedLanguages` and `Highlighting` of `../NestLight` are linked into
 the test project, so the tests always run against the extension's real code. Keep the two folders side by side.
 
 ## How to add a case

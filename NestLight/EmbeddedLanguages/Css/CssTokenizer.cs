@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using NestLight.Common;
 
-namespace NestLight.Languages
+namespace NestLight.EmbeddedLanguages
 {
     /// <summary>
     /// Simple, error-tolerant CSS tokenizer. Works on "masked" text

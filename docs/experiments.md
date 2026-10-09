@@ -780,7 +780,7 @@ On the 800 suggestions of the review the 15 cases of this kind that had no answe
 
 A pass over the CSS of the plugin, with a battery of tricky style sheets read token by token and in the completion.
 
-**The tokenizer** ([CssTokenizer](../NestLight/Languages/Css/CssTokenizer.cs), it colors `css`, `<style>` and `style=""`):
+**The tokenizer** ([CssTokenizer](../NestLight/EmbeddedLanguages/Css/CssTokenizer.cs), it colors `css`, `<style>` and `style=""`):
 - A selector no longer paints its punctuation as a name: `,`, `>`, `+`, `~`, parentheses and brackets are punctuation.
 - `:not(.a, #b)`, `:is()`, `:where()`, `:has()` hold selectors, and `:nth-child(2n+1)` holds a formula (numbers), instead of one blob in the color of a tag.
 - `input[type="text" i]`, `a[href^=http]`, `[disabled]`: the brackets and the operator are punctuation, the attribute is named, the value is a string or a word.
@@ -803,7 +803,7 @@ Not done: the order by use applies to the properties only; the values of a prope
 
 The colors of the CSS (the same in `css`, `<style>` and `style=""`).
 
-**Tokens that were one color and are now their own** ([CssTokenizer](../NestLight/Languages/Css/CssTokenizer.cs)):
+**Tokens that were one color and are now their own** ([CssTokenizer](../NestLight/EmbeddedLanguages/Css/CssTokenizer.cs)):
 - `#id` is no longer the color of a class: it has its own classification, in the same color and in bold.
 - The name inside `[attr=...]` is not a property: it has its own classification, in the color of the properties and in italic.
 - The unit is separated from its number (`1.5` `rem`, `50` `%`, `1e3` `ms`, also the `px` after a `${...}`).

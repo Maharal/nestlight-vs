@@ -108,7 +108,7 @@ The code is split by responsibility, and every dependency is injected through a 
 | `Completion` | The completion engine, the keywords of each language and the distance used for similar words |
 | `Common` | The model (embedded string, interpolation, token), the interfaces everything else depends on, marker rules and text helpers |
 | `Hosts` | One scanner per host language |
-| `Languages` | One tokenizer per embedded language |
+| `EmbeddedLanguages` | One tokenizer per embedded language |
 | `Highlighting` | The engine, the registry, the snapshot and scan caches (the classifier and the completion of a buffer share one scan per snapshot) and the composition root, the only place that knows the concrete classes |
 | `VisualStudio` | The only code that touches the editor: classifier and completion providers, and the classification types and default colors |
 

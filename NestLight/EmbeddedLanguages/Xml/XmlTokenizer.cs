@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using NestLight.Common;
 
-namespace NestLight.Languages
+namespace NestLight.EmbeddedLanguages
 {
     /// <summary>XML: tags, attributes, comments, CDATA sections, processing instructions and DOCTYPE.</summary>
     internal sealed class XmlTokenizer : IEmbeddedLanguageTokenizer
