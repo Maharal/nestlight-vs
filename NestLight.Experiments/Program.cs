@@ -13,7 +13,7 @@ namespace NestLight.Experiments
 
   dotnet run -c Release --project NestLight.Experiments -- [options]
 
-  --only EA_01,EA_05   run only these experiments
+  --only EA01,EA05   run only these experiments
   --manual <dir>   the manual experiments (Experiments/Manual): generate the code of every host x embedded language combination,
                    run the plugin over it and write a file per combination to read and judge (--host and --language narrow it)
   --generate <dir> write that code, one file per combination, and exit (--host, --language and --repeat narrow or enlarge it)

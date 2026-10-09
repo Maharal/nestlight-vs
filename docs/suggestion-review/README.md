@@ -112,7 +112,7 @@ Em JSON e YAML, num pedido explícito no nome de uma chave, essas palavras vêm 
 
 ### 7. Palavras "parecidas" que são só ruído
 
-Com 3 letras e a palavra procurada não existindo em outro lugar, a segunda etapa (corrigir erro de digitação) inventa sugestões sem relação: [GraphQL-47](graphql.md#graphql-47) `fir`→`fragment`, [GraphQL-59](graphql.md#graphql-59) `bod`→`Boolean`, [JSON-7](json.md#json-7) `scr`→`src`, [JSON-83](json.md#json-83) `tes`→`tsc`, [GLSL-15](glsl.md#glsl-15) `mai`→`mat2`... Ao todo cerca de 15 casos. O experimento EA_23 só mediu esse ruído quando o prefixo está certo.
+Com 3 letras e a palavra procurada não existindo em outro lugar, a segunda etapa (corrigir erro de digitação) inventa sugestões sem relação: [GraphQL-47](graphql.md#graphql-47) `fir`→`fragment`, [GraphQL-59](graphql.md#graphql-59) `bod`→`Boolean`, [JSON-7](json.md#json-7) `scr`→`src`, [JSON-83](json.md#json-83) `tes`→`tsc`, [GLSL-15](glsl.md#glsl-15) `mai`→`mat2`... Ao todo cerca de 15 casos. O experimento EA23 só mediu esse ruído quando o prefixo está certo.
 
 ### 8. A palavra que já está depois do cursor aparece em 1º lugar
 

@@ -124,7 +124,7 @@ Beyond the unit tests, which check what the plugin colors, a suite of **experime
 dotnet run -c Release --project NestLight.Experiments
 ```
 
-The run executes every experiment and writes a Markdown report with the tables, the analysis and whether each criterion held to `docs/reports/experiments-<date>-<commit>.md`. The reports are versioned: each one is valid only for its commit and machine, so a new run adds a file instead of replacing the old one. Options: `--only EA_03,EA_05`, `--list`, `--quick` (a smoke run, numbers not worth keeping) and `--out <dir>`.
+The run executes every experiment and writes a Markdown report with the tables, the analysis and whether each criterion held to `docs/reports/experiments-<date>-<commit>.md`. The reports are versioned: each one is valid only for its commit and machine, so a new run adds a file instead of replacing the old one. Options: `--only EA03,EA05`, `--list`, `--quick` (a smoke run, numbers not worth keeping) and `--out <dir>`.
 
 The experiments and their results are described in [docs/experiments.md](docs/experiments.md). The *Experiments* workflow runs the suite on Windows, on the same runtime as Visual Studio (`net48`), and uploads the report.
 

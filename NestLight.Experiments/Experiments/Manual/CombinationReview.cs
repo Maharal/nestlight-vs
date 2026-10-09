@@ -18,7 +18,7 @@ namespace NestLight.Experiments
     /// </summary>
     internal static class CombinationReview
     {
-        public const string Id = "EM_04";
+        public const string Id = "EM04";
         public const string Title = "Review of every host with every embedded language";
 
         private const int Top = 10;

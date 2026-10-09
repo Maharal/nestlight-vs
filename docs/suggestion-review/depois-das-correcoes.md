@@ -55,7 +55,7 @@ Entre os casos em que a palavra procurada existe no arquivo (529):
 
 ## Segunda rodada: a ordem quando nenhuma regra decide
 
-GraphQL, GLSL e WGSL não mudaram na primeira rodada: o problema delas não era uma regra errada, era a **ordem quando o prefixo é vazio ou curto** (lista alfabética de palavras-chave antes dos nomes do arquivo). Para medir isso gerei um corpus de **500 trechos para cada linguagem** (código no estilo de aplicações reais, escrito por geradores) e rodei os experimentos EA_31 e EA_32 (ver `docs/experiments.md`). Resultado adotado: onde nenhuma regra decide o lugar, as palavras do arquivo vêm antes das palavras-chave, e as palavras-chave vêm na ordem de quanto código as usa, com as 12 mais usadas ainda na frente.
+GraphQL, GLSL e WGSL não mudaram na primeira rodada: o problema delas não era uma regra errada, era a **ordem quando o prefixo é vazio ou curto** (lista alfabética de palavras-chave antes dos nomes do arquivo). Para medir isso gerei um corpus de **500 trechos para cada linguagem** (código no estilo de aplicações reais, escrito por geradores) e rodei os experimentos EA31 e EA32 (ver `docs/experiments.md`). Resultado adotado: onde nenhuma regra decide o lugar, as palavras do arquivo vêm antes das palavras-chave, e as palavras-chave vêm na ordem de quanto código as usa, com as 12 mais usadas ainda na frente.
 
 Nos mesmos 800 exemplos (529 em que a palavra existe no arquivo):
 
@@ -79,8 +79,8 @@ Nos mesmos 800 exemplos (529 em que a palavra existe no arquivo):
 
 ## Terceira rodada: palavras de 2 letras e o ruído da correção de erro
 
-- **Palavras de 2 letras (EA_33 e EA_35).** Passaram a ser oferecidas, depois de todas as palavras mais longas. Os casos que não tinham solução na revisão agora têm: `id` depois de `c.` e `p.` ([SQL-5](sql.md#sql-5), [SQL-86](sql.md#sql-86)), `ci` e `db` em YAML, `uv` em GLSL e WGSL, `in` e `id` em WGSL. Nos 800 exemplos a palavra fica em 1º lugar em 342 casos (339 antes) e entre os 5 primeiros em 456 (444 antes). O primeiro critério do EA_33 era impossível de atingir (a linha de base já era 85%, e eu pedi +15), então o experimento foi fechado e refeito como EA_35 com um critério que dá para cumprir; os números são os mesmos.
-- **Ruído da correção de erro com 3 letras (EA_34).** Não mudou. Com 3 letras digitadas a correção acerta 9 de cada 10 erros e mostra algo sem relação em 3 de cada 10 palavras novas; nenhuma das travas que testei separa os dois sem perder quase toda a correção. Fica como está até haver dados de uso real.
+- **Palavras de 2 letras (EA33 e EA35).** Passaram a ser oferecidas, depois de todas as palavras mais longas. Os casos que não tinham solução na revisão agora têm: `id` depois de `c.` e `p.` ([SQL-5](sql.md#sql-5), [SQL-86](sql.md#sql-86)), `ci` e `db` em YAML, `uv` em GLSL e WGSL, `in` e `id` em WGSL. Nos 800 exemplos a palavra fica em 1º lugar em 342 casos (339 antes) e entre os 5 primeiros em 456 (444 antes). O primeiro critério do EA33 era impossível de atingir (a linha de base já era 85%, e eu pedi +15), então o experimento foi fechado e refeito como EA35 com um critério que dá para cumprir; os números são os mesmos.
+- **Ruído da correção de erro com 3 letras (EA34).** Não mudou. Com 3 letras digitadas a correção acerta 9 de cada 10 erros e mostra algo sem relação em 3 de cada 10 palavras novas; nenhuma das travas que testei separa os dois sem perder quase toda a correção. Fica como está até haver dados de uso real.
 
 ## Quarta rodada: o vocabulário que faltava
 
@@ -90,5 +90,5 @@ Como foi feito: palavras que a linguagem tem mas o realce não colore (`main`, `
 
 ## O que ainda não foi resolvido
 
-- O ruído da correção de erro em prefixos de 3 letras (EA_34).
+- O ruído da correção de erro em prefixos de 3 letras (EA34).
 - Funções de SQL (`count`, `coalesce`...) já são oferecidas, mas depois das colunas; ainda não há as funções de GLSL além das embutidas que o realce conhece.
