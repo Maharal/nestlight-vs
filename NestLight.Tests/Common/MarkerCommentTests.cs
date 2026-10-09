@@ -89,7 +89,7 @@ namespace NestLight.Tests
     {
         private static MarkerTracker Tracker()
         {
-            return new MarkerTracker(new HostLanguages(Pipeline.Languages));
+            return new MarkerTracker(new AcceptedEmbeddedLanguages(Pipeline.Languages));
         }
 
         private static string Take(string text, string comment, int stringStart)
@@ -159,12 +159,12 @@ namespace NestLight.Tests
         }
     }
 
-    public class HostLanguagesTests
+    public class AcceptedEmbeddedLanguagesTests
     {
         [Fact]
         public void Accepts_known_ids_case_insensitively()
         {
-            var languages = new HostLanguages(Pipeline.Languages);
+            var languages = new AcceptedEmbeddedLanguages(Pipeline.Languages);
             Assert.True(languages.Accepts("html"));
             Assert.True(languages.Accepts("SQL"));
             Assert.False(languages.Accepts("banana"));
@@ -175,7 +175,7 @@ namespace NestLight.Tests
         [Fact]
         public void Excluded_ids_are_rejected_even_when_known()
         {
-            var languages = new HostLanguages(Pipeline.Languages, new[] { "json", "regex" });
+            var languages = new AcceptedEmbeddedLanguages(Pipeline.Languages, new[] { "json", "regex" });
             Assert.False(languages.Accepts("json"));
             Assert.False(languages.Accepts("JSON"));
             Assert.True(languages.Accepts("sql"));

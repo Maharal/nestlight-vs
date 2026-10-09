@@ -39,13 +39,13 @@ namespace NestLight.Common
     /// <summary>A string literal of the host that holds code of another language.</summary>
     internal sealed class EmbeddedString
     {
-        public EmbeddedString(string languageId)
+        public EmbeddedString(string embeddedLanguageId)
         {
-            LanguageId = languageId;
+            EmbeddedLanguageId = embeddedLanguageId;
         }
 
         /// <summary>Lower-case language id or alias that marked the string (<c>html</c>, <c>sql</c>...).</summary>
-        public string LanguageId { get; private set; }
+        public string EmbeddedLanguageId { get; private set; }
 
         /// <summary>First character of the literal, including prefixes and the opening quote.</summary>
         public int OuterStart;

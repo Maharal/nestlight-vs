@@ -36,7 +36,7 @@ namespace NestLight.Experiments
         {
             var outcome = new Outcome();
             var table = new Table("Median time, current engine against the decorated one", "Host", "Marked strings", "Lines", "Current", "With shortcut", "Speed-up");
-            string[] ids = ((LanguageRegistry)NestLightComposition.CreateLanguages()).Ids.ToArray();
+            string[] ids = ((EmbeddedLanguageRegistry)NestLightComposition.CreateEmbeddedLanguages()).Ids.ToArray();
             bool met = true;
             double bestUnmarked = 0, worstMarked = double.MaxValue;
 

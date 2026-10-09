@@ -4,7 +4,7 @@ using NestLight.Common;
 namespace NestLight.Languages
 {
     /// <summary>XML: tags, attributes, comments, CDATA sections, processing instructions and DOCTYPE.</summary>
-    internal sealed class XmlTokenizer : ILanguageTokenizer
+    internal sealed class XmlTokenizer : IEmbeddedLanguageTokenizer
     {
         private const char Mask = TextUtil.Mask;
         private static readonly string[] XmlIds = { "xml" };

@@ -11,7 +11,7 @@ namespace NestLight.Experiments
     internal sealed class ProbeResult
     {
         public HostLanguage Host;
-        public string LanguageId;
+        public string EmbeddedLanguageId;
         public string Word;
         public int PrefixLength;
         /// <summary>Keywords of the language, in the order the engine returns them.</summary>
@@ -32,30 +32,30 @@ namespace NestLight.Experiments
             bool similar = false, int fuzzyBelow = CompletionEngine.DefaultFuzzyBelow, int fuzzyMaxItems = CompletionEngine.DefaultFuzzyMaxItems,
             CompletionFeatures features = null)
         {
-            return new CompletionEngine(NestLightComposition.CreateScanner(host, NestLightComposition.CreateLanguages()), maxItems, minWordLength,
+            return new CompletionEngine(NestLightComposition.CreateScanner(host, NestLightComposition.CreateEmbeddedLanguages()), maxItems, minWordLength,
                 similar ? new BandedPrefixMatcher() : null, fuzzyBelow, fuzzyMaxItems, features: features);
         }
 
-        public static bool IsWordChar(string languageId, char c)
+        public static bool IsWordChar(string embeddedLanguageId, char c)
         {
-            return char.IsLetterOrDigit(c) || c == '_' || Vocabularies.IsExtraWordChar(languageId, c);
+            return char.IsLetterOrDigit(c) || c == '_' || Vocabularies.IsExtraWordChar(embeddedLanguageId, c);
         }
 
-        private static bool IsWordStart(string languageId, char c)
+        private static bool IsWordStart(string embeddedLanguageId, char c)
         {
-            return char.IsLetter(c) || c == '_' || Vocabularies.IsExtraWordChar(languageId, c);
+            return char.IsLetter(c) || c == '_' || Vocabularies.IsExtraWordChar(embeddedLanguageId, c);
         }
 
         /// <summary>The words of text[from, to): where they start and what they are.</summary>
-        public static List<KeyValuePair<int, string>> WordsIn(string text, int from, int to, string languageId)
+        public static List<KeyValuePair<int, string>> WordsIn(string text, int from, int to, string embeddedLanguageId)
         {
             var words = new List<KeyValuePair<int, string>>();
             int i = from;
             while (i < to)
             {
-                if (!IsWordStart(languageId, text[i])) { i++; continue; }
+                if (!IsWordStart(embeddedLanguageId, text[i])) { i++; continue; }
                 int start = i;
-                while (i < to && IsWordChar(languageId, text[i])) i++;
+                while (i < to && IsWordChar(embeddedLanguageId, text[i])) i++;
                 words.Add(new KeyValuePair<int, string>(start, text.Substring(start, i - start)));
             }
             return words;
@@ -70,13 +70,13 @@ namespace NestLight.Experiments
             foreach (CorpusFile file in corpus)
             {
                 CompletionEngine engine = Engine(file.Host);
-                IHostScanner scanner = NestLightComposition.CreateScanner(file.Host, NestLightComposition.CreateLanguages());
+                IHostScanner scanner = NestLightComposition.CreateScanner(file.Host, NestLightComposition.CreateEmbeddedLanguages());
 
                 var occurrences = new List<KeyValuePair<int, string>>();
                 var languages = new List<string>();
                 foreach (EmbeddedString s in scanner.Scan(file.Text))
-                    foreach (var w in WordsIn(file.Text, s.Start, Math.Min(s.End, file.Text.Length), s.LanguageId))
-                        if (w.Value.Length >= 4 && !InInterpolation(s, w.Key)) { occurrences.Add(w); languages.Add(s.LanguageId); }
+                    foreach (var w in WordsIn(file.Text, s.Start, Math.Min(s.End, file.Text.Length), s.EmbeddedLanguageId))
+                        if (w.Value.Length >= 4 && !InInterpolation(s, w.Key)) { occurrences.Add(w); languages.Add(s.EmbeddedLanguageId); }
 
                 int step = Math.Max(1, occurrences.Count / perFile);
                 for (int n = 0; n < occurrences.Count; n += step)
@@ -89,12 +89,12 @@ namespace NestLight.Experiments
                         CompletionSite site = engine.Locate(text, start + k);
                         if (site == null) continue;
 
-                        var result = new ProbeResult { Host = file.Host, LanguageId = site.LanguageId, Word = word, PrefixLength = k };
+                        var result = new ProbeResult { Host = file.Host, EmbeddedLanguageId = site.EmbeddedLanguageId, Word = word, PrefixLength = k };
                         foreach (Suggestion s in engine.Suggest(text, site))
                             (s.Kind == SuggestionKind.Keyword ? result.Keywords : result.Words).Add(s.Text);
 
                         result.Stats = new Dictionary<string, int[]>(StringComparer.Ordinal);
-                        foreach (var w in WordsIn(text, 0, text.Length, site.LanguageId))
+                        foreach (var w in WordsIn(text, 0, text.Length, site.EmbeddedLanguageId))
                         {
                             if (w.Key <= site.Caret && site.Caret <= w.Key + w.Value.Length) continue;
                             int[] stat;
@@ -109,7 +109,7 @@ namespace NestLight.Experiments
                             foreach (EmbeddedString s in scanner.Scan(text))
                             {
                                 bool owner = s.Start <= site.Caret && site.Caret <= Math.Min(s.End, text.Length);
-                                foreach (var w in WordsIn(text, s.Start, Math.Min(s.End, text.Length), s.LanguageId))
+                                foreach (var w in WordsIn(text, s.Start, Math.Min(s.End, text.Length), s.EmbeddedLanguageId))
                                 {
                                     if (w.Key <= site.Caret && site.Caret <= w.Key + w.Value.Length) continue;
                                     result.WordsInEmbedded.Add(w.Value);
@@ -157,10 +157,10 @@ namespace NestLight.Experiments
 
         internal static List<KeyValuePair<int, string>> Sample(CorpusFile file, int perFile, int minLength)
         {
-            IHostScanner scanner = NestLightComposition.CreateScanner(file.Host, NestLightComposition.CreateLanguages());
+            IHostScanner scanner = NestLightComposition.CreateScanner(file.Host, NestLightComposition.CreateEmbeddedLanguages());
             var all = new List<KeyValuePair<int, string>>();
             foreach (EmbeddedString s in scanner.Scan(file.Text))
-                foreach (var w in WordsIn(file.Text, s.Start, Math.Min(s.End, file.Text.Length), s.LanguageId))
+                foreach (var w in WordsIn(file.Text, s.Start, Math.Min(s.End, file.Text.Length), s.EmbeddedLanguageId))
                     if (w.Value.Length >= minLength && !InInterpolation(s, w.Key)) all.Add(w);
             int step = Math.Max(1, all.Count / perFile);
             var picked = new List<KeyValuePair<int, string>>();
@@ -222,11 +222,11 @@ namespace NestLight.Experiments
         }
 
         /// <summary>The words of the text, apart from the one the caret touches, with their number of occurrences and the distance of the nearest one to the caret.</summary>
-        public static void WordFacts(string text, int caret, string languageId, out Dictionary<string, int> counts, out Dictionary<string, int> near)
+        public static void WordFacts(string text, int caret, string embeddedLanguageId, out Dictionary<string, int> counts, out Dictionary<string, int> near)
         {
             counts = new Dictionary<string, int>(StringComparer.Ordinal);
             near = new Dictionary<string, int>(StringComparer.Ordinal);
-            foreach (var w in WordsIn(text, 0, text.Length, languageId))
+            foreach (var w in WordsIn(text, 0, text.Length, embeddedLanguageId))
             {
                 int end = w.Key + w.Value.Length;
                 if (w.Key <= caret && caret <= end) continue;

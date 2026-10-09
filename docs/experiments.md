@@ -164,7 +164,7 @@ Same session, three runs each, on the code of the experiments (`6797746`) and on
 
 **Hypothesis.** `CreateHighlighter` builds all the tokenizers again for every open file, and that cost adds up.
 
-**Test.** `CreateLanguages()` 200 times, and 100 consecutive `CreateHighlighter` calls for each host.
+**Test.** `CreateEmbeddedLanguages()` 200 times, and 100 consecutive `CreateHighlighter` calls for each host.
 
 **Criterion.** Opening a buffer costs less than 1 ms and 1 MB, for every host.
 

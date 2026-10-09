@@ -25,7 +25,7 @@ namespace NestLight.Experiments
 
         private static IEnumerable<Occurrence> Occurrences(IEnumerable<CorpusDocument> documents, string language)
         {
-            ILanguageRegistry languages = NestLightComposition.CreateLanguages();
+            IEmbeddedLanguageRegistry languages = NestLightComposition.CreateEmbeddedLanguages();
             IHostScanner scanner = NestLightComposition.CreateScanner(HostLanguage.JavaScript, languages);
             bool dash = Vocabularies.IsExtraWordChar(language, '-');
             foreach (CorpusDocument doc in documents)
@@ -33,7 +33,7 @@ namespace NestLight.Experiments
                 string text = doc.Text;
                 foreach (EmbeddedString s in scanner.Scan(text))
                 {
-                    if (!Vocabularies.SameLanguage(s.LanguageId, language) && !(language == "html" && s.LanguageId == "svg")) continue;
+                    if (!Vocabularies.SameLanguage(s.EmbeddedLanguageId, language) && !(language == "html" && s.EmbeddedLanguageId == "svg")) continue;
                     int i = s.Start, end = Math.Min(s.End, text.Length);
                     while (i < end)
                     {

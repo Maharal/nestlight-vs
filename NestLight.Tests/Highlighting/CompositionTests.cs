@@ -9,9 +9,9 @@ using Xunit;
 
 namespace NestLight.Tests
 {
-    public class LanguageRegistryTests
+    public class EmbeddedLanguageRegistryTests
     {
-        private sealed class Stub : ILanguageTokenizer
+        private sealed class Stub : IEmbeddedLanguageTokenizer
         {
             private readonly string[] _ids;
             public Stub(params string[] ids) { _ids = ids; }
@@ -23,7 +23,7 @@ namespace NestLight.Tests
         public void Ids_and_aliases_resolve_to_the_same_tokenizer_case_insensitively()
         {
             var stub = new Stub("html", "htm");
-            var registry = new LanguageRegistry(_ => new ILanguageTokenizer[] { stub });
+            var registry = new EmbeddedLanguageRegistry(_ => new IEmbeddedLanguageTokenizer[] { stub });
 
             Assert.Same(stub, registry.Find("html"));
             Assert.Same(stub, registry.Find("HTM"));
@@ -33,7 +33,7 @@ namespace NestLight.Tests
         [Fact]
         public void Unknown_and_null_ids_are_not_found()
         {
-            var registry = new LanguageRegistry(_ => new ILanguageTokenizer[] { new Stub("a") });
+            var registry = new EmbeddedLanguageRegistry(_ => new IEmbeddedLanguageTokenizer[] { new Stub("a") });
             Assert.Null(registry.Find("b"));
             Assert.Null(registry.Find(null));
             Assert.False(registry.IsKnown("b"));
@@ -44,21 +44,21 @@ namespace NestLight.Tests
         public void The_same_id_twice_is_a_configuration_error()
         {
             Assert.Throws<InvalidOperationException>(() =>
-                new LanguageRegistry(_ => new ILanguageTokenizer[] { new Stub("a"), new Stub("A") }));
+                new EmbeddedLanguageRegistry(_ => new IEmbeddedLanguageTokenizer[] { new Stub("a"), new Stub("A") }));
         }
 
         [Fact]
         public void The_factory_receives_the_registry_so_languages_can_delegate_to_each_other()
         {
-            ILanguageRegistry received = null;
-            var registry = new LanguageRegistry(r => { received = r; return new ILanguageTokenizer[0]; });
+            IEmbeddedLanguageRegistry received = null;
+            var registry = new EmbeddedLanguageRegistry(r => { received = r; return new IEmbeddedLanguageTokenizer[0]; });
             Assert.Same(registry, received);
         }
 
         [Fact]
         public void A_factory_is_required()
         {
-            Assert.Throws<ArgumentNullException>(() => new LanguageRegistry(null));
+            Assert.Throws<ArgumentNullException>(() => new EmbeddedLanguageRegistry(null));
         }
     }
 
@@ -86,7 +86,7 @@ namespace NestLight.Tests
         [Fact]
         public void Ten_documented_languages_are_served_by_eleven_tokenizers()
         {
-            var tokenizers = ((LanguageRegistry)Pipeline.Languages).Ids.Select(Pipeline.Languages.Find).Distinct().ToList();
+            var tokenizers = ((EmbeddedLanguageRegistry)Pipeline.Languages).Ids.Select(Pipeline.Languages.Find).Distinct().ToList();
             Assert.Equal(11, tokenizers.Count); // ten README rows, shaders being two tokenizers (glsl, wgsl)
         }
 
@@ -111,7 +111,7 @@ namespace NestLight.Tests
         [Fact]
         public void Each_call_builds_independent_object_graphs()
         {
-            Assert.NotSame(NestLightComposition.CreateLanguages(), NestLightComposition.CreateLanguages());
+            Assert.NotSame(NestLightComposition.CreateEmbeddedLanguages(), NestLightComposition.CreateEmbeddedLanguages());
         }
 
         [Fact]
@@ -124,7 +124,7 @@ namespace NestLight.Tests
             Assert.Throws<ArgumentNullException>(() => new NestLight.Hosts.PythonHostScanner(null));
             Assert.Throws<ArgumentNullException>(() => new NestLight.Hosts.CppHostScanner(null));
             Assert.Throws<ArgumentNullException>(() => new NestLight.Languages.HtmlTokenizer(null));
-            Assert.Throws<ArgumentNullException>(() => new HostLanguages(null));
+            Assert.Throws<ArgumentNullException>(() => new AcceptedEmbeddedLanguages(null));
         }
     }
 

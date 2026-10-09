@@ -8,7 +8,7 @@ namespace NestLight.Languages
     /// YAML: keys, scalars, anchors / aliases / tags and comments. Works one line at a time, remembering
     /// only the block scalars (<c>|</c> and <c>&gt;</c>) whose lines are indented under their key.
     /// </summary>
-    internal sealed class YamlTokenizer : ILanguageTokenizer
+    internal sealed class YamlTokenizer : IEmbeddedLanguageTokenizer
     {
         private static readonly string[] YamlIds = { "yaml", "yml" };
 

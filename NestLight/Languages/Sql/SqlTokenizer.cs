@@ -5,7 +5,7 @@ using NestLight.Common;
 namespace NestLight.Languages
 {
     /// <summary>SQL: keywords, identifiers (bare and quoted), literals, operators and comments.</summary>
-    internal sealed class SqlTokenizer : ILanguageTokenizer
+    internal sealed class SqlTokenizer : IEmbeddedLanguageTokenizer
     {
         private const char Mask = TextUtil.Mask;
         private static readonly string[] SqlIds = { "sql" };

@@ -10,7 +10,7 @@ namespace NestLight.Languages
     /// &lt;style&gt; blocks and style="..." attributes inside HTML templates.
     /// Recognizes nesting (CSS nesting), at-rules, selectors, properties and values.
     /// </summary>
-    internal sealed class CssTokenizer : ILanguageTokenizer
+    internal sealed class CssTokenizer : IEmbeddedLanguageTokenizer
     {
         private const char Mask = TextUtil.Mask;
 

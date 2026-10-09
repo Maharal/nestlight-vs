@@ -11,9 +11,9 @@ namespace NestLight.Hosts
     /// </summary>
     internal sealed class CSharpHostScanner : IHostScanner
     {
-        private readonly HostLanguages _languages;
+        private readonly AcceptedEmbeddedLanguages _languages;
 
-        public CSharpHostScanner(HostLanguages languages)
+        public CSharpHostScanner(AcceptedEmbeddedLanguages languages)
         {
             if (languages == null) throw new ArgumentNullException("languages");
             _languages = languages;
@@ -32,10 +32,10 @@ namespace NestLight.Hosts
             private readonly string _t;
             private readonly List<EmbeddedString> _result;
             private readonly MarkerTracker _markers;
-            private readonly HostLanguages _languages;
+            private readonly AcceptedEmbeddedLanguages _languages;
             private int _i;
 
-            public Run(string text, HostLanguages languages, List<EmbeddedString> result)
+            public Run(string text, AcceptedEmbeddedLanguages languages, List<EmbeddedString> result)
             {
                 _t = text;
                 _languages = languages;

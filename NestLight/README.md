@@ -20,7 +20,7 @@ Dependencies are passed through constructors. Only `VisualStudio/` references th
 Tools > Options > Environment > Fonts and Colors > "Text Editor" > items "Template <Language> ...".
 
 ## Adding a language
-1. Write a tokenizer in `Languages/` (`ILanguageTokenizer`) and add it to `NestLightComposition.CreateLanguages`.
+1. Write a tokenizer in `Languages/` (`IEmbeddedLanguageTokenizer`) and add it to `NestLightComposition.CreateEmbeddedLanguages`.
 2. Add its names to `Common/ClassificationNames.cs` and declare the types and default colors in `VisualStudio/`.
    A test fails until every name has both.
 

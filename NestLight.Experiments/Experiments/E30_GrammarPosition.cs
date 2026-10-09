@@ -37,7 +37,7 @@ namespace NestLight.Experiments
 
             double gain = c.Rate(3, p => true, 5) - c.Rate(2, p => true, 5);
             var languages = new[] { "sql", "css", "html" };
-            double worstLanguage = languages.Select(id => c.Rate(3, p => p.LanguageId == id, 5) - c.Rate(2, p => p.LanguageId == id, 5)).Min();
+            double worstLanguage = languages.Select(id => c.Rate(3, p => p.EmbeddedLanguageId == id, 5) - c.Rate(2, p => p.EmbeddedLanguageId == id, 5)).Min();
             outcome.CriterionMet = gain >= 2 && worstLanguage >= 0 && worst < 16;
             outcome.Headline = "within the first 5: " + ContextLab.Pct(c.Rate(2, p => true, 5)) + " to " + ContextLab.Pct(c.Rate(3, p => true, 5)) + " (" + ContextLab.Signed(gain) + " points); worst session " + Measure.Ms(worst);
             outcome.Analysis.Add("The grammar alone moves the share within the first 5 from " + ContextLab.Pct(c.Rate(0, p => true, 5)) + " to " + ContextLab.Pct(c.Rate(1, p => true, 5)) + "; added to the previous word and the language, " + ContextLab.Signed(gain) + " points; the worst of SQL, CSS and HTML changes by " + ContextLab.Signed(worstLanguage) + " points.");

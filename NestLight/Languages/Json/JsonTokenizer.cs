@@ -4,7 +4,7 @@ using NestLight.Common;
 namespace NestLight.Languages
 {
     /// <summary>JSON: keys, strings, numbers, literals (<c>true</c>, <c>false</c>, <c>null</c>) and punctuation.</summary>
-    internal sealed class JsonTokenizer : ILanguageTokenizer
+    internal sealed class JsonTokenizer : IEmbeddedLanguageTokenizer
     {
         private static readonly string[] JsonIds = { "json" };
 

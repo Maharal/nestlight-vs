@@ -58,8 +58,8 @@ namespace NestLight.Experiments
 
             int winner = Enumerable.Range(1, 4).OrderByDescending(v => middle.Rate(v, p => true, 5)).ThenBy(v => v).First();
             double gain = middle.Rate(winner, p => true, 5) - middle.Rate(0, p => true, 5);
-            double worstLanguage = middle.Probes.Where(p => p.Reachable).Select(p => p.LanguageId).Distinct()
-                .Select(id => middle.Rate(winner, p => p.LanguageId == id, 5) - middle.Rate(0, p => p.LanguageId == id, 5)).Min();
+            double worstLanguage = middle.Probes.Where(p => p.Reachable).Select(p => p.EmbeddedLanguageId).Distinct()
+                .Select(id => middle.Rate(winner, p => p.EmbeddedLanguageId == id, 5) - middle.Rate(0, p => p.EmbeddedLanguageId == id, 5)).Min();
             outcome.CriterionMet = gain >= 1.5 && worstLocality >= -1 && worstLanguage >= -1 && worst < 16;
             outcome.Headline = "best order (" + names[winner] + ") within the first 5: " + ContextLab.Pct(middle.Rate(0, p => true, 5)) + " to " + ContextLab.Pct(middle.Rate(winner, p => true, 5)) + " (" + ContextLab.Signed(gain) + " points) at locality 0.5; worst session " + Measure.Ms(worst);
             outcome.Analysis.Add("At locality 0.5 the best order is " + names[winner] + ": " + ContextLab.Signed(gain) + " points within the first 5; the worst language changes by " + ContextLab.Signed(worstLanguage) + " points; across the three localities the smallest advantage of the best order over distance alone is " + ContextLab.Signed(worstLocality) + " points.");

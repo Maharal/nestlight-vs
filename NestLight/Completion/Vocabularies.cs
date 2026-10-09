@@ -35,10 +35,10 @@ namespace NestLight.Completion
         }
 
         /// <summary>The keywords of the language, sorted; empty when it has no closed vocabulary (XML, Markdown, regex).</summary>
-        public static IReadOnlyList<string> For(string languageId)
+        public static IReadOnlyList<string> For(string embeddedLanguageId)
         {
             IReadOnlyList<string> words;
-            return languageId != null && ById.TryGetValue(languageId, out words) ? words : new string[0];
+            return embeddedLanguageId != null && ById.TryGetValue(embeddedLanguageId, out words) ? words : new string[0];
         }
 
         // words that are offered but not colored: the tokenizers know them as plain identifiers or by a prefix, so they are not in For()
@@ -54,30 +54,30 @@ namespace NestLight.Completion
         /// The words the completion offers for the language: the vocabulary and the words that the tokenizers do not color (<c>main</c>, the
         /// <c>gl_</c> variables of GLSL), sorted. <see cref="For"/> stays the colored vocabulary.
         /// </summary>
-        public static IReadOnlyList<string> ForCompletion(string languageId)
+        public static IReadOnlyList<string> ForCompletion(string embeddedLanguageId)
         {
-            IReadOnlyList<string> words = For(languageId);
+            IReadOnlyList<string> words = For(embeddedLanguageId);
             string[] extra;
-            if (languageId == null || !Extra.TryGetValue(languageId, out extra)) return words;
+            if (embeddedLanguageId == null || !Extra.TryGetValue(embeddedLanguageId, out extra)) return words;
             lock (Merged)
             {
                 IReadOnlyList<string> merged;
-                if (Merged.TryGetValue(languageId.ToLowerInvariant(), out merged)) return merged;
+                if (Merged.TryGetValue(embeddedLanguageId.ToLowerInvariant(), out merged)) return merged;
                 var list = new List<string>(words);
                 foreach (string w in extra) if (!list.Contains(w, StringComparer.OrdinalIgnoreCase)) list.Add(w);
                 list.Sort(StringComparer.OrdinalIgnoreCase);
-                Merged[languageId.ToLowerInvariant()] = list;
+                Merged[embeddedLanguageId.ToLowerInvariant()] = list;
                 return list;
             }
         }
 
         /// <summary>Like <see cref="Find"/>, over the words the completion offers.</summary>
-        public static string FindInCompletion(string languageId, string word)
+        public static string FindInCompletion(string embeddedLanguageId, string word)
         {
-            string colored = Find(languageId, word);
+            string colored = Find(embeddedLanguageId, word);
             if (colored != null) return colored;
             string[] extra;
-            if (languageId == null || !Extra.TryGetValue(languageId, out extra)) return null;
+            if (embeddedLanguageId == null || !Extra.TryGetValue(embeddedLanguageId, out extra)) return null;
             return extra.FirstOrDefault(w => string.Equals(w, word, StringComparison.OrdinalIgnoreCase));
         }
 
@@ -90,10 +90,10 @@ namespace NestLight.Completion
         }
 
         /// <summary>The keyword of the language that is spelled like the word, ignoring case, in the spelling of the vocabulary; null when there is none.</summary>
-        public static string Find(string languageId, string word)
+        public static string Find(string embeddedLanguageId, string word)
         {
             IReadOnlyList<string> words;
-            if (languageId == null || !ById.TryGetValue(languageId, out words)) return null;
+            if (embeddedLanguageId == null || !ById.TryGetValue(embeddedLanguageId, out words)) return null;
             Dictionary<string, string> index;
             lock (Indexes)
             {
@@ -112,16 +112,16 @@ namespace NestLight.Completion
             new Dictionary<IReadOnlyList<string>, Dictionary<string, string>>();
 
         /// <summary>SQL is case-insensitive, so the keyword follows the case the user is typing.</summary>
-        public static bool FollowsTypedCase(string languageId)
+        public static bool FollowsTypedCase(string embeddedLanguageId)
         {
-            return string.Equals(languageId, "sql", StringComparison.OrdinalIgnoreCase);
+            return string.Equals(embeddedLanguageId, "sql", StringComparison.OrdinalIgnoreCase);
         }
 
         /// <summary>Characters, besides letters, digits and the underscore, that belong to a word of the language.</summary>
-        public static bool IsExtraWordChar(string languageId, char c)
+        public static bool IsExtraWordChar(string embeddedLanguageId, char c)
         {
             if (c != '-') return false;
-            switch ((languageId ?? "").ToLowerInvariant())
+            switch ((embeddedLanguageId ?? "").ToLowerInvariant())
             {
                 case "html": case "htm": case "svg": case "css": case "yaml": case "yml": return true;
                 default: return false;

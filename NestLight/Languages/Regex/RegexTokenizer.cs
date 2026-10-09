@@ -4,7 +4,7 @@ using NestLight.Common;
 namespace NestLight.Languages
 {
     /// <summary>Regular expressions: groups, character classes, quantifiers, escapes and anchors.</summary>
-    internal sealed class RegexTokenizer : ILanguageTokenizer
+    internal sealed class RegexTokenizer : IEmbeddedLanguageTokenizer
     {
         private static readonly string[] RegexIds = { "regex", "regexp" };
 

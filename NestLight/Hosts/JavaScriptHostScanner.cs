@@ -11,9 +11,9 @@ namespace NestLight.Hosts
     /// </summary>
     internal sealed class JavaScriptHostScanner : IHostScanner
     {
-        private readonly HostLanguages _languages;
+        private readonly AcceptedEmbeddedLanguages _languages;
 
-        public JavaScriptHostScanner(HostLanguages languages)
+        public JavaScriptHostScanner(AcceptedEmbeddedLanguages languages)
         {
             if (languages == null) throw new ArgumentNullException("languages");
             _languages = languages;
@@ -31,12 +31,12 @@ namespace NestLight.Hosts
         private sealed class Run
         {
             private readonly string _t;
-            private readonly HostLanguages _languages;
+            private readonly AcceptedEmbeddedLanguages _languages;
             private readonly List<EmbeddedString> _result;
             private readonly MarkerTracker _markers;
             private int _i;
 
-            public Run(string text, HostLanguages languages, List<EmbeddedString> result)
+            public Run(string text, AcceptedEmbeddedLanguages languages, List<EmbeddedString> result)
             {
                 _t = text;
                 _languages = languages;

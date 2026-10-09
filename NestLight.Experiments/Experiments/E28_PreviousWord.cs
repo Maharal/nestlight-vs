@@ -30,8 +30,8 @@ namespace NestLight.Experiments
             outcome.Tables.Add(ContextLab.Latency(settings, names, factories, "comp", out worst, out worstCase));
 
             double gain = c.Rate(1, p => true, 5) - c.Rate(0, p => true, 5);
-            double worstLanguage = c.Probes.Where(p => p.Reachable).Select(p => p.LanguageId).Distinct()
-                .Select(id => c.Rate(1, p => p.LanguageId == id, 5) - c.Rate(0, p => p.LanguageId == id, 5)).Min();
+            double worstLanguage = c.Probes.Where(p => p.Reachable).Select(p => p.EmbeddedLanguageId).Distinct()
+                .Select(id => c.Rate(1, p => p.EmbeddedLanguageId == id, 5) - c.Rate(0, p => p.EmbeddedLanguageId == id, 5)).Min();
             outcome.CriterionMet = gain >= 3 && worstLanguage >= -1 && worst < 16;
             outcome.Headline = "within the first 5: " + ContextLab.Pct(c.Rate(0, p => true, 5)) + " to " + ContextLab.Pct(c.Rate(1, p => true, 5)) + " (" + ContextLab.Signed(gain) + " points); worst session " + Measure.Ms(worst);
             outcome.Analysis.Add("The gain over all the reachable cases is " + ContextLab.Signed(gain) + " points within the first 5; the worst language changes by " + ContextLab.Signed(worstLanguage) + " points.");

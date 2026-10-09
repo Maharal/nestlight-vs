@@ -33,7 +33,7 @@ namespace NestLight.Tests
         {
             string code;
             CompletionSite site = Site(codeWithCaret, out code);
-            return site == null ? null : site.LanguageId;
+            return site == null ? null : site.EmbeddedLanguageId;
         }
 
         private static string Place(string codeWithCaret)

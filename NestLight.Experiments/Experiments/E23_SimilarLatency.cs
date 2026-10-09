@@ -85,7 +85,7 @@ namespace NestLight.Experiments
                             int similar = 0;
                             foreach (bool on in new[] { false, true })
                             {
-                                ILanguageRegistry languages = NestLightComposition.CreateLanguages();
+                                IEmbeddedLanguageRegistry languages = NestLightComposition.CreateEmbeddedLanguages();
                                 var scanner = new CachingHostScanner(NestLightComposition.CreateScanner(host, languages));
                                 var highlighter = new HighlightEngine(scanner, languages);
                                 var engine = new CompletionEngine(scanner, CompletionEngine.DefaultMaxItems, CompletionEngine.DefaultMinWordLength,

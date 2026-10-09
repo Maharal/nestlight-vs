@@ -100,7 +100,7 @@ namespace NestLight.Experiments
                     return 1;
                 }
                 string typed = text.Substring(site.Start, site.PrefixLength);
-                if (typed.Any(c => !CompletionLab.IsWordChar(site.LanguageId, c)))
+                if (typed.Any(c => !CompletionLab.IsWordChar(site.EmbeddedLanguageId, c)))
                     Violation(violations, examples, "the prefix holds a character that is not a word character", file, text, caret);
 
                 IReadOnlyList<Suggestion> items = engine.Suggest(text, site);

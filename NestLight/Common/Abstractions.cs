@@ -13,7 +13,7 @@ namespace NestLight.Common
     }
 
     /// <summary>Tokenizes the code of an embedded language.</summary>
-    internal interface ILanguageTokenizer
+    internal interface IEmbeddedLanguageTokenizer
     {
         /// <summary>Lower-case ids and aliases that select this language.</summary>
         IReadOnlyList<string> Ids { get; }
@@ -26,12 +26,12 @@ namespace NestLight.Common
     }
 
     /// <summary>Maps language ids and aliases to tokenizers.</summary>
-    internal interface ILanguageRegistry
+    internal interface IEmbeddedLanguageRegistry
     {
         bool IsKnown(string id);
 
         /// <summary>The tokenizer for the id, or null when unknown. Ids are case-insensitive.</summary>
-        ILanguageTokenizer Find(string id);
+        IEmbeddedLanguageTokenizer Find(string id);
     }
 
     /// <summary>Turns a text into classification tokens.</summary>

@@ -41,7 +41,7 @@ namespace NestLight.Experiments
 
         private sealed class Found { public int Start, End; public string Type; }
 
-        private static List<Found> Tokens(ILanguageTokenizer tokenizer, string text)
+        private static List<Found> Tokens(IEmbeddedLanguageTokenizer tokenizer, string text)
         {
             var tokens = new List<Found>();
             char[] chars = text.ToCharArray();
@@ -49,7 +49,7 @@ namespace NestLight.Experiments
             return tokens;
         }
 
-        private static string TypeOfWord(ILanguageTokenizer tokenizer, string context, string word, out bool whole)
+        private static string TypeOfWord(IEmbeddedLanguageTokenizer tokenizer, string context, string word, out bool whole)
         {
             int at = context.IndexOf("{0}", StringComparison.Ordinal);
             string text = context.Replace("{0}", word);
@@ -61,14 +61,14 @@ namespace NestLight.Experiments
         public override Outcome Run(Settings settings)
         {
             var outcome = new Outcome();
-            ILanguageRegistry registry = NestLightComposition.CreateLanguages();
+            IEmbeddedLanguageRegistry registry = NestLightComposition.CreateEmbeddedLanguages();
             var table = new Table("Vocabulary against the tokenizer", "Language", "Words", "One token", "Classified as expected", "Examples that failed");
             bool met = true;
 
             foreach (Spec spec in Specs)
                 foreach (string id in spec.Ids)
                 {
-                    ILanguageTokenizer tokenizer = registry.Find(id);
+                    IEmbeddedLanguageTokenizer tokenizer = registry.Find(id);
                     IReadOnlyList<string> words = Vocabularies.For(id);
                     int whole = 0, expected = 0;
                     var failures = new List<string>();

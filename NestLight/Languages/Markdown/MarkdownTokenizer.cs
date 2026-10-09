@@ -7,7 +7,7 @@ namespace NestLight.Languages
     /// Markdown: headings, emphasis and strong text, code spans and fenced blocks, links and list markers.
     /// Block rules look at one line at a time; inline rules never cross a line.
     /// </summary>
-    internal sealed class MarkdownTokenizer : ILanguageTokenizer
+    internal sealed class MarkdownTokenizer : IEmbeddedLanguageTokenizer
     {
         private static readonly string[] MarkdownIds = { "markdown", "md" };
 

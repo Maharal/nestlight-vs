@@ -9,14 +9,14 @@ namespace NestLight.Languages
     /// text, tag name, attribute name, value... CSS in &lt;style&gt; blocks and style="..." attributes is
     /// delegated to the CSS tokenizer of the registry.
     /// </summary>
-    internal sealed class HtmlTokenizer : ILanguageTokenizer
+    internal sealed class HtmlTokenizer : IEmbeddedLanguageTokenizer
     {
         private const char Mask = TextUtil.Mask;
         private static readonly string[] HtmlIds = { "html", "htm", "svg" };
 
-        private readonly ILanguageRegistry _languages;
+        private readonly IEmbeddedLanguageRegistry _languages;
 
-        public HtmlTokenizer(ILanguageRegistry languages)
+        public HtmlTokenizer(IEmbeddedLanguageRegistry languages)
         {
             if (languages == null) throw new ArgumentNullException("languages");
             _languages = languages;
@@ -125,7 +125,7 @@ namespace NestLight.Languages
 
         private void Embedded(string id, char[] m, int from, int to, TokenSink add)
         {
-            ILanguageTokenizer tokenizer = _languages.Find(id);
+            IEmbeddedLanguageTokenizer tokenizer = _languages.Find(id);
             if (tokenizer != null && to > from) tokenizer.Tokenize(m, from, to, add);
         }
 

@@ -30,13 +30,13 @@ namespace NestLight.Completion
     /// <summary>Where a completion applies: the word under the caret inside an embedded string.</summary>
     internal sealed class CompletionSite
     {
-        public CompletionSite(string languageId, int start, int caret, int end, int ownerStart = -1, int ownerEnd = -1, bool inlineDeclarations = false)
+        public CompletionSite(string embeddedLanguageId, int start, int caret, int end, int ownerStart = -1, int ownerEnd = -1, bool inlineDeclarations = false)
         {
-            LanguageId = languageId; Start = start; Caret = caret; End = end; OwnerStart = ownerStart; OwnerEnd = ownerEnd; InlineDeclarations = inlineDeclarations;
+            EmbeddedLanguageId = embeddedLanguageId; Start = start; Caret = caret; End = end; OwnerStart = ownerStart; OwnerEnd = ownerEnd; InlineDeclarations = inlineDeclarations;
         }
 
         /// <summary>Lower-case id or alias of the embedded language.</summary>
-        public string LanguageId { get; private set; }
+        public string EmbeddedLanguageId { get; private set; }
         /// <summary>First character of the word (the replaced span is [Start, End)).</summary>
         public int Start { get; private set; }
         public int Caret { get; private set; }
@@ -138,7 +138,7 @@ namespace NestLight.Completion
             foreach (Interpolation x in owner.Interpolations)
                 if (x.Start < caret && caret < x.End) return null; // the host language owns the expression
 
-            string id = owner.LanguageId;
+            string id = owner.EmbeddedLanguageId;
             int ownerStart = owner.Start, limit = Math.Min(owner.End, text.Length);
             bool inline = false;
             NestedLanguages.CssRange css;
@@ -180,7 +180,7 @@ namespace NestLight.Completion
             string prefix = text.Substring(site.Start, site.PrefixLength);
             var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
-            bool upper = Vocabularies.FollowsTypedCase(site.LanguageId) && prefix.Length > 0 && !HasLower(prefix);
+            bool upper = Vocabularies.FollowsTypedCase(site.EmbeddedLanguageId) && prefix.Length > 0 && !HasLower(prefix);
 
             // the place of the caret and the schema of the document come first, then the words that followed the same word before;
             // with the features off nothing is scanned before the keywords
@@ -200,12 +200,12 @@ namespace NestLight.Completion
             if (schema != null && place.Role == PlaceRole.Table) AddCandidates(schema, prefix, seen, result);
 
             // what the grammar expects at the caret, then (where the place says so) the words of the document, then the other keywords
-            if (position != null) AddExpected(position.PriorOrder ? _features.OrderByUse(site.LanguageId, position.Expected) : position.Expected, site, prefix, upper, seen, result);
+            if (position != null) AddExpected(position.PriorOrder ? _features.OrderByUse(site.EmbeddedLanguageId, position.Expected) : position.Expected, site, prefix, upper, seen, result);
             bool wordsFirst = position != null ? position.WordsFirst : _features.WordsBeforeKeywords;
             if (wordsFirst && position == null && _features.HeadKeywords > 0)
             {
                 // the most used keywords still go first where the words of the file do
-                foreach (string word in _features.OrderKeywords(site.LanguageId, Vocabularies.ForCompletion(site.LanguageId)).Take(_features.HeadKeywords))
+                foreach (string word in _features.OrderKeywords(site.EmbeddedLanguageId, Vocabularies.ForCompletion(site.EmbeddedLanguageId)).Take(_features.HeadKeywords))
                 {
                     if (result.Count >= _maxItems) return result;
                     if (!StartsWithIgnoreCase(word, prefix) || word.Length == prefix.Length) continue;
@@ -216,7 +216,7 @@ namespace NestLight.Completion
             if (position != null && position.Secondary.Count > 0) AddExpected(position.Secondary, site, prefix, upper, seen, result);
 
             List<string> unlikely = null;
-            foreach (string word in position != null && position.OnlyWords ? new string[0] : _features.OrderKeywords(site.LanguageId, Vocabularies.ForCompletion(site.LanguageId)))
+            foreach (string word in position != null && position.OnlyWords ? new string[0] : _features.OrderKeywords(site.EmbeddedLanguageId, Vocabularies.ForCompletion(site.EmbeddedLanguageId)))
             {
                 if (result.Count >= _maxItems) return result;
                 if (!StartsWithIgnoreCase(word, prefix) || word.Length == prefix.Length) continue;
@@ -256,7 +256,7 @@ namespace NestLight.Completion
         /// <summary>The words that the schema of the document says belong here, in order; null when it knows nothing for this place.</summary>
         private List<string> SchemaWords(string text, CompletionSite site, Position place, int[] scope)
         {
-            if (!Vocabularies.SameLanguage(site.LanguageId, "sql")) return null;
+            if (!Vocabularies.SameLanguage(site.EmbeddedLanguageId, "sql")) return null;
             int[] ranges = scope ?? CodeRanges(text, site);
             SqlSchema.Statement current;
             SqlSchema schema = SqlSchema.Read(text, ranges, Math.Max(0, site.Caret - WordScanWindow), Math.Min(text.Length, site.Caret + WordScanWindow), site.Start, site.End, out current);
@@ -300,7 +300,7 @@ namespace NestLight.Completion
             {
                 if (result.Count >= _maxItems) return;
                 if (!StartsWithIgnoreCase(expected, prefix) || expected.Length == prefix.Length) continue;
-                string word = Vocabularies.FindInCompletion(site.LanguageId, expected) ?? expected;
+                string word = Vocabularies.FindInCompletion(site.EmbeddedLanguageId, expected) ?? expected;
                 if (seen.Add(word)) result.Add(new Suggestion(upper ? word.ToUpperInvariant() : word, SuggestionKind.Keyword));
             }
         }
@@ -341,7 +341,7 @@ namespace NestLight.Completion
             int capacity = limit + result.Count;
             var best = new List<Similar>(capacity + 1);
 
-            foreach (string word in !keywords || shortPrefix && _features.ShortSimilarFromFileOnly ? new string[0] : Vocabularies.ForCompletion(site.LanguageId))
+            foreach (string word in !keywords || shortPrefix && _features.ShortSimilarFromFileOnly ? new string[0] : Vocabularies.ForCompletion(site.EmbeddedLanguageId))
             {
                 if (++examined % CancellationStride == 0) cancellation.ThrowIfCancellationRequested();
                 if (word.Length < n - k) continue;
@@ -354,7 +354,7 @@ namespace NestLight.Completion
             // the words of the document: one pass, the same window and the same word rules as the first stage
             int from = Math.Max(0, site.Caret - WordScanWindow);
             int to = Math.Min(text.Length, site.Caret + WordScanWindow);
-            bool dash = Vocabularies.IsExtraWordChar(site.LanguageId, '-');
+            bool dash = Vocabularies.IsExtraWordChar(site.EmbeddedLanguageId, '-');
             var known = new Dictionary<int, Similar>();
             int i = from;
             while (i < to)
@@ -463,7 +463,7 @@ namespace NestLight.Completion
             int i = site.Start;
             var separator = new char[MaxSeparator];
             int count = 0;
-            while (i > floor && !IsWordChar(site.LanguageId, text[i - 1]))
+            while (i > floor && !IsWordChar(site.EmbeddedLanguageId, text[i - 1]))
             {
                 char c = text[i - 1];
                 if (!char.IsWhiteSpace(c))
@@ -474,8 +474,8 @@ namespace NestLight.Completion
                 i--;
             }
             int end = i;
-            while (i > floor && IsWordChar(site.LanguageId, text[i - 1])) i--;
-            if (end == i || !IsWordStart(site.LanguageId, text[i])) return default(PreviousContext);
+            while (i > floor && IsWordChar(site.EmbeddedLanguageId, text[i - 1])) i--;
+            if (end == i || !IsWordStart(site.EmbeddedLanguageId, text[i])) return default(PreviousContext);
             return new PreviousContext { Has = true, Start = i, Length = end - i, Separator = new string(separator, MaxSeparator - count, count) };
         }
 
@@ -517,11 +517,11 @@ namespace NestLight.Completion
         private int[] CodeRanges(string text, CompletionSite site)
         {
             var pieces = new List<KeyValuePair<int, int>>();
-            bool css = Vocabularies.SameLanguage(site.LanguageId, "css");
+            bool css = Vocabularies.SameLanguage(site.EmbeddedLanguageId, "css");
             foreach (EmbeddedString s in _scanner.Scan(text))
             {
-                if (Vocabularies.SameLanguage(s.LanguageId, site.LanguageId)) AddPieces(pieces, s, s.Start, Math.Min(s.End, text.Length));
-                else if (css && Vocabularies.SameLanguage(s.LanguageId, "html"))
+                if (Vocabularies.SameLanguage(s.EmbeddedLanguageId, site.EmbeddedLanguageId)) AddPieces(pieces, s, s.Start, Math.Min(s.End, text.Length));
+                else if (css && Vocabularies.SameLanguage(s.EmbeddedLanguageId, "html"))
                     foreach (NestedLanguages.CssRange r in NestedLanguages.CssIn(text, s)) AddPieces(pieces, s, r.Start, r.End); // the CSS inside the HTML
             }
             pieces.Sort((a, b) => a.Key.CompareTo(b.Key));
@@ -544,7 +544,7 @@ namespace NestLight.Completion
             var scan = new WordScan(context.Has);
             int from = Math.Max(0, site.Caret - WordScanWindow);
             int to = Math.Min(text.Length, site.Caret + WordScanWindow);
-            bool dash = Vocabularies.IsExtraWordChar(site.LanguageId, '-');
+            bool dash = Vocabularies.IsExtraWordChar(site.EmbeddedLanguageId, '-');
 
             // a short word is only worth offering where the context says it belongs (the BY after GROUP)
             int shortest = context.Has || _features.ShortWordsLast ? Math.Min(_minWordLength, FollowMinWordLength) : _minWordLength;
@@ -607,7 +607,7 @@ namespace NestLight.Completion
             {
                 string word = text.Substring(m.Start, m.Length);
                 if (!seen.Add(word)) continue;
-                string keyword = Vocabularies.FindInCompletion(site.LanguageId, word);
+                string keyword = Vocabularies.FindInCompletion(site.EmbeddedLanguageId, word);
                 result.Add(keyword != null
                     ? new Suggestion(upper ? keyword.ToUpperInvariant() : keyword, SuggestionKind.Keyword)
                     : new Suggestion(word, SuggestionKind.Word));
@@ -737,14 +737,14 @@ namespace NestLight.Completion
 
         // ---- characters -----------------------------------------------------------------------------------------
 
-        private static bool IsWordStart(string languageId, char c)
+        private static bool IsWordStart(string embeddedLanguageId, char c)
         {
-            return char.IsLetter(c) || c == '_' || Vocabularies.IsExtraWordChar(languageId, c);
+            return char.IsLetter(c) || c == '_' || Vocabularies.IsExtraWordChar(embeddedLanguageId, c);
         }
 
-        private static bool IsWordChar(string languageId, char c)
+        private static bool IsWordChar(string embeddedLanguageId, char c)
         {
-            return char.IsLetterOrDigit(c) || c == '_' || Vocabularies.IsExtraWordChar(languageId, c);
+            return char.IsLetterOrDigit(c) || c == '_' || Vocabularies.IsExtraWordChar(embeddedLanguageId, c);
         }
 
         private static bool HasLower(string s)

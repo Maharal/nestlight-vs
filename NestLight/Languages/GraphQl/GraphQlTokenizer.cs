@@ -9,7 +9,7 @@ namespace NestLight.Languages
     /// A small amount of context decides what a name is (an argument before a colon inside parentheses,
     /// a type after <c>on</c> or after the colon of a variable or of a schema field...).
     /// </summary>
-    internal sealed class GraphQlTokenizer : ILanguageTokenizer
+    internal sealed class GraphQlTokenizer : IEmbeddedLanguageTokenizer
     {
         private static readonly string[] GraphQlIds = { "graphql", "gql" };
 

@@ -59,13 +59,13 @@ namespace NestLight.Completion
         {
             if (text == null || site == null || site.Start > text.Length) return null;
             int floor = Math.Max(site.OwnerStart >= 0 ? site.OwnerStart : 0, site.Start - Reach);
-            if (Vocabularies.SameLanguage(site.LanguageId, "sql")) return Sql(text, floor, site);
-            if (Vocabularies.SameLanguage(site.LanguageId, "css")) return Css(text, floor, site);
-            if (Vocabularies.SameLanguage(site.LanguageId, "html")) return Html(text, floor, site);
-            if (Vocabularies.SameLanguage(site.LanguageId, "json")) return Json(text, floor, site);
-            if (Vocabularies.SameLanguage(site.LanguageId, "yaml")) return Yaml(text, floor, site);
-            if (Vocabularies.SameLanguage(site.LanguageId, "glsl")) return Glsl(text, floor, site);
-            if (Vocabularies.SameLanguage(site.LanguageId, "wgsl")) return Wgsl(text, floor, site);
+            if (Vocabularies.SameLanguage(site.EmbeddedLanguageId, "sql")) return Sql(text, floor, site);
+            if (Vocabularies.SameLanguage(site.EmbeddedLanguageId, "css")) return Css(text, floor, site);
+            if (Vocabularies.SameLanguage(site.EmbeddedLanguageId, "html")) return Html(text, floor, site);
+            if (Vocabularies.SameLanguage(site.EmbeddedLanguageId, "json")) return Json(text, floor, site);
+            if (Vocabularies.SameLanguage(site.EmbeddedLanguageId, "yaml")) return Yaml(text, floor, site);
+            if (Vocabularies.SameLanguage(site.EmbeddedLanguageId, "glsl")) return Glsl(text, floor, site);
+            if (Vocabularies.SameLanguage(site.EmbeddedLanguageId, "wgsl")) return Wgsl(text, floor, site);
             return null;
         }
 

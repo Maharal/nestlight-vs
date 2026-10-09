@@ -81,7 +81,7 @@ namespace NestLight.Experiments
                 foreach (var m in probes)
                 {
                     CompletionEngine engine;
-                    if (!engines.TryGetValue("x", out engine)) engines["x"] = engine = variants[v](NestLightComposition.CreateScanner(HostLanguage.JavaScript, NestLightComposition.CreateLanguages()));
+                    if (!engines.TryGetValue("x", out engine)) engines["x"] = engine = variants[v](NestLightComposition.CreateScanner(HostLanguage.JavaScript, NestLightComposition.CreateEmbeddedLanguages()));
                     int bucket = Math.Min(m.Typed.Length, 6) - 3;
                     counts[bucket]++;
                     int rank = CorpusProbes.Rank(engine, m.Probe);
@@ -99,7 +99,7 @@ namespace NestLight.Experiments
             {
                 result[v] = new double[3];
                 var counts = new int[3]; var noisy = new int[3];
-                CompletionEngine engine = variants[v](NestLightComposition.CreateScanner(HostLanguage.JavaScript, NestLightComposition.CreateLanguages()));
+                CompletionEngine engine = variants[v](NestLightComposition.CreateScanner(HostLanguage.JavaScript, NestLightComposition.CreateEmbeddedLanguages()));
                 foreach (CorpusProbe p in probes)
                 {
                     CompletionSite site = engine.Locate(p.Text, p.Caret);

@@ -36,8 +36,8 @@ namespace NestLight.Experiments
             outcome.Tables.Add(ContextLab.Latency(settings, names, factories, "comp", out worst, out worstCase));
 
             double gain = c.Rate(3, p => true, 5) - c.Rate(2, p => true, 5);
-            double worstLanguage = c.Probes.Where(p => p.Reachable).Select(p => p.LanguageId).Distinct()
-                .Select(id => c.Rate(3, p => p.LanguageId == id, 5) - c.Rate(2, p => p.LanguageId == id, 5)).Min();
+            double worstLanguage = c.Probes.Where(p => p.Reachable).Select(p => p.EmbeddedLanguageId).Distinct()
+                .Select(id => c.Rate(3, p => p.EmbeddedLanguageId == id, 5) - c.Rate(2, p => p.EmbeddedLanguageId == id, 5)).Min();
             outcome.CriterionMet = gain >= 2 && worstLanguage >= -1 && worst < 16;
             outcome.Headline = "within the first 5: previous word " + ContextLab.Pct(c.Rate(2, p => true, 5)) + ", with the language " + ContextLab.Pct(c.Rate(3, p => true, 5)) + " (" + ContextLab.Signed(gain) + " points); worst session " + Measure.Ms(worst);
             outcome.Analysis.Add("The words of the language alone move the share within the first 5 from " + ContextLab.Pct(c.Rate(0, p => true, 5)) + " to " + ContextLab.Pct(c.Rate(1, p => true, 5)) + "; added to the previous word, " + ContextLab.Signed(gain) + " points; the worst language changes by " + ContextLab.Signed(worstLanguage) + " points.");

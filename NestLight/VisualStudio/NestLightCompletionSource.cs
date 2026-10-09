@@ -137,7 +137,7 @@ namespace NestLight.VisualStudio
                 CompletionItem item = new CompletionItem(suggestion.Text, this, default(ImageElement), ImmutableArray<CompletionFilter>.Empty, string.Empty,
                     suggestion.Text, sortText, filterText, ImmutableArray<ImageElement>.Empty);
                 item.Properties.AddProperty(KindKey, suggestion.Kind);
-                item.Properties.AddProperty(LanguageKey, site.LanguageId);
+                item.Properties.AddProperty(LanguageKey, site.EmbeddedLanguageId);
                 item.Properties.AddProperty(DistanceKey, suggestion.Distance);
                 items.Add(item);
             }

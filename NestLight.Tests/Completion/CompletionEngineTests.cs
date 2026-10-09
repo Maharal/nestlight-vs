@@ -66,7 +66,7 @@ namespace NestLight.Tests
             Assert.Equal(code.IndexOf("fro_m"), site.Start);
             Assert.Equal(code.IndexOf(" x"), site.End);
             Assert.Equal(3, site.PrefixLength);
-            Assert.Equal("sql", site.LanguageId);
+            Assert.Equal("sql", site.EmbeddedLanguageId);
         }
 
         [Fact]
@@ -273,7 +273,7 @@ namespace NestLight.Tests
         private static List<string> ReferenceWords(string text, CompletionSite site, int minWordLength)
         {
             string prefix = text.Substring(site.Start, site.PrefixLength);
-            bool dash = Vocabularies.IsExtraWordChar(site.LanguageId, '-');
+            bool dash = Vocabularies.IsExtraWordChar(site.EmbeddedLanguageId, '-');
             Func<char, bool> isStart = c => char.IsLetter(c) || c == '_' || (dash && c == '-');
             Func<char, bool> isChar = c => char.IsLetterOrDigit(c) || c == '_' || (dash && c == '-');
             int from = Math.Max(0, site.Caret - 500000), to = Math.Min(text.Length, site.Caret + 500000);
@@ -320,7 +320,7 @@ namespace NestLight.Tests
                         if (site == null) continue;
                         List<string> actual = engine.Suggest(code, site).Where(s => s.Kind == SuggestionKind.Word).Select(s => s.Text).ToList();
                         List<string> expected = ReferenceWords(code, site, CompletionEngine.DefaultMinWordLength)
-                            .Where(w => !Vocabularies.For(site.LanguageId).Contains(w, StringComparer.OrdinalIgnoreCase)).ToList();
+                            .Where(w => !Vocabularies.For(site.EmbeddedLanguageId).Contains(w, StringComparer.OrdinalIgnoreCase)).ToList();
                         Assert.Equal(expected, actual);
                         compared++;
                     }

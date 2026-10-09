@@ -36,7 +36,7 @@ namespace NestLight.Tests
         {
             string code = "// html\nvar a = " + literal + ";";
             var s = Scan(code).Single();
-            Assert.Equal("html", s.LanguageId);
+            Assert.Equal("html", s.EmbeddedLanguageId);
             Assert.Equal(body, Body(code, s));
             Assert.Equal(literal, Outer(code, s));
         }
@@ -214,7 +214,7 @@ namespace NestLight.Tests
         public void Marked_string_inside_an_unmarked_interpolated_string_is_found()
         {
             string code = "var a = $\"x {/* css */ \"a{}\"} y\";";
-            Assert.Equal(new[] { "css" }, Scan(code).Select(s => s.LanguageId).ToArray());
+            Assert.Equal(new[] { "css" }, Scan(code).Select(s => s.EmbeddedLanguageId).ToArray());
         }
 
         // ---- what is not embedded ---------------------------------------------------------------------
@@ -296,7 +296,7 @@ namespace NestLight.Tests
         {
             string code = "// html\nvar a = \"x\";\n// css\nvar b = \"y\";\n// sql\nvar c = \"z\";";
             var s = Scan(code);
-            Assert.Equal(new[] { "html", "css", "sql" }, s.Select(x => x.LanguageId).ToArray());
+            Assert.Equal(new[] { "html", "css", "sql" }, s.Select(x => x.EmbeddedLanguageId).ToArray());
             Assert.True(s.Zip(s.Skip(1), (a, b) => a.OuterStart < b.OuterStart).All(x => x));
         }
     }

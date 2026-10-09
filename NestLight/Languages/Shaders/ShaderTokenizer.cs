@@ -9,7 +9,7 @@ namespace NestLight.Languages
     /// A C-like shader language (GLSL, WGSL): keywords, types, built-ins, numbers and comments.
     /// The language is defined by its word lists, so one tokenizer serves both.
     /// </summary>
-    internal sealed class ShaderTokenizer : ILanguageTokenizer
+    internal sealed class ShaderTokenizer : IEmbeddedLanguageTokenizer
     {
         private readonly IReadOnlyList<string> _ids;
         private readonly HashSet<string> _keywords;
