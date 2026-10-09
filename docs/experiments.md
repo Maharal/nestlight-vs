@@ -71,6 +71,9 @@ All the criteria below were written before the run that decided them, except tho
 | [E33](#e33-completion-with-the-context-rankings-on-incomplete-and-cut-code) | Is completion robust with the context rankings on? | Automated | Done | Met: 0 violations |
 | [E34](#e34-where-the-place-of-the-caret-says-nothing-do-the-words-of-the-file-and-the-most-used-keywords-come-first) | Do the words of the file and the most used keywords come first where no rule decides? | Automated, generated code | Done | Not met (+2.2); E35 refines it |
 | [E35](#e35-do-a-few-keywords-still-come-before-the-words-of-the-file) | Do a few keywords still come before the words of the file? | Automated, generated code | Done | Adopted: criterion met by a hair (+3.0) |
+| [E36](#e36-should-words-of-two-letters-be-offered) | Should words of two letters be offered? | Automated, generated code | Closed | Not met: the criterion could not be met; E38 |
+| [E37](#e37-does-the-similar-words-stage-make-noise-with-short-prefixes-and-what-removes-it) | Does the similar-words stage make noise with short prefixes? | Automated, generated code | Done | Not met; kept as it is |
+| [E38](#e38-should-words-of-two-letters-be-offered-e36-with-a-criterion-that-can-be-met) | E36 with a criterion that can be met | Automated, generated code | Done | Adopted: two-letter words last |
 
 ## Latest runs
 
@@ -569,7 +572,7 @@ The first runs were on commit `70e9ffd` (.NET 8 in Release, a 4-core Linux machi
 
 **Result.** Met in the three runs: 0 violations in 86,900 carets, 21,275 similar items checked against the definition.
 
-## Context ranking (E28 to E35)
+## Context ranking (E28 to E38)
 
 Until here the list depended only on what was typed: the keywords, then the words of the document nearest to the caret first. These experiments ask whether the list gets better when it also looks at where the caret is. Each idea is a flag of [CompletionFeatures](../NestLight/Completion/CompletionFeatures.cs) and an experiment decides whether it is on in the plugin (`CompletionFeatures.Default`).
 
@@ -717,9 +720,52 @@ The editor sorts the list by the sort text of each item, which is the text unles
 
 **Revisit when.** There are real files to learn the order from, or the plugin learns it from the files the user opens.
 
+## E36: should words of two letters be offered?
+
+**Status:** Closed · **Decision:** Not met as written; replaced by E38
+
+**Hypothesis.** The completion skips the words under 3 letters, so `id`, `db`, `in`, `uv` and `if` are never offered, and they are among the most written words of SQL, YAML and shaders ([SQL-5](suggestion-review/sql.md#sql-5), [YAML-39](suggestion-review/yaml.md#yaml-39), [WGSL-23](suggestion-review/wgsl.md#wgsl-23)). Offering them, after all the longer words, lets a person who types `i` find `id` without crowding the list for the person who wants a longer word.
+
+**Test.** The corpus of 500 snippets for each language (the odd files) and the hand-written files of the review: 600 words per language typed with 1 or 2 letters, only the words that exist elsewhere in the file or are keywords. The engine of the plugin as it is (minimum length 3), with the minimum lowered to 2 for every word, and with the two-letter words in a tier after all the others.
+
+**Criterion (as written).** A variant raises the words of 2 letters by at least 15 points within the first 5; lowers the longer words by no more than 0.5 point overall and 1 point in any language; and on the hand-written files the words of 2 letters gain at least 10 points while the longer ones lose no more than 1.
+
+**Result.** Not met, because the criterion could not be met: on the test files the words of 2 letters were already at 85.2% within the first 5 (the follow-the-context tier has always accepted two letters), so a gain of 15 points was out of reach (the ceiling is +14.8). Minimum 2 reached 97.5% (+12.3), the two-letter tier 93.1% (+7.9). On the hand-written files the words of 2 letters went from 77.8% to 99.1% and 97.4% (+21.4 and +19.7). The longer words moved by -0.1 and 0.0 points. The threshold was a mistake of the person who wrote it; the experiment is closed and E38 restates it.
+
+## E38: should words of two letters be offered? (E36 with a criterion that can be met)
+
+**Status:** Done · **Decision:** Adopted (`ShortWordsLast`: the two-letter words after all the others)
+
+**Criterion.** The same test as E36. A variant closes at least half of the distance to 100% for the words of 2 letters on the test files and on the hand-written files, and lowers the longer words by no more than 0.5 point overall and 1 point in any language (1 point on the hand-written files). Among the variants that meet it, the one that lowers the longer words least is adopted, then the one that gains most. It was written **after** E36's numbers: the numbers are the same, the criterion is the one E36 should have had.
+
+**Result.** Both variants meet it. Minimum 2 closes 83% of the gap on the test files and 96% on the hand-written ones, with the longer words at -0.1 (worst language -0.4); the two-letter tier closes 53% and 89%, with the longer words unchanged (0.0 everywhere). The two-letter tier is adopted because it costs nothing in the corpus and because it keeps the longer words first whatever the host code has: the real host code is full of `if`, `in`, `of` and `fn`, which the corpus does not have, and the tier cannot put them in front of a longer word.
+
+**On the 800 suggestions of the review** the cases that could not be solved now are: `id` after `c.` and `p.` ([SQL-5](suggestion-review/sql.md#sql-5), [SQL-86](suggestion-review/sql.md#sql-86)), `ci` and `db` in YAML, `uv` in GLSL and WGSL, `in` and `id` in WGSL; the word is first in 342 cases instead of 339 and among the first five in 456 instead of 444.
+
+**Limits.** The words of 2 letters in the corpus are the ones its generators write.
+
+## E37: does the similar-words stage make noise with short prefixes, and what removes it?
+
+**Status:** Done · **Decision:** Not met; the stage stays as it is
+
+**Hypothesis.** A review of 800 suggestions found the stage that corrects mistakes inventing suggestions with no relation when the person is typing a new word with 3 letters ([GraphQL-47](suggestion-review/graphql.md#graphql-47) `fir` offers `fragment`, [JSON-7](suggestion-review/json.md#json-7) `scr` offers `src`). With 3 letters one edit is a third of the word, so almost any word is "similar". Looking for similar words only from 4 letters, showing at most 3, or only the words of the file at 3 letters should remove most of that noise and keep most of the recovery.
+
+**Test.** The corpus (odd files) and the hand-written files. Recovery: words typed with one mistake (a swap, a missing letter, a wrong one, an extra one; never the first letter) that leaves 3, 4, 5 or 6 letters typed, only the words that exist elsewhere in the file or are keywords (11,423 mistakes); the meant word within the first 5. Noise: words written once in the file, not keywords, typed with a correct prefix of 3, 4 and 5 letters (2,787 new words); how often any similar item is shown. Five variants: as it is; from 4 letters; at most 3 items at 3 letters; only the words of the file at 3 letters; both of the last two.
+
+**Criterion.** A variant keeps at least 85% of the recovery of the current engine with 3 letters typed (relative), shows noise in at most half as many cases with a correct 3-letter prefix, keeps the recovery with 4 and 5 letters within 1 point, and goes the same way on the hand-written files.
+
+**Result.** Not met. As it is: recovery 89.5% with 3 letters typed, 96.4% with 4, 96.9% with 5; noise 30.9% with 3 letters (a similar item is shown in about one new word in three), 17.0% with 4, 7.3% with 5.
+- **From 4 letters** removes the noise at 3 letters (0.0%) and with it the recovery (16.1%, what the first stage finds by itself).
+- **At most 3 items** changes nothing in the measure (a similar item is still shown), and loses recovery (78.7%).
+- **Only the words of the file at 3 letters** is better on both counts in the corpus (recovery 93.9%, noise 27.6%), but it falls short of halving the noise, and on the hand-written files the recovery drops from 87.1% to 81.3%.
+
+**What it says.** At 3 letters the stage corrects 9 mistakes in 10 and shows something unrelated in 3 new words in 10; no gate that was tried separates the two. The cost of the noise is a few extra items under the exact ones, that disappear with the next letter (17% at 4 letters, 7% at 5). Without knowing how often people mistype against how often they type a new word, there is no basis to take the recovery away. The measure also counts a single similar item as noise, which hides what the cap of 3 does to the size of the list.
+
+**Revisit when.** There are real sessions to tell how many 3-letter prefixes are mistakes, or the stage can use how often a candidate is used (a candidate used five times is likelier than one used once).
+
 ## Notes on the context ranking
 
-- **What the plugin runs with** (`CompletionFeatures.Default`): the previous word (E28), the words of the language (E29), the grammar (E30) and, where no rule decides, the words of the file first with the 12 most used keywords in front of them (E35). Within the first 5, on the generated files: 72.5% with the order by distance alone, 85.5% with the previous word, 88.1% with the language, 97.2% with the grammar. The schema (E31) and the order by count (E32) stay in the code, off.
+- **What the plugin runs with** (`CompletionFeatures.Default`): the previous word (E28), the words of the language (E29), the grammar (E30) and, where no rule decides, the words of the file first with the 12 most used keywords in front of them (E35); the words of two letters are offered after all the others (E38). Within the first 5, on the generated files: 72.5% with the order by distance alone, 85.5% with the previous word, 88.1% with the language, 97.2% with the grammar. The schema (E31) and the order by count (E32) stay in the code, off.
 - **What the numbers are not.** Every context experiment ran on code made by a generator that was written with the same structure the features look for (a schema for the SQL, a value table for the CSS, an attribute table for the HTML). The gains say that the ideas work on code that has that structure. How much real code does is the open question, and the first thing to measure with files from real projects. The hit rate of 97% is a ceiling that real code will not reach.
 - **After the review of 800 suggestions** (`docs/suggestion-review`) the places of the grammar were corrected and extended (E30 rerun: 88.1% to 97.8%). The review is by hand-written files and is a different measure from E28 to E33, which use generated code.
 - **The order reaches the screen** only through the sort text of each item (`NestLightCompletionSource`), which has not been compiled or run in this work.

@@ -26,7 +26,7 @@ namespace NestLight.Completion
 
         /// <summary>The features the plugin runs with: the ones whose experiment met its criterion.</summary>
         public static readonly CompletionFeatures Default = new CompletionFeatures(previousWord: true, sameLanguageWords: true, grammar: true,
-            wordsBeforeKeywords: true, keywordPriors: KeywordUse.Default, headKeywords: 12);
+            wordsBeforeKeywords: true, keywordPriors: KeywordUse.Default, headKeywords: 12, shortWordsLast: true);
 
         /// <summary>
         /// The words that already followed the same word (and the same punctuation) elsewhere in the document come first:
@@ -78,6 +78,18 @@ namespace NestLight.Completion
         /// </summary>
         public readonly int HeadKeywords;
 
+        /// <summary>Words of two letters (<c>id</c>, <c>db</c>, <c>in</c>) are offered too, after all the longer words.</summary>
+        public readonly bool ShortWordsLast;
+
+        /// <summary>The shortest prefix the similar words are looked for with (<see cref="CompletionEngine.FuzzyMinPrefix"/> by default).</summary>
+        public readonly int FuzzyMinPrefix;
+
+        /// <summary>For a prefix of 3 letters or less, the most similar words offered; 0: as many as for the longer ones.</summary>
+        public readonly int ShortSimilarCap;
+
+        /// <summary>For a prefix of 3 letters or less, similar words come from the document only, not from the keywords of the language.</summary>
+        public readonly bool ShortSimilarFromFileOnly;
+
         private readonly Dictionary<string, IReadOnlyList<string>> _ordered = new Dictionary<string, IReadOnlyList<string>>(StringComparer.OrdinalIgnoreCase);
 
         /// <summary>The keywords of the language in the order they are offered.</summary>
@@ -101,8 +113,13 @@ namespace NestLight.Completion
 
         public CompletionFeatures(bool previousWord = false, bool sameLanguageWords = false, bool grammar = false, bool schema = false,
             WordOrder order = WordOrder.Nearest, double blendWeight = 0.5, bool wordsBeforeKeywords = false,
-            IReadOnlyDictionary<string, IReadOnlyList<string>> keywordPriors = null, int headKeywords = 0)
+            IReadOnlyDictionary<string, IReadOnlyList<string>> keywordPriors = null, int headKeywords = 0,
+            bool shortWordsLast = false, int fuzzyMinPrefix = 3, int shortSimilarCap = 0, bool shortSimilarFromFileOnly = false)
         {
+            ShortWordsLast = shortWordsLast;
+            FuzzyMinPrefix = fuzzyMinPrefix;
+            ShortSimilarCap = shortSimilarCap;
+            ShortSimilarFromFileOnly = shortSimilarFromFileOnly;
             HeadKeywords = headKeywords;
             WordsBeforeKeywords = wordsBeforeKeywords;
             KeywordPriors = keywordPriors;

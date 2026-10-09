@@ -214,7 +214,7 @@ namespace NestLight.Completion
                     if (seen.Add(word)) result.Add(new Suggestion(upper ? word.ToUpperInvariant() : word, SuggestionKind.Keyword));
                 }
 
-            if (_matcher != null && prefix.Length >= FuzzyMinPrefix && result.Count < _fuzzyBelow && result.Count < _maxItems)
+            if (_matcher != null && prefix.Length >= _features.FuzzyMinPrefix && result.Count < _fuzzyBelow && result.Count < _maxItems)
                 AddSimilar(text, site, prefix, upper, seen, result, cancellation);
             return result;
         }
@@ -313,10 +313,12 @@ namespace NestLight.Completion
             int examined = 0;
 
             // Only the best few are kept, so thousands of similar words cost a comparison each, not a sort.
-            int capacity = _fuzzyMaxItems + result.Count;
+            bool shortPrefix = n <= 3;
+            int limit = shortPrefix && _features.ShortSimilarCap > 0 ? Math.Min(_fuzzyMaxItems, _features.ShortSimilarCap) : _fuzzyMaxItems;
+            int capacity = limit + result.Count;
             var best = new List<Similar>(capacity + 1);
 
-            foreach (string word in Vocabularies.For(site.LanguageId))
+            foreach (string word in shortPrefix && _features.ShortSimilarFromFileOnly ? new string[0] : Vocabularies.For(site.LanguageId))
             {
                 if (++examined % CancellationStride == 0) cancellation.ThrowIfCancellationRequested();
                 if (word.Length < n - k) continue;
@@ -366,7 +368,7 @@ namespace NestLight.Completion
             int added = 0;
             foreach (Similar s in best)
             {
-                if (added >= _fuzzyMaxItems || result.Count >= _maxItems) break;
+                if (added >= limit || result.Count >= _maxItems) break;
                 string word = s.Keyword ? s.Source : text.Substring(s.Start, s.Length);
                 if (!seen.Add(word)) continue;
                 result.Add(new Suggestion(s.Keyword && upper ? word.ToUpperInvariant() : word, s.Keyword ? SuggestionKind.Keyword : SuggestionKind.Word, s.Distance));
@@ -410,6 +412,9 @@ namespace NestLight.Completion
             /// <summary>With <see cref="CompletionFeatures.SameLanguageWords"/>, the matches outside the code of the strings of the language; they come after the others.</summary>
             public readonly List<Match> OtherBefore = new List<Match>();
             public readonly List<Match> OtherAfter = new List<Match>();
+            /// <summary>With <see cref="CompletionFeatures.ShortWordsLast"/>, the words under the minimum length; they come after all the others.</summary>
+            public readonly List<Match> ShortBefore = new List<Match>();
+            public readonly List<Match> ShortAfter = new List<Match>();
             /// <summary>The matches that follow the same word and punctuation as the caret does (only with <see cref="CompletionFeatures.PreviousWord"/>).</summary>
             public readonly List<Match> Follows;
             public WordScan(bool context) { if (context) Follows = new List<Match>(); }
@@ -510,7 +515,7 @@ namespace NestLight.Completion
             bool dash = Vocabularies.IsExtraWordChar(site.LanguageId, '-');
 
             // a short word is only worth offering where the context says it belongs (the BY after GROUP)
-            int shortest = context.Has ? Math.Min(_minWordLength, FollowMinWordLength) : _minWordLength;
+            int shortest = context.Has || _features.ShortWordsLast ? Math.Min(_minWordLength, FollowMinWordLength) : _minWordLength;
             int previousStart = -1, previousLength = 0;
             bool nextSeen = false; // the first word after the caret is what the text already says comes next, not a word that followed the context
             int range = 0; // the matches come in order, so a pointer into the ranges of scope is enough
@@ -540,7 +545,11 @@ namespace NestLight.Completion
                 }
                 bool follows = inScope && !isNext && context.Has && beforeStart >= 0 && Follows(text, context, beforeStart, beforeLength, start);
                 if (follows) scan.Follows.Add(match);
-                if (length < _minWordLength) continue;
+                if (length < _minWordLength)
+                {
+                    if (_features.ShortWordsLast) (start > site.Caret ? scan.ShortAfter : scan.ShortBefore).Add(match);
+                    continue;
+                }
                 if (start > site.Caret) (inScope ? scan.After : scan.OtherAfter).Add(match);
                 else (inScope ? scan.Before : scan.OtherBefore).Add(match);
             }
@@ -585,8 +594,8 @@ namespace NestLight.Completion
             if (_features.Order != WordOrder.Nearest)
             {
                 // by count and distance: one representative occurrence of each distinct word, in rank order, tier by tier
-                for (int tier = 0; tier < 2; tier++)
-                    foreach (Match m in Ranked(text, site.Caret, tier == 0 ? new[] { scan.Before, scan.After } : new[] { scan.OtherBefore, scan.OtherAfter }, _features.Order, _features.BlendWeight))
+                for (int tier = 0; tier < 3; tier++)
+                    foreach (Match m in Ranked(text, site.Caret, tier == 0 ? new[] { scan.Before, scan.After } : tier == 1 ? new[] { scan.OtherBefore, scan.OtherAfter } : new[] { scan.ShortBefore, scan.ShortAfter }, _features.Order, _features.BlendWeight))
                     {
                         string word = text.Substring(m.Start, m.Length);
                         if (emitted.Add(word)) yield return word;
@@ -595,9 +604,9 @@ namespace NestLight.Completion
             }
 
             // the words of the code of the language, then the others (empty without the feature)
-            for (int tier = 0; tier < 2; tier++)
+            for (int tier = 0; tier < 3; tier++)
             {
-                List<Match> before = tier == 0 ? scan.Before : scan.OtherBefore, after = tier == 0 ? scan.After : scan.OtherAfter;
+                List<Match> before = tier == 0 ? scan.Before : tier == 1 ? scan.OtherBefore : scan.ShortBefore, after = tier == 0 ? scan.After : tier == 1 ? scan.OtherAfter : scan.ShortAfter;
                 int b = before.Count - 1, a = 0;
                 while (b >= 0 || a < after.Count)
                 {

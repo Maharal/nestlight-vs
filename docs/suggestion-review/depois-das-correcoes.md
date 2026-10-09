@@ -77,8 +77,12 @@ Nos mesmos 800 exemplos (529 em que a palavra existe no arquivo):
 
 **Cuidado com este número:** a ordem das palavras-chave por uso foi aprendida de código **gerado por mim**, não de projetos reais. Os 800 exemplos foram escritos à mão (outra fonte), por isso servem de conferência, mas quem escreveu tudo sou eu. O próximo passo natural é o plugin aprender essa ordem com os arquivos do próprio usuário.
 
+## Terceira rodada: palavras de 2 letras e o ruído da correção de erro
+
+- **Palavras de 2 letras (E36 e E38).** Passaram a ser oferecidas, depois de todas as palavras mais longas. Os casos que não tinham solução na revisão agora têm: `id` depois de `c.` e `p.` ([SQL-5](sql.md#sql-5), [SQL-86](sql.md#sql-86)), `ci` e `db` em YAML, `uv` em GLSL e WGSL, `in` e `id` em WGSL. Nos 800 exemplos a palavra fica em 1º lugar em 342 casos (339 antes) e entre os 5 primeiros em 456 (444 antes). O primeiro critério do E36 era impossível de atingir (a linha de base já era 85%, e eu pedi +15), então o experimento foi fechado e refeito como E38 com um critério que dá para cumprir; os números são os mesmos.
+- **Ruído da correção de erro com 3 letras (E37).** Não mudou. Com 3 letras digitadas a correção acerta 9 de cada 10 erros e mostra algo sem relação em 3 de cada 10 palavras novas; nenhuma das travas que testei separa os dois sem perder quase toda a correção. Fica como está até haver dados de uso real.
+
 ## O que ainda não foi resolvido
 
-- Palavras de 1 e 2 letras (`id`, `db`, `uv`, `in`) continuam sem ser sugeridas.
-- A correção de erro de digitação ainda inventa ruído em prefixos de 3 letras que não são erro.
 - O vocabulário que falta continua faltando em parte (funções de GLSL, `gl_FragColor`, atributos de WGSL, papéis ARIA).
+- O ruído da correção de erro em prefixos de 3 letras (E37).

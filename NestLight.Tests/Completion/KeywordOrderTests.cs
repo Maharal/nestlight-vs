@@ -99,5 +99,33 @@ namespace NestLight.Tests
                 Assert.Equal(texts.Count, texts.Distinct().Count());
             }
         }
+
+        // ---- words of two letters ---------------------------------------------------------------------------------------
+
+        [Fact]
+        public void Words_of_two_letters_are_offered_after_all_the_longer_ones()
+        {
+            const string code = "const idle = 1, ident = 2;\nsql`select id, ok from t where id = 1 and i|`";
+            var shortLast = new CompletionFeatures(grammar: true, shortWordsLast: true);
+            List<string> without = Texts(code, new CompletionFeatures(grammar: true)), with = Texts(code, shortLast);
+            Assert.DoesNotContain("id", without);
+            Assert.True(with.IndexOf("id") > with.IndexOf("ident"));
+            Assert.True(with.IndexOf("id") > with.IndexOf("idle"));
+            Assert.Equal(without.OrderBy(w => w).Concat(new[] { "id" }).OrderBy(w => w), with.OrderBy(w => w)); // only the two-letter words are added
+        }
+
+        [Fact]
+        public void A_word_of_two_letters_is_not_offered_when_it_is_the_whole_prefix_and_one_letter_words_never_are()
+        {
+            var shortLast = new CompletionFeatures(grammar: true, shortWordsLast: true);
+            Assert.DoesNotContain("id", Texts("sql`select id from t where id|`", shortLast)); // nothing to add to what was typed
+            Assert.DoesNotContain(Texts("sql`select a, b from t where x = 1 and |`", shortLast), w => w.Length == 1);
+        }
+
+        [Fact]
+        public void The_plugin_default_offers_the_two_letter_words()
+        {
+            Assert.Contains("id", Texts("const idle = 1;\nsql`select p.id, p.name from products p where p.i|`", CompletionFeatures.Default));
+        }
     }
 }

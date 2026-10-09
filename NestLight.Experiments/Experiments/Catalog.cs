@@ -35,6 +35,9 @@ namespace NestLight.Experiments
                 new E33_ContextRobustness(),
                 new E34_KeywordOrder(),
                 new E35_HeadKeywords(),
+                new E36_ShortWords(),
+                new E37_SimilarNoiseShortPrefix(),
+                new E38_ShortWordsRestated(),
             };
         }
     }

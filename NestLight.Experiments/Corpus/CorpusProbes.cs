@@ -58,9 +58,11 @@ namespace NestLight.Experiments
             for (int n = 0; n < words && (int)(n * step) < all.Count; n++)
             {
                 Occurrence o = all[(int)(n * step)];
+                var done = new HashSet<int>();
                 foreach (int prefix in prefixes)
                 {
                     int p = Math.Min(prefix, o.Word.Length - 1);
+                    if (!done.Add(p)) continue;
                     string typed = o.Word.Substring(0, p);
                     string text = o.Document.Text.Remove(o.Start, o.Word.Length).Insert(o.Start, typed);
                     bool reachable = Vocabularies.Find(language, o.Word) != null
@@ -69,6 +71,84 @@ namespace NestLight.Experiments
                 }
             }
             return probes;
+        }
+
+        /// <summary>A probe whose typed text is not a prefix of the word: <see cref="Mistake"/> says what was done to it.</summary>
+        public sealed class MistakeProbe
+        {
+            public CorpusProbe Probe;
+            public string Typed;
+            public string Kind;
+        }
+
+        private static int CountOf(string text, string word)
+        {
+            return Regex.Matches(text, "(?<![\\p{L}\\p{N}_-])" + Regex.Escape(word) + "(?![\\p{L}\\p{N}_-])", RegexOptions.IgnoreCase).Count;
+        }
+
+        /// <summary>
+        /// Words typed with one mistake (a swap, a missing letter, a wrong letter, an extra one) in a prefix of 3 to 5 letters, never in the first
+        /// letter; only words that exist elsewhere in the file or are keywords.
+        /// </summary>
+        public static List<MistakeProbe> Mistakes(IEnumerable<CorpusDocument> documents, string language, int words, int seed)
+        {
+            var random = new Random(seed);
+            var all = Occurrences(documents, language).Where(o => o.Word.Length >= 5).ToList();
+            var result = new List<MistakeProbe>();
+            if (all.Count == 0) return result;
+            double step = Math.Max(1.0, all.Count / (double)words);
+            for (int n = 0; n < words && (int)(n * step) < all.Count; n++)
+            {
+                Occurrence o = all[(int)(n * step)];
+                bool reachable = Vocabularies.Find(language, o.Word) != null || CountOf(o.Document.Text, o.Word) > 1;
+                if (!reachable) continue;
+                foreach (string kind in new[] { "swap", "missing", "wrong", "extra" })
+                {
+                    int b = 3 + random.Next(3);                 // the letters of the word the mistake is made in
+                    b = Math.Min(b, o.Word.Length - 1);
+                    string prefix = o.Word.Substring(0, b);
+                    string typed;
+                    int at = 1 + random.Next(b - 1);            // never the first letter
+                    switch (kind)
+                    {
+                        case "swap":
+                            if (at + 1 >= b || char.ToLowerInvariant(prefix[at]) == char.ToLowerInvariant(prefix[at + 1])) continue;
+                            typed = prefix.Substring(0, at) + prefix[at + 1] + prefix[at] + prefix.Substring(at + 2); break;
+                        case "missing": typed = prefix.Remove(at, 1); break;
+                        case "wrong":
+                            char other = (char)('a' + random.Next(26));
+                            if (char.ToLowerInvariant(other) == char.ToLowerInvariant(prefix[at])) continue;
+                            typed = prefix.Substring(0, at) + other + prefix.Substring(at + 1); break;
+                        default: typed = prefix.Insert(at, ((char)('a' + random.Next(26))).ToString()); break;
+                    }
+                    if (typed.Length < 3 || typed.Length > 6) continue;
+                    string text = o.Document.Text.Remove(o.Start, o.Word.Length).Insert(o.Start, typed);
+                    result.Add(new MistakeProbe { Kind = kind, Typed = typed, Probe = new CorpusProbe { Language = language, Text = text, Caret = o.Start + typed.Length, Word = o.Word, Prefix = typed.Length, Reachable = true } });
+                }
+            }
+            return result;
+        }
+
+        /// <summary>
+        /// Words that are written once in the file and are not keywords, typed with a correct prefix of 3 to 5 letters: a new word. Nothing
+        /// similar can be what the person wants.
+        /// </summary>
+        public static List<CorpusProbe> NewWords(IEnumerable<CorpusDocument> documents, string language, int words)
+        {
+            var all = Occurrences(documents, language).Where(o => o.Word.Length >= 6 && Vocabularies.Find(language, o.Word) == null && CountOf(o.Document.Text, o.Word) == 1).ToList();
+            var result = new List<CorpusProbe>();
+            if (all.Count == 0) return result;
+            double step = Math.Max(1.0, all.Count / (double)words);
+            for (int n = 0; n < words && (int)(n * step) < all.Count; n++)
+            {
+                Occurrence o = all[(int)(n * step)];
+                foreach (int p in new[] { 3, 4, 5 })
+                {
+                    string typed = o.Word.Substring(0, p);
+                    result.Add(new CorpusProbe { Language = language, Text = o.Document.Text.Remove(o.Start, o.Word.Length).Insert(o.Start, typed), Caret = o.Start + p, Word = o.Word, Prefix = p, Reachable = false });
+                }
+            }
+            return result;
         }
 
         /// <summary>The keywords of the language by how often the documents use them, the most used first.</summary>
