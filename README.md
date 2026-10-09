@@ -55,12 +55,14 @@ auto page = R"(<li class="item">name</li>)";
 | JSON | `json` | keys, strings, numbers, literals, punctuation |
 | GraphQL | `graphql`, `gql` | operations, fields, arguments, variables, types, directives |
 | XML | `xml` | tags, attributes, comments, CDATA |
-| Markdown | `markdown`, `md` | headings, emphasis, code spans and fences, links, lists |
+| Markdown | `markdown`, `md` | headings, emphasis (also across line breaks), code spans and fences, links, lists, math (`$x$`, `$$x$$` and `$$` blocks) |
 | YAML | `yaml`, `yml` | keys, scalars, anchors, comments |
 | Regular expressions | `regex`, `regexp` | groups, classes, quantifiers, escapes, anchors |
 | Shaders | `glsl`, `wgsl` | keywords, types, built-ins, numbers, comments |
 
 In C#, strings marked `json` or `regex` are left to Visual Studio's built-in support.
+
+In a JavaScript template the backtick of a Markdown code span or fence is written `\``; Nestlight reads it as the backtick it stands for. The indentation that every line of the string shares is taken as the indentation of the code around it, so a Markdown document indented inside a function is colored like one at the left margin.
 
 Interpolations are never colored as embedded code in any language. Templates nested in an interpolation are highlighted at every level, and incomplete code never breaks the editor.
 
