@@ -31,6 +31,9 @@ uniform vec3 c; void main() { gl_FragColor = vec4(c, 1.0); }`;
 const w = wgsl`@vertex fn main() -> @builtin(position) vec4f { return vec4f(1.0); }`;
 const h = html`<ul>${items.map(i => html`<li class=""${c}"" style=""a:${b}"">${i}</li>`)}</ul>`;
 const c = css`:host { --a: ${v}; color: var(--a, #fff); &:hover { margin: 0 auto !important; } }`;
+const k = css`a:not(.b, #c) > li:nth-child(2n+1)::before, input[type=""text"" i]:is(:focus, :hover) ~ .x { color: red }
+@media screen and (min-width: 600px) and (hover: hover) { .a { margin: 0 } } @supports (display: grid) and not (display: ${d}) { .b { top: 1e3ms } }
+@keyframes s { from { opacity: 0 } 50% { opacity: .5 } } @container card (width > 400px) { .c { d: e } } @layer a, b; @import url(x.css) layer(base);`;
 ";
 
         private const string CSharp = @"

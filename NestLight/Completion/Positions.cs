@@ -319,11 +319,20 @@ namespace NestLight.Completion
             if (parens > 0)
             {
                 // the condition of a media query; anywhere else (url( ... ), calc( ... )) the place says nothing
-                if (pending.StartsWith("@", StringComparison.Ordinal)) return new Position("css:media-feature", Vocabularies.CssMediaFeatures);
+                if (pending.StartsWith("@", StringComparison.Ordinal))
+                {
+                    if (char.IsDigit(site.Start > floor ? text[site.Start - 1] : ' ')) return new Position("css:unit", Vocabularies.CssUnits, onlyWords: true);
+                    if (pending.StartsWith("@supports", StringComparison.OrdinalIgnoreCase)) return new Position("css:supports-feature", Vocabularies.CssProperties);
+                    if (pending.StartsWith("@container", StringComparison.OrdinalIgnoreCase)) return new Position("css:container-feature", Vocabularies.CssContainerFeatures);
+                    return new Position("css:media-feature", Vocabularies.CssMediaFeatures);
+                }
+                if (char.IsDigit(site.Start > floor ? text[site.Start - 1] : ' '))
+                    return inside == CssBlock.Declarations ? new Position("css:unit", Vocabularies.CssUnits, onlyWords: true) : null; // rotate(45d|), not 2|n in :nth-child(2n)
                 return null;
             }
-            if (brackets > 0) return new Position("css:attribute-selector", onlyWords: true);
+            if (brackets > 0) return new Position("css:attribute-selector", Vocabularies.CssSelectorAttributes, onlyWords: true);
 
+            if (char.IsDigit(site.Start > floor ? text[site.Start - 1] : ' ') && inside != CssBlock.Declarations) return null; // 50|% in a keyframe, 2|n in a selector: no word to complete
             if (inside == CssBlock.Keyframes)
                 return new Position("css:keyframe-selector", new[] { "from", "to" }, onlyWords: true);
 
@@ -331,13 +340,14 @@ namespace NestLight.Completion
             {
                 int space = pending.IndexOfAny(new[] { ' ', '\t', '\n', '\r' });
                 string name = space < 0 ? pending : pending.Substring(0, space);
-                if (space < 0) return null; // the name of the at-rule itself
+                if (space < 0) return new Position("css:at-rule", Vocabularies.CssAtRules, onlyWords: true); // the name of the at-rule itself
                 if (name.IndexOf("keyframes", StringComparison.OrdinalIgnoreCase) >= 0) return new Position("css:keyframes-name", onlyWords: true);
                 if (name.Equals("@media", StringComparison.OrdinalIgnoreCase)) return new Position("css:media-query", Vocabularies.CssMediaTypes);
                 return null;
             }
 
             char before = site.Start > floor ? text[site.Start - 1] : ' ';
+            if (char.IsDigit(before) && inside == CssBlock.Declarations) return new Position("css:unit", Vocabularies.CssUnits, onlyWords: true); // 10px: the unit after a number
             if (inside == CssBlock.Rules)
             {
                 // a selector: a class or an id after '.' or '#', a pseudo-class after ':', otherwise an element
@@ -356,6 +366,7 @@ namespace NestLight.Completion
                 return new Position("css:property", Vocabularies.CssProperties, unlikely: w => Vocabularies.IsCssValueOnly(w));
 
             if (before == '#') return new Position("css:hex", onlyWords: true);
+            if (before == '!') return new Position("css:important", new[] { "important" }, onlyWords: true);
 
             // a value: the property is the word before the colon
             int end = colon;

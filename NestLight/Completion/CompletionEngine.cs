@@ -152,6 +152,20 @@ namespace NestLight.Completion
             int end = caret;
             while (end < limit && IsWordChar(id, text[end])) end++;
 
+            if (start < caret && Vocabularies.SameLanguage(id, "css"))
+            {
+                // CSS: 10p| and -1.5r| are a number followed by the start of a unit; a hex color (#1a2b3c) is not
+                int digits = start;
+                if (text[digits] == '-') digits++;
+                int unit = digits;
+                while (unit < caret && char.IsDigit(text[unit])) unit++;
+                if (unit > digits)
+                {
+                    if (start > ownerStart && text[start - 1] == '#') return null;
+                    for (int k = unit; k < caret; k++) if (!char.IsLetter(text[k])) return null;
+                    return new CompletionSite(id, unit, caret, end, ownerStart, limit, inline);
+                }
+            }
             if (start < caret && !IsWordStart(id, text[start])) return null; // numbers, not words
             return new CompletionSite(id, start, caret, end, ownerStart, limit, inline);
         }

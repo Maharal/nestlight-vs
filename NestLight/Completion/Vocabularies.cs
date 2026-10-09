@@ -147,7 +147,7 @@ namespace NestLight.Completion
               svg path circle rect line polyline polygon ellipse g defs use symbol text tspan linearGradient radialGradient stop
               clipPath mask filter");
 
-        private static readonly IReadOnlyList<string> CssPropertyWords = Words(
+        private static readonly IReadOnlyList<string> CssPropertyWords = Sorted(Words(
             @"align-content align-items align-self all animation animation-delay animation-direction animation-duration
               animation-fill-mode animation-iteration-count animation-name animation-play-state animation-timing-function
               aspect-ratio backdrop-filter backface-visibility background background-attachment background-blend-mode
@@ -174,7 +174,37 @@ namespace NestLight.Completion
               text-indent text-overflow text-shadow text-transform top touch-action transform transform-origin
               transform-style transition transition-delay transition-duration transition-property
               transition-timing-function translate unicode-bidi user-select vertical-align visibility white-space widows
-              width will-change word-break word-spacing word-wrap writing-mode z-index");
+              width will-change word-break word-spacing word-wrap writing-mode z-index
+              accent-color animation-composition animation-range animation-timeline background-position-x background-position-y block-size
+              border-block border-block-color border-block-end border-block-end-color border-block-end-style border-block-end-width border-block-start
+              border-block-start-color border-block-start-style border-block-start-width border-block-style border-block-width border-end-end-radius
+              border-end-start-radius border-inline border-inline-color border-inline-end border-inline-end-color border-inline-end-style
+              border-inline-end-width border-inline-start border-inline-start-color border-inline-start-style border-inline-start-width
+              border-inline-style border-inline-width border-start-end-radius border-start-start-radius box-decoration-break break-after break-before
+              break-inside clip color-scheme column-fill column-rule column-rule-color column-rule-style column-rule-width column-span column-width
+              contain contain-intrinsic-size container container-name container-type content-visibility counter-set field-sizing font-display
+              font-optical-sizing font-synthesis font-variant-caps font-variant-east-asian font-variant-ligatures font-variant-numeric
+              font-variation-settings forced-color-adjust hanging-punctuation image-rendering inline-size inset-block inset-block-end inset-block-start
+              inset-inline inset-inline-end inset-inline-start interpolate-size line-break margin-block margin-block-end margin-block-start
+              margin-inline margin-inline-end margin-inline-start mask-clip mask-composite mask-image mask-mode mask-origin mask-position mask-repeat
+              mask-size mask-type max-block-size max-inline-size min-block-size min-inline-size offset offset-anchor offset-distance offset-path
+              offset-position offset-rotate orphans overflow-anchor overflow-block overflow-clip-margin overflow-inline overscroll-behavior
+              overscroll-behavior-block overscroll-behavior-inline overscroll-behavior-x overscroll-behavior-y padding-block padding-block-end
+              padding-block-start padding-inline padding-inline-end padding-inline-start page paint-order perspective-origin print-color-adjust
+              scroll-margin scroll-margin-block scroll-margin-bottom scroll-margin-inline scroll-margin-left scroll-margin-right scroll-margin-top
+              scroll-padding scroll-padding-block scroll-padding-bottom scroll-padding-inline scroll-padding-left scroll-padding-right
+              scroll-padding-top scroll-snap-stop scrollbar-color scrollbar-gutter scrollbar-width shape-image-threshold shape-margin shape-outside
+              text-combine-upright text-decoration-skip-ink text-decoration-thickness text-emphasis text-emphasis-color text-emphasis-position
+              text-emphasis-style text-justify text-orientation text-rendering text-underline-offset text-underline-position text-wrap text-wrap-mode
+              text-wrap-style transform-box transition-behavior view-transition-name white-space-collapse zoom
+              alignment-baseline clip-rule dominant-baseline fill-opacity fill-rule flood-color flood-opacity lighting-color marker marker-end
+              marker-mid marker-start shape-rendering stop-color stop-opacity stroke-dasharray stroke-dashoffset stroke-linecap stroke-linejoin
+              stroke-miterlimit stroke-opacity stroke-width text-anchor vector-effect"));
+
+        private static IReadOnlyList<string> Sorted(IReadOnlyList<string> words)
+        {
+            return words.Distinct(StringComparer.Ordinal).OrderBy(w => w, StringComparer.OrdinalIgnoreCase).ToList();
+        }
 
         private static readonly IReadOnlyList<string> CssValueWords = Words(
             @"inherit initial unset revert none auto block inline inline-block flex grid absolute relative fixed sticky
@@ -196,6 +226,19 @@ namespace NestLight.Completion
             return CssValueSet.Contains(word) && !CssPropertySet.Contains(word);
         }
 
+        private static readonly IReadOnlyList<string> CssNamedColors = Words(
+            @"aliceblue antiquewhite aqua aquamarine azure beige bisque black blanchedalmond blue blueviolet brown burlywood cadetblue chartreuse
+              chocolate coral cornflowerblue cornsilk crimson cyan darkblue darkcyan darkgoldenrod darkgray darkgreen darkgrey darkkhaki darkmagenta
+              darkolivegreen darkorange darkorchid darkred darksalmon darkseagreen darkslateblue darkslategray darkslategrey darkturquoise darkviolet
+              deeppink deepskyblue dimgray dimgrey dodgerblue firebrick floralwhite forestgreen fuchsia gainsboro ghostwhite gold goldenrod gray green
+              greenyellow grey honeydew hotpink indianred indigo ivory khaki lavender lavenderblush lawngreen lemonchiffon lightblue lightcoral
+              lightcyan lightgoldenrodyellow lightgray lightgreen lightgrey lightpink lightsalmon lightseagreen lightskyblue lightslategray
+              lightslategrey lightsteelblue lightyellow lime limegreen linen magenta maroon mediumaquamarine mediumblue mediumorchid mediumpurple
+              mediumseagreen mediumslateblue mediumspringgreen mediumturquoise mediumvioletred midnightblue mintcream mistyrose moccasin navajowhite
+              navy oldlace olive olivedrab orange orangered orchid palegoldenrod palegreen paleturquoise palevioletred papayawhip peachpuff peru pink
+              plum powderblue purple rebeccapurple red rosybrown royalblue saddlebrown salmon sandybrown seagreen seashell sienna silver skyblue
+              slateblue slategray slategrey snow springgreen steelblue tan teal thistle tomato turquoise violet wheat white whitesmoke yellow yellowgreen");
+
         private const string ColorNames = "transparent currentColor red green blue white black gray grey yellow orange purple pink brown";
 
         private static readonly Dictionary<string, IReadOnlyList<string>> CssValues = BuildCssValues();
@@ -213,7 +256,8 @@ namespace NestLight.Completion
             add("flex-wrap", "nowrap wrap wrap-reverse");
             add("justify-content", "flex-start flex-end center space-between space-around space-evenly start end");
             add("align-items align-self align-content", "stretch flex-start flex-end center baseline start end");
-            add("color background-color border-color outline-color fill stroke caret-color", ColorNames);
+            add("color background-color border-color outline-color fill stroke caret-color accent-color text-decoration-color column-rule-color stop-color flood-color lighting-color text-emphasis-color border-top-color border-right-color border-bottom-color border-left-color",
+                ColorNames + " " + string.Join(" ", CssNamedColors));
             add("background", "none " + ColorNames);
             add("border-style outline-style border-top-style border-bottom-style border-left-style border-right-style", "none solid dashed dotted double groove ridge inset outset hidden");
             add("visibility", "visible hidden collapse");
@@ -283,6 +327,21 @@ namespace NestLight.Completion
         public static readonly IReadOnlyList<string> CssMediaFeatures = Words(
             "width height min-width max-width min-height max-height orientation aspect-ratio resolution prefers-color-scheme prefers-reduced-motion hover pointer display-mode");
 
+        public static readonly IReadOnlyList<string> CssContainerFeatures = Words("width height inline-size block-size aspect-ratio orientation");
+
+        public static readonly IReadOnlyList<string> CssAtRules = Words(
+            "media supports keyframes font-face import layer container charset namespace property page counter-style font-feature-values scope starting-style position-try");
+
+        public static readonly IReadOnlyList<string> CssUnits = Words(
+            "px rem em vh vw vmin vmax ch ex lh fr s ms deg rad turn grad svh dvh lvh cqw cqh dpi dppx cm mm in pt pc Q");
+
+        /// <summary>The attributes a selector tests most: <c>input[type=...]</c>, <c>a[href^=...]</c>.</summary>
+        public static readonly IReadOnlyList<string> CssSelectorAttributes = Words(
+            "type href src name value disabled checked placeholder role target rel lang class id title for alt hidden readonly required selected open data-id aria-label aria-hidden aria-expanded");
+
+        private static readonly HashSet<string> CssColorShorthands = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+            { "background", "border", "border-top", "border-right", "border-bottom", "border-left", "outline", "box-shadow", "text-shadow", "text-decoration", "column-rule", "border-block", "border-inline" };
+
         public static readonly IReadOnlyList<string> CssMediaTypes = Words("screen print all and not only");
 
         public static readonly IReadOnlyList<string> CssPseudoClasses = Words(
@@ -312,8 +371,12 @@ namespace NestLight.Completion
         public static IReadOnlyList<string> CssFunctionsFor(string property)
         {
             IReadOnlyList<string> functions;
-            return property != null && CssFunctions.TryGetValue(property, out functions) ? functions : CssCommonFunctions;
+            bool colors = property != null && CssColorShorthands.Contains(property);
+            if (property != null && CssFunctions.TryGetValue(property, out functions)) return colors ? functions.Concat(CssWithColors).Distinct().ToList() : functions;
+            return colors ? CssWithColors : CssCommonFunctions;
         }
+
+        private static readonly IReadOnlyList<string> CssWithColors = CssCommonFunctions.Concat(new[] { "transparent", "currentColor" }).Concat(CssNamedColors).ToList();
 
         private static readonly string[] HtmlGlobalAttributes = Words(
             @"class id style title lang dir hidden tabindex role draggable contenteditable accesskey slot spellcheck translate

@@ -48,7 +48,8 @@ namespace NestLight.Tests
             string css = ".card#main:hover::before > p { }";
             Assert.Equal(new[] { ".card", "#main" }, T(css, ClassificationNames.CssSelectorClass));
             Assert.Equal(new[] { ":hover", "::before" }, T(css, ClassificationNames.CssPseudo));
-            Assert.Equal(new[] { ">", "p" }, T(css, ClassificationNames.CssSelector));
+            Assert.Equal(new[] { "p" }, T(css, ClassificationNames.CssSelector));
+            Assert.Contains(">", T(css, ClassificationNames.CssPunct)); // a combinator is punctuation, not a name
         }
 
         [Fact]
@@ -75,8 +76,9 @@ namespace NestLight.Tests
         [Fact]
         public void Selector_list_and_combinators()
         {
-            Assert.Equal(new[] { "a,", "b", ">", "c", "+", "d", "~", "e" },
-                T("a, b > c + d ~ e { }", ClassificationNames.CssSelector));
+            string css = "a, b > c + d ~ e { }";
+            Assert.Equal(new[] { "a", "b", "c", "d", "e" }, T(css, ClassificationNames.CssSelector));
+            Assert.Equal(new[] { ",", ">", "+", "~", "{", "}" }, T(css, ClassificationNames.CssPunct));
         }
 
         [Fact]
@@ -173,10 +175,10 @@ namespace NestLight.Tests
         {
             string css = "@media (min-width: 600px) { .a { width: 1px } }";
             Assert.Equal(new[] { "@media" }, T(css, ClassificationNames.CssAtRule));
-            Assert.Equal(new[] { "min-width" }, T(css, ClassificationNames.CssValue));
+            Assert.Equal(new[] { "min-width", "width" }, T(css, ClassificationNames.CssProperty)); // the media feature is named like a property
+            Assert.Empty(T(css, ClassificationNames.CssValue));
             Assert.Equal(new[] { "600px", "1px" }, T(css, ClassificationNames.CssNumber));
             Assert.Equal(new[] { ".a" }, T(css, ClassificationNames.CssSelectorClass));
-            Assert.Equal(new[] { "width" }, T(css, ClassificationNames.CssProperty));
         }
 
         [Fact]
@@ -318,6 +320,75 @@ namespace NestLight.Tests
             Assert.Equal(new[] { "b" }, T(css, ClassificationNames.CssProperty));
             Assert.Equal(new[] { "c" }, T(css, ClassificationNames.CssValue));
             Assert.Equal(new[] { "shared" }, T(css, ClassificationNames.Expression));
+        }
+
+        // ---- selectors with arguments, attribute selectors, keyframes -----------------------------------------------
+
+        [Fact]
+        public void Functional_pseudo_classes_hold_selectors_and_formulas()
+        {
+            string css = "a:not(.b, #c) > li:nth-child(2n+1):is(.d, p) { }";
+            Assert.Equal(new[] { ":not", ":nth-child", ":is" }, T(css, ClassificationNames.CssPseudo));
+            Assert.Equal(new[] { ".b", "#c", ".d" }, T(css, ClassificationNames.CssSelectorClass));
+            Assert.Equal(new[] { "a", "li", "p" }, T(css, ClassificationNames.CssSelector));
+            Assert.Equal(new[] { "2n", "+1" }, T(css, ClassificationNames.CssNumber));
+            Assert.DoesNotContain("(", T(css, ClassificationNames.CssSelector));
+            Assert.DoesNotContain(")", T(css, ClassificationNames.CssSelector));
+        }
+
+        [Fact]
+        public void An_attribute_selector_has_a_name_an_operator_and_a_value()
+        {
+            string css = "input[type=\"text\" i], a[href^=http], [disabled] { }";
+            Assert.Equal(new[] { "type", "href", "disabled" }, T(css, ClassificationNames.CssProperty));
+            Assert.Equal(new[] { "\"text\"" }, T(css, ClassificationNames.CssString));
+            Assert.Equal(new[] { "i", "http" }, T(css, ClassificationNames.CssValue));
+            Assert.Equal(new[] { "input", "a" }, T(css, ClassificationNames.CssSelector));
+            Assert.Contains("[", T(css, ClassificationNames.CssPunct));
+            Assert.Contains("^", T(css, ClassificationNames.CssPunct));
+        }
+
+        [Fact]
+        public void Keyframe_percentages_are_numbers_and_from_to_are_names()
+        {
+            string css = "@keyframes spin { from { opacity: 0 } 50% { opacity: .5 } to { opacity: 1 } }";
+            Assert.Equal(new[] { "from", "to" }, T(css, ClassificationNames.CssSelector));
+            Assert.Contains("50%", T(css, ClassificationNames.CssNumber));
+        }
+
+        // ---- the condition of an at-rule -----------------------------------------------------------------------------
+
+        [Fact]
+        public void A_media_query_names_its_features_like_properties()
+        {
+            string css = "@media screen and (min-width: 600px) and (hover: hover) and (color) { }";
+            Assert.Equal(new[] { "min-width", "hover", "color" }, T(css, ClassificationNames.CssProperty));
+            Assert.Equal(new[] { "screen", "and", "and", "hover", "and" }, T(css, ClassificationNames.CssValue));
+            Assert.Equal(new[] { "600px" }, T(css, ClassificationNames.CssNumber));
+        }
+
+        [Fact]
+        public void The_range_syntax_of_a_media_query_and_a_container_and_a_supports_test()
+        {
+            Assert.Equal(new[] { "width" }, T("@media (width > 600px) { }", ClassificationNames.CssProperty));
+            Assert.Equal(new[] { "min-width" }, T("@container card (min-width: 400px) { }", ClassificationNames.CssProperty));
+            Assert.Equal(new[] { "display", "display" }, T("@supports (display: grid) and not (display: inline-grid) { }", ClassificationNames.CssProperty));
+            Assert.Equal(new[] { "base", "components" }, T("@layer base, components;", ClassificationNames.CssValue));
+        }
+
+        [Fact]
+        public void A_function_in_a_prelude_is_still_a_function()
+        {
+            string css = "@import url('x.css') layer(base) screen and (min-width: 1px);";
+            Assert.Equal(new[] { "url", "layer" }, T(css, ClassificationNames.CssFunction));
+            Assert.Equal(new[] { "min-width" }, T(css, ClassificationNames.CssProperty));
+            Assert.Equal(new[] { "'x.css'" }, T(css, ClassificationNames.CssString));
+        }
+
+        [Fact]
+        public void A_number_with_an_exponent_is_one_number()
+        {
+            Assert.Equal(new[] { "1e3ms", "2.5E-2", "1em" }, T("a { transition-delay: 1e3ms; opacity: 2.5E-2; width: 1em }", ClassificationNames.CssNumber));
         }
     }
 }
