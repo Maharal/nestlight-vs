@@ -63,7 +63,7 @@ namespace NestLight.Highlighting
         {
             ILanguageRegistry languages = CreateLanguages();
             IHostScanner scanner = new CachingHostScanner(CreateScanner(host, languages));
-            return new BufferAnalysis(new HighlightEngine(scanner, languages), new CompletionEngine(scanner, matcher: new BandedPrefixMatcher()));
+            return new BufferAnalysis(new HighlightEngine(scanner, languages), new CompletionEngine(scanner, matcher: new BandedPrefixMatcher(), features: CompletionFeatures.Default));
         }
     }
 

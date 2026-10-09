@@ -23,6 +23,10 @@ namespace NestLight.Common
         // CSS
         public const string CssSelector = "template.css.selector";
         public const string CssSelectorClass = "template.css.selector.class";
+        public const string CssSelectorId = "template.css.selector.id";
+        public const string CssAttribute = "template.css.attribute";
+        public const string CssUnit = "template.css.unit";
+        public const string CssImportant = "template.css.important";
         public const string CssPseudo = "template.css.pseudo";
         public const string CssProperty = "template.css.property";
         public const string CssCustomProperty = "template.css.property.custom";

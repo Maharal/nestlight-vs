@@ -75,6 +75,10 @@ XML, Markdown and regular expressions have no closed vocabulary, so they only ge
 
 **Misspelled words.** When nothing starts with what you typed (3 or more letters), Nestlight offers up to 10 similar keywords and words of the document, after any exact ones: one edit away for 3 to 5 letters, two for 6 or more (an extra letter, a missing one, a wrong one, or two swapped), with the same first letter. `SELCT` offers `SELECT`, `<dvi` offers `div`, `custmer` offers `customerName`. Press **Ctrl+Space** after the mistake: a list opened by typing starts after one letter. When the prefix is right the list is exactly the one above.
 
+**Context.** The words that already followed the same word in the document come first: after `FROM ` the table that followed `FROM` before, after `display: ` the value used after `display:`. A short word such as `BY` is offered where it followed (`GROUP BY`). The words written in other strings of the same language come before the variables of the host code and the words of other languages, even when those are nearer to the caret.
+
+**Place in the grammar.** In SQL, CSS and HTML the place of the caret decides what comes first: a table of the document after `FROM` / `JOIN` / `INTO`, `BY` after `GROUP` / `ORDER`, the next clause after a column, a column after `u.`; in CSS the properties inside the braces, the values of the property after its colon (`display: ` offers `block`, `flex`, `grid`) and the HTML tags in a selector; in HTML the attributes of the tag inside `<button `, the values of an attribute (`type="` offers the input types) and the classes of the document inside `class="`. What does not belong there is moved to the end of the list, not removed.
+
 ## Install
 
 Download the `.vsix` from [Releases](../../releases), close Visual Studio and double-click the file.

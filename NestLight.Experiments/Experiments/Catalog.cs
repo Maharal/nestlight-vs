@@ -27,6 +27,17 @@ namespace NestLight.Experiments
                 new E24_SimilarRecovery(),
                 new E25_SimilarNoise(),
                 new E27_SimilarRobustness(),
+                new E28_PreviousWord(),
+                new E29_SameLanguageWords(),
+                new E30_GrammarPosition(),
+                new E31_SqlSchema(),
+                new E32_CountAndDistance(),
+                new E33_ContextRobustness(),
+                new E34_KeywordOrder(),
+                new E35_HeadKeywords(),
+                new E36_ShortWords(),
+                new E37_SimilarNoiseShortPrefix(),
+                new E38_ShortWordsRestated(),
             };
         }
     }

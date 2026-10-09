@@ -275,7 +275,8 @@ namespace NestLight.Tests
         {
             string html = "<div style='top: 1px'>";
             Assert.Equal(new[] { "top" }, T(html, ClassificationNames.CssProperty));
-            Assert.Equal(new[] { "1px" }, T(html, ClassificationNames.CssNumber));
+            Assert.Equal(new[] { "1" }, T(html, ClassificationNames.CssNumber));
+            Assert.Equal(new[] { "px" }, T(html, ClassificationNames.CssUnit));
             Assert.Equal(new[] { "'", "'" }, T(html, ClassificationNames.AttributeValue));
         }
 
@@ -290,7 +291,7 @@ namespace NestLight.Tests
         {
             string html = "<div style=\"margin: ${m}px\"></div>";
             Assert.Equal(new[] { "margin" }, T(html, ClassificationNames.CssProperty));
-            Assert.Equal(new[] { "px" }, T(html, ClassificationNames.CssNumber));
+            Assert.Equal(new[] { "px" }, T(html, ClassificationNames.CssUnit));
             Assert.Equal(new[] { "m" }, T(html, ClassificationNames.Expression));
         }
 

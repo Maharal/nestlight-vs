@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.ComponentModel.Composition;
+using System.Globalization;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.VisualStudio.Language.Intellisense.AsyncCompletion;
@@ -124,14 +125,17 @@ namespace NestLight.VisualStudio
 
             string typed = text.Substring(site.Start, site.PrefixLength);
             var items = ImmutableArray.CreateBuilder<CompletionItem>(suggestions.Count);
+            int rank = 0;
             foreach (Suggestion suggestion in suggestions)
             {
-                // A similar word does not start with what was typed. The editor filters the list against the text of the span at every
-                // key, so the item is filtered by what was typed, while it shows and inserts the word it suggests.
-                CompletionItem item = suggestion.Distance == 0
-                    ? new CompletionItem(suggestion.Text, this)
-                    : new CompletionItem(suggestion.Text, this, default(ImageElement), ImmutableArray<CompletionFilter>.Empty, string.Empty,
-                        suggestion.Text, suggestion.Text, typed, ImmutableArray<ImageElement>.Empty);
+                // The editor sorts the list by the sort text, which is the text of the item unless told otherwise: without the rank the
+                // order of the engine (the context first, then the nearest word) would be lost. A similar word does not start with what
+                // was typed; the editor filters the list against the text of the span at every key, so the item is filtered by what was
+                // typed, while it shows and inserts the word it suggests.
+                string sortText = (rank++).ToString("D5", CultureInfo.InvariantCulture);
+                string filterText = suggestion.Distance == 0 ? suggestion.Text : typed;
+                CompletionItem item = new CompletionItem(suggestion.Text, this, default(ImageElement), ImmutableArray<CompletionFilter>.Empty, string.Empty,
+                    suggestion.Text, sortText, filterText, ImmutableArray<ImageElement>.Empty);
                 item.Properties.AddProperty(KindKey, suggestion.Kind);
                 item.Properties.AddProperty(LanguageKey, site.LanguageId);
                 item.Properties.AddProperty(DistanceKey, suggestion.Distance);

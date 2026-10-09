@@ -6,7 +6,7 @@ using NestLight.Highlighting;
 
 namespace NestLight.Experiments
 {
-    internal sealed class E27_SimilarRobustness : Experiment
+    internal class E27_SimilarRobustness : Experiment
     {
         public override string Id { get { return "E27"; } }
         public override string Title { get { return "Completion with similar words on incomplete and cut code"; } }
@@ -16,10 +16,15 @@ namespace NestLight.Experiments
         public override string IfMet { get { return "Completion can be triggered anywhere in a file being edited, with the second stage on."; } }
         public override string IfNotMet { get { return "The violations are listed: each is an input that would throw in the editor or offer a wrong replacement."; } }
 
+        /// <summary>The context features the engine runs with; null: none.</summary>
+        protected virtual CompletionFeatures Features { get { return null; } }
+        /// <summary>Whether the files are the structured ones (SQL over a schema, CSS values, HTML attributes).</summary>
+        protected virtual bool Structured { get { return false; } }
+
         public override Outcome Run(Settings settings)
         {
             var outcome = new Outcome();
-            var corpus = SyntheticCorpus.Generate(settings.Quick ? 8 : 50, 42, 0.5, blocksPerFile: 4);
+            var corpus = SyntheticCorpus.Generate(settings.Quick ? 8 : 50, 42, 0.5, blocksPerFile: 4, structured: Structured);
             var violations = new Dictionary<string, int>();
             var examples = new List<string>();
             long texts = 0, carets = 0, sites = 0, damaged = 0, similarItems = 0;
@@ -27,7 +32,7 @@ namespace NestLight.Experiments
 
             foreach (CorpusFile file in corpus)
             {
-                CompletionEngine engine = CompletionLab.Engine(file.Host, CompletionEngine.DefaultMaxItems, CompletionEngine.DefaultMinWordLength, true);
+                CompletionEngine engine = CompletionLab.Engine(file.Host, CompletionEngine.DefaultMaxItems, CompletionEngine.DefaultMinWordLength, true, features: Features);
                 int length = file.Text.Length;
                 int stride = Math.Max(1, length / (settings.Quick ? 30 : 120));
                 var variants = new List<string>();

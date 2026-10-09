@@ -29,10 +29,11 @@ namespace NestLight.Experiments
         public const int Unlimited = 1000000;
 
         public static CompletionEngine Engine(HostLanguage host, int maxItems = Unlimited, int minWordLength = CompletionEngine.DefaultMinWordLength,
-            bool similar = false, int fuzzyBelow = CompletionEngine.DefaultFuzzyBelow, int fuzzyMaxItems = CompletionEngine.DefaultFuzzyMaxItems)
+            bool similar = false, int fuzzyBelow = CompletionEngine.DefaultFuzzyBelow, int fuzzyMaxItems = CompletionEngine.DefaultFuzzyMaxItems,
+            CompletionFeatures features = null)
         {
             return new CompletionEngine(NestLightComposition.CreateScanner(host, NestLightComposition.CreateLanguages()), maxItems, minWordLength,
-                similar ? new BandedPrefixMatcher() : null, fuzzyBelow, fuzzyMaxItems);
+                similar ? new BandedPrefixMatcher() : null, fuzzyBelow, fuzzyMaxItems, features: features);
         }
 
         public static bool IsWordChar(string languageId, char c)
@@ -154,7 +155,7 @@ namespace NestLight.Experiments
             public int EditAt = -1;
         }
 
-        private static List<KeyValuePair<int, string>> Sample(CorpusFile file, int perFile, int minLength)
+        internal static List<KeyValuePair<int, string>> Sample(CorpusFile file, int perFile, int minLength)
         {
             IHostScanner scanner = NestLightComposition.CreateScanner(file.Host, NestLightComposition.CreateLanguages());
             var all = new List<KeyValuePair<int, string>>();
