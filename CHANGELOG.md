@@ -13,8 +13,6 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - An order of the words by count and distance (`WordOrder.Frequency` and `WordOrder.Blend`), **off**: experiment E32 found no gain over the nearest first.
 - Similar words in the completion: when nothing starts with what was typed (3 or more letters), the keywords and the words of the document that are one or two edits away are offered after the exact ones (`SELCT` offers `SELECT`). Experiments E23 to E27; E27 replaces E18.
 - Completion inside embedded strings: keywords of the language of the string (SQL, CSS, HTML / SVG, GraphQL, JSON, YAML, GLSL, WGSL) and words that already exist in the document, nearest to the caret first.
-
-### Added
 - Vocabulary the review of 800 suggestions found missing: `main` and the `gl_` variables of GLSL; directives and the `#version` profile of GLSL; the attributes, builtin values, interpolation, address spaces and access modes of WGSL; the ARIA roles and the values of more attributes in HTML and SVG; more values of CSS properties.
 
 ### Changed
