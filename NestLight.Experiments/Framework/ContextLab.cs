@@ -53,7 +53,7 @@ namespace NestLight.Experiments
 
         private static string PlaceOf(string text, CompletionSite site)
         {
-            Position position = Positions.At(text, site);
+            Position position = CompletionLanguages.Default.Find(site.EmbeddedLanguageId).PositionAt(text, site);
             if (position == null) return "(none)";
             string[] parts = position.Name.Split(':');
             return parts.Length > 2 && (parts[1] == "value" || parts[1] == "attribute") ? parts[0] + ":" + parts[1] : position.Name;

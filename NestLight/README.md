@@ -23,6 +23,8 @@ Tools > Options > Environment > Fonts and Colors > "Text Editor" > items "Templa
 1. Write a tokenizer in `EmbeddedLanguages/` (`IEmbeddedLanguageTokenizer`) and add it to `NestLightComposition.CreateEmbeddedLanguages`.
 2. Add its names to `Common/ClassificationNames.cs` and declare the types and default colors in `VisualStudio/`.
    A test fails until every name has both.
+3. Write its completion strategy in `Completion/Languages/` (derive from `CompletionLanguage`, give it the same ids as the tokenizer) and add it to `CompletionLanguages`.
+   A language with no grammar overrides nothing but its words. A test fails until every tokenizer has a strategy with the same ids.
 
 ## Adding a host
 1. Write a scanner in `Hosts/` (`IHostScanner`) and add a `HostLanguage` value and a case in `NestLightComposition.CreateScanner`.

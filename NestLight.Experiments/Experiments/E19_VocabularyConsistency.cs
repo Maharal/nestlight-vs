@@ -69,7 +69,7 @@ namespace NestLight.Experiments
                 foreach (string id in spec.Ids)
                 {
                     IEmbeddedLanguageTokenizer tokenizer = registry.Find(id);
-                    IReadOnlyList<string> words = Vocabularies.For(id);
+                    IReadOnlyList<string> words = CompletionLanguages.Default.Find(id).Keywords;
                     int whole = 0, expected = 0;
                     var failures = new List<string>();
                     foreach (string word in words)

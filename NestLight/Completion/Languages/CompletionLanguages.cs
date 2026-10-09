@@ -28,11 +28,9 @@ namespace NestLight.Completion
 
         private static IEnumerable<ICompletionLanguage> Standard()
         {
-            // the strategies that lean on another language get it from here (HTML completes the CSS inside it)
-            var css = new CssCompletion();
             return new ICompletionLanguage[]
             {
-                new SqlCompletion(), css, new HtmlCompletion(css), new GraphQlCompletion(), new JsonCompletion(), new YamlCompletion(),
+                new SqlCompletion(), new CssCompletion(), new HtmlCompletion(), new GraphQlCompletion(), new JsonCompletion(), new YamlCompletion(),
                 new GlslCompletion(), new WgslCompletion(), new XmlCompletion(), new MarkdownCompletion(), new RegexCompletion()
             };
         }

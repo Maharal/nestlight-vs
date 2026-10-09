@@ -8,7 +8,7 @@ namespace NestLight.Completion
     /// The CSS that lives inside an HTML string: the content of a <c>&lt;style&gt;</c> element and the value of a <c>style="..."</c>
     /// attribute. The highlighter already colors them as CSS; the completion needs to know where they are to complete them as CSS.
     /// </summary>
-    internal static class NestedLanguages
+    internal static class HtmlStyleRegions
     {
         internal struct CssRange
         {

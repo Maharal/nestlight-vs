@@ -40,7 +40,7 @@ namespace NestLight.Tests
         {
             string code;
             CompletionSite site = Site(codeWithCaret, out code);
-            Position position = Positions.At(code, site);
+            Position position = CompletionLanguages.Default.Find(site.EmbeddedLanguageId).PositionAt(code, site);
             return position == null ? null : position.Name;
         }
 

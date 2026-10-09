@@ -34,7 +34,7 @@ namespace NestLight.Tests
 
             Assert.Equal(new[] { "users", "orders" }, with.Take(2).ToArray());
             // the words of the document come after the keywords without the feature, and the feature does not drop anything
-            Assert.True(without.IndexOf("users") >= Vocabularies.For("sql").Count);
+            Assert.True(without.IndexOf("users") >= CompletionLanguages.Default.Find("sql").Keywords.Count);
             Assert.Equal(without.OrderBy(w => w), with.OrderBy(w => w));
         }
 
@@ -149,11 +149,11 @@ namespace NestLight.Tests
         [Fact]
         public void Aliases_of_a_language_are_the_same_language()
         {
-            Assert.True(Vocabularies.SameLanguage("html", "svg"));
-            Assert.True(Vocabularies.SameLanguage("YAML", "yml"));
-            Assert.True(Vocabularies.SameLanguage("xml", "XML"));
-            Assert.False(Vocabularies.SameLanguage("sql", "css"));
-            Assert.False(Vocabularies.SameLanguage(null, "sql"));
+            Assert.True(CompletionLanguages.Default.Same("html", "svg"));
+            Assert.True(CompletionLanguages.Default.Same("YAML", "yml"));
+            Assert.True(CompletionLanguages.Default.Same("xml", "XML"));
+            Assert.False(CompletionLanguages.Default.Same("sql", "css"));
+            Assert.False(CompletionLanguages.Default.Same(null, "sql"));
 
             const string code = "svg`<g class='shape'>`;\nconst shapeId = 1;\nhtml`<div class='sh|'>`";
             Assert.Equal(new[] { "shape", "shapeId" }, Words(code, Scope).ToArray());

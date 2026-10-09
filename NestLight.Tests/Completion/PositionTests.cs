@@ -21,7 +21,7 @@ namespace NestLight.Tests
             int caret = codeWithCaret.IndexOf('|');
             string code = codeWithCaret.Remove(caret, 1);
             CompletionSite site = Engine(Grammar).Locate(code, caret);
-            Position position = Positions.At(code, site);
+            Position position = CompletionLanguages.Default.Find(site.EmbeddedLanguageId).PositionAt(code, site);
             return position == null ? null : position.Name;
         }
 
@@ -218,7 +218,7 @@ namespace NestLight.Tests
                     CompletionEngine engine = Engine(Grammar, 100);
                     CompletionSite site = engine.Locate(text, text.Length);
                     if (site == null) continue;
-                    Position position = Positions.At(text, site);
+                    Position position = CompletionLanguages.Default.Find(site.EmbeddedLanguageId).PositionAt(text, site);
                     Assert.NotNull(engine.Suggest(text, site));
                 }
         }

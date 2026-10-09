@@ -38,12 +38,12 @@ namespace NestLight.Experiments
 
         public static bool IsWordChar(string embeddedLanguageId, char c)
         {
-            return char.IsLetterOrDigit(c) || c == '_' || Vocabularies.IsExtraWordChar(embeddedLanguageId, c);
+            return char.IsLetterOrDigit(c) || c == '_' || CompletionLanguages.Default.Find(embeddedLanguageId).IsExtraWordChar(c);
         }
 
         private static bool IsWordStart(string embeddedLanguageId, char c)
         {
-            return char.IsLetter(c) || c == '_' || Vocabularies.IsExtraWordChar(embeddedLanguageId, c);
+            return char.IsLetter(c) || c == '_' || CompletionLanguages.Default.Find(embeddedLanguageId).IsExtraWordChar(c);
         }
 
         /// <summary>The words of text[from, to): where they start and what they are.</summary>

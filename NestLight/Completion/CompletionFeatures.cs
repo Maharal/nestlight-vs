@@ -43,7 +43,7 @@ namespace NestLight.Completion
 
         /// <summary>
         /// The place of the caret in the grammar decides what comes first: after <c>FROM</c> a table, after <c>display:</c> its values,
-        /// inside <c>&lt;button </c> its attributes, and the words that do not belong there come last (see <see cref="Positions"/>).
+        /// inside <c>&lt;button </c> its attributes, and the words that do not belong there come last (see <see cref="ICompletionLanguage.PositionAt"/>).
         /// </summary>
         public readonly bool Grammar;
 

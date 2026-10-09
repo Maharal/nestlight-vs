@@ -95,6 +95,20 @@ namespace NestLight.Completion
         protected virtual Position ReadPosition(string text, int floor, CompletionSite site) { return null; }
 
         protected static bool IsWordChar(char c) { return char.IsLetterOrDigit(c) || c == '_'; }
+
+        /// <summary>The words of a text, split at blanks: the way the lists of words are written.</summary>
+        protected static string[] Words(string text)
+        {
+            return text.Split(new[] { ' ', '\n', '\r', '\t' }, StringSplitOptions.RemoveEmptyEntries);
+        }
+
+        /// <summary>The start of the line the offset is on, not before <paramref name="floor"/>.</summary>
+        protected static int LineStart(string text, int offset, int floor)
+        {
+            int i = offset;
+            while (i > floor && text[i - 1] != '\n') i--;
+            return i;
+        }
     }
 
     /// <summary>The language of a string whose id the completion does not know: only the words of the document.</summary>

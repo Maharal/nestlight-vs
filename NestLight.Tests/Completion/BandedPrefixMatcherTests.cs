@@ -148,7 +148,7 @@ namespace NestLight.Tests
         public void The_band_agrees_on_the_real_vocabulary()
         {
             var random = new Random(3);
-            var words = Vocabularies.For("css").Concat(Vocabularies.For("sql")).Concat(Vocabularies.For("glsl")).ToList();
+            var words = CompletionLanguages.Default.Find("css").Keywords.Concat(CompletionLanguages.Default.Find("sql").Keywords).Concat(CompletionLanguages.Default.Find("glsl").Keywords).ToList();
             for (int p = 0; p < 20000; p++)
             {
                 string candidate = words[random.Next(words.Count)];

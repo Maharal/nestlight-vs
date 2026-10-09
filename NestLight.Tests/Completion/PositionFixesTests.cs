@@ -22,7 +22,7 @@ namespace NestLight.Tests
             int caret = codeWithCaret.IndexOf('|');
             string code = codeWithCaret.Remove(caret, 1);
             CompletionSite site = Engine(Grammar).Locate(code, caret);
-            Position position = Positions.At(code, site);
+            Position position = CompletionLanguages.Default.Find(site.EmbeddedLanguageId).PositionAt(code, site);
             return position == null ? null : position.Name;
         }
 

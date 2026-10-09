@@ -27,13 +27,13 @@ namespace NestLight.Experiments
         {
             IEmbeddedLanguageRegistry languages = NestLightComposition.CreateEmbeddedLanguages();
             IHostScanner scanner = NestLightComposition.CreateScanner(HostLanguage.JavaScript, languages);
-            bool dash = Vocabularies.IsExtraWordChar(language, '-');
+            bool dash = CompletionLanguages.Default.Find(language).IsExtraWordChar('-');
             foreach (CorpusDocument doc in documents)
             {
                 string text = doc.Text;
                 foreach (EmbeddedString s in scanner.Scan(text))
                 {
-                    if (!Vocabularies.SameLanguage(s.EmbeddedLanguageId, language) && !(language == "html" && s.EmbeddedLanguageId == "svg")) continue;
+                    if (!CompletionLanguages.Default.Same(s.EmbeddedLanguageId, language) && !(language == "html" && s.EmbeddedLanguageId == "svg")) continue;
                     int i = s.Start, end = Math.Min(s.End, text.Length);
                     while (i < end)
                     {
@@ -65,7 +65,7 @@ namespace NestLight.Experiments
                     if (!done.Add(p)) continue;
                     string typed = o.Word.Substring(0, p);
                     string text = o.Document.Text.Remove(o.Start, o.Word.Length).Insert(o.Start, typed);
-                    bool reachable = Vocabularies.Find(language, o.Word) != null
+                    bool reachable = CompletionLanguages.Default.Find(language).FindKeyword(o.Word) != null
                         || Regex.Matches(text, "(?<![\\p{L}\\p{N}_-])" + Regex.Escape(o.Word) + "(?![\\p{L}\\p{N}_-])", RegexOptions.IgnoreCase).Cast<Match>().Any(m => m.Index != o.Start);
                     probes.Add(new CorpusProbe { Language = language, Text = text, Caret = o.Start + p, Word = o.Word, Prefix = p, Reachable = reachable });
                 }
@@ -100,7 +100,7 @@ namespace NestLight.Experiments
             for (int n = 0; n < words && (int)(n * step) < all.Count; n++)
             {
                 Occurrence o = all[(int)(n * step)];
-                bool reachable = Vocabularies.Find(language, o.Word) != null || CountOf(o.Document.Text, o.Word) > 1;
+                bool reachable = CompletionLanguages.Default.Find(language).FindKeyword(o.Word) != null || CountOf(o.Document.Text, o.Word) > 1;
                 if (!reachable) continue;
                 foreach (string kind in new[] { "swap", "missing", "wrong", "extra" })
                 {
@@ -135,7 +135,7 @@ namespace NestLight.Experiments
         /// </summary>
         public static List<CorpusProbe> NewWords(IEnumerable<CorpusDocument> documents, string language, int words)
         {
-            var all = Occurrences(documents, language).Where(o => o.Word.Length >= 6 && Vocabularies.Find(language, o.Word) == null && CountOf(o.Document.Text, o.Word) == 1).ToList();
+            var all = Occurrences(documents, language).Where(o => o.Word.Length >= 6 && CompletionLanguages.Default.Find(language).FindKeyword(o.Word) == null && CountOf(o.Document.Text, o.Word) == 1).ToList();
             var result = new List<CorpusProbe>();
             if (all.Count == 0) return result;
             double step = Math.Max(1.0, all.Count / (double)words);
@@ -157,7 +157,7 @@ namespace NestLight.Experiments
             var counts = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
             foreach (Occurrence o in Occurrences(documents, language))
             {
-                string keyword = Vocabularies.Find(language, o.Word);
+                string keyword = CompletionLanguages.Default.Find(language).FindKeyword(o.Word);
                 if (keyword == null) continue;
                 int c;
                 counts[keyword] = counts.TryGetValue(keyword, out c) ? c + 1 : 1;

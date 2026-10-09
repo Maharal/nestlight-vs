@@ -81,7 +81,7 @@ namespace NestLight.Experiments
 
                 Dictionary<string, int> counts, near;
                 CompletionLab.WordFacts(t.Text, t.Caret, site.EmbeddedLanguageId, out counts, out near);
-                bool reachable = counts.ContainsKey(t.Word) || Vocabularies.For(site.EmbeddedLanguageId).Contains(t.Word, StringComparer.OrdinalIgnoreCase);
+                bool reachable = counts.ContainsKey(t.Word) || CompletionLanguages.Default.Find(site.EmbeddedLanguageId).Keywords.Contains(t.Word, StringComparer.OrdinalIgnoreCase);
                 if (!reachable) { unreachable++; continue; }
 
                 List<Suggestion> items = engine.Suggest(t.Text, site).ToList();

@@ -66,7 +66,7 @@ namespace NestLight.Completion
 
     /// <summary>
     /// Completion inside embedded strings, from two sources: the keywords of the language of the string
-    /// (<see cref="Vocabularies"/>) and the words that already exist in the document, nearest to the caret first
+    /// (<see cref="ICompletionLanguage"/>) and the words that already exist in the document, nearest to the caret first
     /// (what Visual Studio Code calls word-based suggestions).
     /// </summary>
     /// <remarks>

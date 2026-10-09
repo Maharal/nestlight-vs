@@ -105,7 +105,7 @@ The code is split by responsibility, and every dependency is injected through a 
 
 | Folder | Holds |
 |---|---|
-| `Completion` | The completion engine, the keywords of each language and the distance used for similar words |
+| `Completion` | The completion engine and the distance used for similar words; in `Completion/Languages`, one strategy per embedded language (its words, what counts as a word, the grammar of the place of the caret) |
 | `Common` | The model (embedded string, interpolation, token), the interfaces everything else depends on, marker rules and text helpers |
 | `Hosts` | One scanner per host language |
 | `EmbeddedLanguages` | One tokenizer per embedded language |
@@ -114,7 +114,7 @@ The code is split by responsibility, and every dependency is injected through a 
 
 Everything but `VisualStudio` is free of the Visual Studio SDK, so the tests run it as is.
 
-Adding a host means writing a scanner and a provider. Adding a language means writing a tokenizer, adding it to the composition root and declaring its classification types in `VisualStudio`.
+Adding a host means writing a scanner and a provider. Adding a language means writing a tokenizer, adding it to the composition root and declaring its classification types in `VisualStudio`, and, to complete it, writing a completion strategy in `Completion/Languages` (a class that derives from `CompletionLanguage` and overrides only what is different about the language).
 
 ## Experiments
 
