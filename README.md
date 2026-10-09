@@ -121,11 +121,11 @@ Adding a host means writing a scanner and a provider. Adding a language means wr
 Beyond the unit tests, which check what the plugin colors, a suite of **experiments** checks how well it performs. Each experiment is a hypothesis (for example, "the text copy on every edit is worth removing") with a test and a criterion written in advance. They live in their own project, `NestLight.Experiments`, and are not part of `dotnet test`. There are two kinds:
 
 - **Automatic** (`EAnn`): the code measures and decides whether the criterion held.
-- **Manual** (`EMnn`): the code runs the plugin over generated code, one file per host x embedded language combination, and a person reads the files case by case. It has no criterion; its result is a list of findings.
+- **Manual** (`EMnn`): a qualitative test without Visual Studio. The code runs the plugin over generated code and writes artifacts (the source, the final view of the colors as text and as an HTML page, the completion, case by case), and a person or an AI agent reads them and judges the quality. It has no criterion; its result is a list of findings. What is tried by hand inside Visual Studio is not documented as an experiment.
 
 ```
 dotnet run -c Release --project NestLight.Experiments                      # the automatic experiments
-dotnet run -c Release --project NestLight.Experiments -- --manual out      # the manual review: files to read, in out/
+dotnet run -c Release --project NestLight.Experiments -- --manual out      # the manual review: artifacts to read, in out/
 dotnet run -c Release --project NestLight.Experiments -- --generate out    # only the generated code for every combination
 ```
 

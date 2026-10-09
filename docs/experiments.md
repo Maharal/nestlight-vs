@@ -8,15 +8,23 @@ The main question behind the performance experiments: does NestLight slow Visual
 
 An experiment is a hypothesis, a test that can answer it and a criterion. There are two kinds, numbered separately from 1: **EAnn** (automatic, class `EAnn_Name` in `Experiments/Automatic/`) and **EMnn** (manual, in `Experiments/Manual/`).
 
+**Automatic** experiments are code that measures and decides. The criterion is written before the run and the result is *met* or *not met*. They write a report with tables and analysis to `reports/`.
+
+**Manual** experiments are a qualitative test of the result of the plugin, **without Visual Studio**: looking at the final result with the eye. The generator writes examples, the plugin runs over them, and the harness leaves **artifacts**: one file per case with everything the plugin did. A person or an AI agent then reads the artifacts case by case and judges their quality: is this the color the piece should have, does this suggestion belong, should the plugin have stayed out here. When a case is bad, the code is changed, the experiment is run again and the same cases are read again; that loop is the experiment. It is meant to be half automated: the machine generates and runs, the reader judges.
+
+Rules:
+- Every manual experiment **generates artifacts**. An experiment without artifacts to read is not manual, it is automatic.
+- They have no criterion. The result is a list of findings, each pointing at its file and case.
+- Their input is always the code of the generator.
+- **What is tried by hand inside Visual Studio is not documented here** (no experiment, no id): it needs a person at the IDE, leaves no artifact and cannot be repeated by an agent. Manual experiments exist to avoid depending on the IDE.
+
 | | Automatic | Manual |
 |---|---|---|
-| Who judges | the code: it measures and applies the criterion | a person, or Claude, reading what the plugin did |
-| Criterion | written before the run; the result is *met* or *not met* | none: the result is a list of findings, each with its file and case |
-| Input | its own corpora and synthetic files, or the generator | always the code that the generator writes |
-| Output | a report with tables and analysis, in `reports/` | one file per case, to be read one by one |
+| Who judges | the code | a person or an AI agent reading the artifacts |
+| Criterion | written before the run | none; findings |
+| Input | its own corpora and synthetic files, or the generator | the generator |
+| Output | a report in `reports/` | artifacts, one set per case |
 | Run | `dotnet run -c Release --project NestLight.Experiments` | `dotnet run -c Release --project NestLight.Experiments -- --manual <dir>` |
-
-"Manual" is about who reads, not about who runs: both kinds are one command. A manual experiment is for what a count cannot tell, such as a word that should have a color and has none, or a suggestion that does not belong. [CombinationReview](../NestLight.Experiments/Experiments/Manual/CombinationReview.cs) (EM01) generates the code of every combination, runs the plugin over it and writes for each one the source, the strings found, every token with its type, the words of the string that got no color, the completion for each word typed with 1 and 2 letters (site, place in the grammar, rank of the intended word, top 10) and the carets in host code and in interpolations, where the plugin must offer nothing. `INDEX.md` counts the gaps, the misses and the wrong sites to say what to read first; a count is a pointer, not a verdict (plain text in Markdown is a gap that is correct). `--host` and `--language` narrow the run.
 
 ### The code generator
 
@@ -374,6 +382,13 @@ The *Experiments* workflow runs the same suite on Windows, on `net48` (the runti
 
 **Hypothesis.** EA36 says every combination is found and tokenized, not whether the colors and the suggestions are good. Reading what the plugin does with each combination, one by one, finds what a count cannot: a word that should have a color and has none, a suggestion that does not belong (a variable of the host offered inside SQL), a caret in host code that gets a site.
 
-**Test (manual, qualitative).** `--manual <dir>` generates the 168 combinations, runs the plugin over them and writes a file for each with the source, the tokens, the words with no token, the completion for each word typed with 1 and 2 letters and the carets that must get nothing. A reader goes through the files and judges each case.
+**Test (manual).** `--manual <dir>` generates the 168 combinations ([CombinationReview](../NestLight.Experiments/Experiments/Manual/CombinationReview.cs)), runs the plugin over them and writes, for each one, a Markdown file and an HTML page (the artifacts) in `<dir>/<host>/`:
+- the generated **source**;
+- the **final view**: the source with every token written `⟦text|role⟧`, so the color of each piece can be read, and the same view painted in the HTML page (a legend names each role);
+- the strings found, every token with its position and type, and the words of the string with no token;
+- the **completion**: each word of the string typed with 1 and 2 letters, with the place in the grammar, the rank of the intended word and the top 10 (`*` keyword, `~` similar word);
+- the **carets that must get nothing**, in host code and inside interpolations.
+
+`INDEX.md` lists the combinations with the counts of gaps, misses and wrong sites, to say what to read first. A count is a pointer, not a verdict: plain text in Markdown is a gap that is correct. `--host` and `--language` narrow the run, so a fix can be checked on the cases it touches.
 
 **Criterion.** None: the result is a list of findings, each with the file and the case.

@@ -13,7 +13,7 @@ namespace NestLight.Experiments
     /// A manual experiment: it has no criterion and decides nothing. It generates the code of every host x embedded language
     /// combination, runs the plugin over it and writes, for each combination, a file with everything the plugin did (the source,
     /// each token with its type, the words of the string that got no color, the completion at the words typed with a prefix, and
-    /// the carets that must get nothing). A person (or Claude) reads the files one by one and judges each case; the index lists
+    /// the carets that must get nothing). A person or an AI agent reads the files one by one, without Visual Studio, and judges each case; the index lists
     /// what is worth reading first. "Manual" is for whoever reads: running it is one command.
     /// </summary>
     internal static class CombinationReview
@@ -37,11 +37,13 @@ namespace NestLight.Experiments
             {
                 if (filter != null && !filter(c)) continue;
                 var summary = new Summary();
-                string report = Review(c, summary);
+                string html;
+                string report = Review(c, summary, out html);
                 string rel = c.FileName.Replace(".js", ".md").Replace(".cs", ".md").Replace(".py", ".md").Replace(".cpp", ".md");
                 string path = Path.Combine(outDir, rel.Replace('/', Path.DirectorySeparatorChar));
                 Directory.CreateDirectory(Path.GetDirectoryName(path));
                 File.WriteAllText(path, report, new UTF8Encoding(false));
+                File.WriteAllText(Path.ChangeExtension(path, ".html"), html, new UTF8Encoding(false));
                 index.AppendLine("| [" + c.Name + "](" + rel + ") | " + summary.Strings + " | " + summary.Tokens + " | " + summary.Gaps + " | " + summary.Misses + " | " + summary.WrongSites + " |");
                 files++;
             }
@@ -52,7 +54,7 @@ namespace NestLight.Experiments
 
         private sealed class Summary { public int Strings, Tokens, Gaps, Misses, WrongSites; }
 
-        private static string Review(Combination c, Summary summary)
+        private static string Review(Combination c, Summary summary, out string html)
         {
             string text = CombinationGenerator.Generate(c, 1);
             IEmbeddedLanguageRegistry languages = NestLightComposition.CreateEmbeddedLanguages();
@@ -65,6 +67,10 @@ namespace NestLight.Experiments
             var sb = new StringBuilder();
             sb.AppendLine("# " + c.Name).AppendLine();
             sb.AppendLine("## Source").AppendLine().AppendLine("```").Append(text).AppendLine("```").AppendLine();
+            sb.AppendLine("## Final view").AppendLine();
+            sb.AppendLine("What the editor would show, as text: every token is written `⟦text|role⟧`, so a reader sees the color each piece gets. The same view, painted, is in [" + Path.GetFileNameWithoutExtension(c.FileName) + ".html](" + Path.GetFileNameWithoutExtension(c.FileName) + ".html).").AppendLine();
+            sb.AppendLine("```").Append(Annotate(text, tokens)).AppendLine("```").AppendLine();
+            html = Paint(c, text, tokens);
 
             sb.AppendLine("## Strings found").AppendLine();
             foreach (EmbeddedString s in strings)
@@ -110,6 +116,53 @@ namespace NestLight.Experiments
                 sb.AppendLine("- " + Where(text, caret) + " after `" + Cut(text, Math.Max(0, caret - 6), caret).Replace("\n", "\\n") + "`: " + (wrong ? "**site in `" + site.EmbeddedLanguageId + "` (wrong)**" : "no site"));
             }
             return sb.ToString();
+        }
+
+        private static string Role(Token t)
+        {
+            return t.Type.StartsWith("template.") ? t.Type.Substring("template.".Length) : t.Type;
+        }
+
+        private static string Annotate(string text, IReadOnlyList<Token> tokens)
+        {
+            var sb = new StringBuilder();
+            int at = 0;
+            foreach (Token t in tokens.OrderBy(x => x.Start))
+            {
+                if (t.Start < at) continue;
+                sb.Append(text, at, t.Start - at).Append("⟦").Append(Cut(text, t.Start, t.End)).Append('|').Append(Role(t)).Append("⟧");
+                at = t.End;
+            }
+            return sb.Append(text, at, text.Length - at).ToString();
+        }
+
+        /// <summary>A page with the source painted by role, so that the result can be seen and not only read. Colors are only to tell the roles apart; the legend names them.</summary>
+        private static string Paint(Combination c, string text, IReadOnlyList<Token> tokens)
+        {
+            var roles = tokens.Select(Role).Distinct().OrderBy(r => r).ToList();
+            var sb = new StringBuilder("<!doctype html><html><head><meta charset=\"utf-8\"><title>" + c.Name + "</title><style>");
+            sb.Append("body{font:14px/1.5 sans-serif;margin:16px;background:#fff;color:#222}pre{font:13px/1.5 Consolas,monospace;background:#f6f6f6;padding:12px;border-radius:6px;overflow:auto}");
+            sb.Append(".legend span{margin-right:12px;white-space:nowrap}@media(prefers-color-scheme:dark){body{background:#1e1e1e;color:#ddd}pre{background:#2a2a2a}}");
+            for (int i = 0; i < roles.Count; i++)
+                sb.Append(".r" + i + "{color:hsl(" + (i * 137 % 360) + ",65%,42%);border-bottom:1px dotted currentColor}");
+            sb.Append("</style></head><body><h1>" + Esc(c.Name) + "</h1><p class=\"legend\">");
+            for (int i = 0; i < roles.Count; i++) sb.Append("<span class=\"r" + i + "\">" + Esc(roles[i]) + "</span>");
+            sb.Append("</p><pre>");
+            int at = 0;
+            foreach (Token t in tokens.OrderBy(x => x.Start))
+            {
+                if (t.Start < at) continue;
+                sb.Append(Esc(text.Substring(at, t.Start - at)));
+                sb.Append("<span class=\"r" + roles.IndexOf(Role(t)) + "\" title=\"" + Esc(Role(t)) + "\">" + Esc(Cut(text, t.Start, t.End)) + "</span>");
+                at = t.End;
+            }
+            sb.Append(Esc(text.Substring(at))).Append("</pre></body></html>");
+            return sb.ToString();
+        }
+
+        private static string Esc(string s)
+        {
+            return s.Replace("&", "&amp;").Replace("<", "&lt;").Replace(">", "&gt;").Replace("\"", "&quot;");
         }
 
         private static void Complete(Combination c, string original, Word w, int prefix, StringBuilder sb, Summary summary)
