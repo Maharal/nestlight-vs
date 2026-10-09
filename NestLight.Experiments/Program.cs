@@ -17,6 +17,7 @@ namespace NestLight.Experiments
   --list           list the experiments and exit
   --quick          smoke run with small sizes (numbers are not worth keeping)
   --out <dir>      where to write the report (default: docs/reports; with --quick: the temp folder)
+  --review <dir>   type words of hand-written files, run the completion of the plugin and write the inputs and the top 20 as JSON, to be read
 ";
 
         private static int Main(string[] args)
@@ -36,6 +37,7 @@ namespace NestLight.Experiments
                     case "--list": list = true; break;
                     case "--only" when i + 1 < args.Length: only = args[++i]; break;
                     case "--out" when i + 1 < args.Length: outDir = args[++i]; break;
+                    case "--review" when i + 1 < args.Length: ReviewRunner.Run(args[++i]); return 0;
                     default: Console.Error.WriteLine(Usage); return 2;
                 }
             }

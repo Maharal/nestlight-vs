@@ -195,6 +195,13 @@ namespace NestLight.Completion
             add("grid-auto-flow", "row column dense");
             add("vertical-align", "baseline top middle bottom text-top text-bottom sub super");
             add("transition-property will-change", string.Join(" ", CssPropertyWords));
+            add("transition", "all " + string.Join(" ", CssPropertyWords) + " ease ease-in ease-out ease-in-out linear step-start step-end");
+            add("transition-timing-function animation-timing-function", "ease ease-in ease-out ease-in-out linear step-start step-end");
+            add("animation", "ease ease-in ease-out ease-in-out linear infinite normal reverse alternate alternate-reverse forwards backwards both paused running none");
+            add("animation-direction", "normal reverse alternate alternate-reverse");
+            add("animation-fill-mode", "none forwards backwards both");
+            add("text-overflow", "clip ellipsis");
+            add("transform", "none");
             return map;
         }
 
@@ -203,6 +210,42 @@ namespace NestLight.Completion
         {
             IReadOnlyList<string> values;
             return property != null && CssValues.TryGetValue(property, out values) ? values : CssValueWords;
+        }
+
+        /// <summary>The conditions of a media query.</summary>
+        public static readonly IReadOnlyList<string> CssMediaFeatures = Words(
+            "width height min-width max-width min-height max-height orientation aspect-ratio resolution prefers-color-scheme prefers-reduced-motion hover pointer display-mode");
+
+        public static readonly IReadOnlyList<string> CssMediaTypes = Words("screen print all and not only");
+
+        public static readonly IReadOnlyList<string> CssPseudoClasses = Words(
+            @"hover focus active visited focus-visible focus-within first-child last-child nth-child only-child first-of-type last-of-type nth-of-type
+              not is where has checked disabled enabled required optional empty root target placeholder-shown read-only link");
+
+        public static readonly IReadOnlyList<string> CssPseudoElements = Words("before after first-line first-letter placeholder selection marker backdrop");
+
+        private static readonly IReadOnlyList<string> CssCommonFunctions = Words("var calc url rgb rgba hsl hsla min max clamp");
+
+        private static readonly Dictionary<string, IReadOnlyList<string>> CssFunctions = BuildCssFunctions();
+
+        private static Dictionary<string, IReadOnlyList<string>> BuildCssFunctions()
+        {
+            var map = new Dictionary<string, IReadOnlyList<string>>(StringComparer.OrdinalIgnoreCase);
+            Action<string, string> add = (properties, values) => { foreach (string p in Words(properties)) map[p] = Words(values); };
+            add("transform", "translate translateX translateY translateZ rotate rotateX rotateY scale scaleX scaleY skew skewX skewY matrix perspective var calc");
+            add("grid-template-columns grid-template-rows grid-auto-columns grid-auto-rows", "repeat minmax fit-content auto-fill auto-fit var calc");
+            add("background background-image", "linear-gradient radial-gradient conic-gradient url var rgba");
+            add("filter backdrop-filter", "blur brightness contrast grayscale hue-rotate invert opacity saturate sepia drop-shadow");
+            add("transition animation", "cubic-bezier steps var");
+            add("clip-path", "circle ellipse inset polygon path");
+            return map;
+        }
+
+        /// <summary>The functions that belong in the value of the property.</summary>
+        public static IReadOnlyList<string> CssFunctionsFor(string property)
+        {
+            IReadOnlyList<string> functions;
+            return property != null && CssFunctions.TryGetValue(property, out functions) ? functions : CssCommonFunctions;
         }
 
         private static readonly string[] HtmlGlobalAttributes = Words(

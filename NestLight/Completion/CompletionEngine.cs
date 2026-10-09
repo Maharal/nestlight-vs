@@ -177,12 +177,13 @@ namespace NestLight.Completion
             if (schema != null && place.Role == PlaceRole.Table) AddCandidates(schema, prefix, seen, result);
 
             // what the grammar expects at the caret, then (where the place says so) the words of the document, then the other keywords
-            if (position != null) AddExpected(position, site, prefix, upper, seen, result);
+            if (position != null) AddExpected(position.Expected, site, prefix, upper, seen, result);
             bool wordsFirst = position != null && position.WordsFirst;
             if (wordsFirst) AddWords(text, site, prefix, context, scope, ref scan, seen, result);
+            if (position != null && position.Secondary.Count > 0) AddExpected(position.Secondary, site, prefix, upper, seen, result);
 
             List<string> unlikely = null;
-            foreach (string word in Vocabularies.For(site.LanguageId))
+            foreach (string word in position != null && position.OnlyWords ? new string[0] : Vocabularies.For(site.LanguageId))
             {
                 if (result.Count >= _maxItems) return result;
                 if (!StartsWithIgnoreCase(word, prefix) || word.Length == prefix.Length) continue;
@@ -260,9 +261,9 @@ namespace NestLight.Completion
             }
         }
 
-        private void AddExpected(Position position, CompletionSite site, string prefix, bool upper, HashSet<string> seen, List<Suggestion> result)
+        private void AddExpected(IReadOnlyList<string> expectedWords, CompletionSite site, string prefix, bool upper, HashSet<string> seen, List<Suggestion> result)
         {
-            foreach (string expected in position.Expected)
+            foreach (string expected in expectedWords)
             {
                 if (result.Count >= _maxItems) return;
                 if (!StartsWithIgnoreCase(expected, prefix) || expected.Length == prefix.Length) continue;
@@ -501,6 +502,7 @@ namespace NestLight.Completion
             // a short word is only worth offering where the context says it belongs (the BY after GROUP)
             int shortest = context.Has ? Math.Min(_minWordLength, FollowMinWordLength) : _minWordLength;
             int previousStart = -1, previousLength = 0;
+            bool nextSeen = false; // the first word after the caret is what the text already says comes next, not a word that followed the context
             int range = 0; // the matches come in order, so a pointer into the ranges of scope is enough
             int i = from;
             while (i < to)
@@ -512,6 +514,8 @@ namespace NestLight.Completion
                 int length = i - start;
                 int beforeStart = previousStart, beforeLength = previousLength;
                 previousStart = start; previousLength = length;
+                bool isNext = !nextSeen && start >= site.End;
+                if (isNext) nextSeen = true;
 
                 if (length < shortest || length > MaxWordLength) continue;
                 if (start <= site.Caret && site.Caret <= i) continue; // the word under the caret
@@ -524,7 +528,7 @@ namespace NestLight.Completion
                     while (range < scope.Length && scope[range + 1] <= start) range += 2;
                     inScope = range < scope.Length && scope[range] <= start;
                 }
-                bool follows = inScope && context.Has && beforeStart >= 0 && Follows(text, context, beforeStart, beforeLength, start);
+                bool follows = inScope && !isNext && context.Has && beforeStart >= 0 && Follows(text, context, beforeStart, beforeLength, start);
                 if (follows) scan.Follows.Add(match);
                 if (length < _minWordLength) continue;
                 if (start > site.Caret) (inScope ? scan.After : scan.OtherAfter).Add(match);

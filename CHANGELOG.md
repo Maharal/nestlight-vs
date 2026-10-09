@@ -15,6 +15,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - Completion inside embedded strings: keywords of the language of the string (SQL, CSS, HTML / SVG, GraphQL, JSON, YAML, GLSL, WGSL) and words that already exist in the document, nearest to the caret first.
 
 ### Changed
+- Corrections found by a review of 800 suggestions (`docs/suggestion-review`): after `GROUP BY` the next clauses; the clause of a parenthesis is its own; nothing but words of the file inside literals, comments, class names, JSON keys and strings, YAML keys, attribute values and text; columns, types and constraints in `CREATE TABLE`; pseudo-classes, at-rules, `transition`/`animation` values and functions in CSS; the open element after `</`; attributes the tag already has are not offered again; the word already after the caret no longer counts as following the context. On the same 800 examples the word is first in 303 cases instead of 281.
 - The classifier and the completion share one scan per snapshot, and the completion creates a word only when it offers it: the start of a session on a 60,000-line file falls from 12-32 ms to under 3 ms (E22).
 
 ### Experiments

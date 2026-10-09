@@ -1,0 +1,100 @@
+1|M|`#version 300 e`: `es` não está no vocabulário; else/EmitVertex/exp são oferecidas.
+2|G|`precision` é o 2º, depois de `precise`.
+3|G|`highp` é o único item.
+4|B|Pedido explícito: a lista de palavras-chave é alfabética e cortada em 100, então os nomes do próprio arquivo e as palavras-chave do fim do alfabeto (uniform, out, vec3...) ficam fora de alcance. `uniform` fica fora das 100 primeiras.
+5|M|`s`: `sampler2D` é o 5º, em ordem alfabética entre os tipos sampler.
+6|G|`uniform` em primeiro.
+7|G|`vec2` em primeiro.
+8|B|Pedido explícito: a lista de palavras-chave é alfabética e cortada em 100, então os nomes do próprio arquivo e as palavras-chave do fim do alfabeto (uniform, out, vec3...) ficam fora de alcance. `uniform` fica fora das 100 primeiras.
+9|M|`f`: `float` é o 6º (alfabético).
+10|M|`i`: `in` é o 10º de 31 (alfabético).
+11|G|`vec2` em primeiro.
+12|B|Pedido explícito: a lista de palavras-chave é alfabética e cortada em 100, então os nomes do próprio arquivo e as palavras-chave do fim do alfabeto (uniform, out, vec3...) ficam fora de alcance. `out` fica fora das 100 primeiras.
+13|M|`v`: `vec4` é o 4º (alfabético).
+14|G|`void` em primeiro.
+15|M|`mai`: `main` não está no vocabulário; palavras parecidas (mat2, mat2x2...) são ruído.
+16|B|Pedido explícito: a lista de palavras-chave é alfabética e cortada em 100, então os nomes do próprio arquivo e as palavras-chave do fim do alfabeto (uniform, out, vec3...) ficam fora de alcance. A variável `uv` tem só 2 letras.
+17|M|`v`: `vUv` é o 7º de 8, depois de todas as palavras-chave.
+18|G|`float` é o 2º, depois de `flat`.
+19|G|`sin` é o 2º.
+20|M|Erro `uiTm`: três tipos de imagem vêm antes de `uTime~`.
+21|M|`t`: o local `texel` é o último (17º), depois de todas as funções embutidas.
+22|G|`texture` é o 2º.
+23|G|`vUv` é o único item.
+24|B|Pedido explícito: a lista de palavras-chave é alfabética e cortada em 100, então os nomes do próprio arquivo e as palavras-chave do fim do alfabeto (uniform, out, vec3...) ficam fora de alcance. `vec3` fica fora das 100 primeiras.
+25|M|`m`: `mix` é o 17º de 20 (tipos de matriz vêm antes).
+26|M|`te`: o local `texel` é o último (12º), depois de todas as funções embutidas.
+27|G|`vec3` é o 2º.
+28|B|Pedido explícito: a lista de palavras-chave é alfabética e cortada em 100, então os nomes do próprio arquivo e as palavras-chave do fim do alfabeto (uniform, out, vec3...) ficam fora de alcance. O local `pulse`, bem ao lado, não é alcançado.
+29|G|`length` é o 2º, depois de `layout`.
+30|B|`u`: `uv` nunca pode ser sugerido (palavras com menos de 3 letras são ignoradas).
+31|G|`vec4` é o 3º de 3.
+32|M|Pedido explícito antes de uma lista de argumentos: `clamp` é o 26º da lista alfabética.
+33|M|`t`: o local `texel` é o último (17º).
+34|M|`#version 300 e`: `es` não está no vocabulário; else/EmitVertex/exp são oferecidas.
+35|M|`i`: `in` é o 10º de 31 (alfabético).
+36|B|Pedido explícito: a lista de palavras-chave é alfabética e cortada em 100, então os nomes do próprio arquivo e as palavras-chave do fim do alfabeto (uniform, out, vec3...) ficam fora de alcance. `aPosition` não é alcançado.
+37|M|`i`: `in` é o 10º de 31 (alfabético).
+38|G|`aNormal` é o 2º, depois de `any`.
+39|M|`i`: `in` é o 10º de 31 (alfabético).
+40|G|Erro de digitação corrigido: `aTexCoord~`.
+41|M|`u`: `uniform` é o 6º (alfabético).
+42|G|`uModel` é o único item.
+43|G|`uniform` é o único item.
+44|B|Pedido explícito: a lista de palavras-chave é alfabética e cortada em 100, então os nomes do próprio arquivo e as palavras-chave do fim do alfabeto (uniform, out, vec3...) ficam fora de alcance. Os nomes vizinhos `uModel` e `uProjection` vêm primeiro, mas `uView` fica fora das 100 primeiras.
+45|M|`u`: `uniform` é o 6º (alfabético).
+46|G|`uProjection` é o único item.
+47|G|`uniform` é o único item.
+48|B|Pedido explícito: a lista de palavras-chave é alfabética e cortada em 100, então os nomes do próprio arquivo e as palavras-chave do fim do alfabeto (uniform, out, vec3...) ficam fora de alcance.
+49|G|`out` em primeiro.
+50|G|Erro de digitação corrigido: `vNormal~`.
+51|G|`out` em primeiro.
+52|B|Pedido explícito: a lista de palavras-chave é alfabética e cortada em 100, então os nomes do próprio arquivo e as palavras-chave do fim do alfabeto (uniform, out, vec3...) ficam fora de alcance. `vec2` fica fora das 100 primeiras.
+53|M|`v`: `void` é o 5º (alfabético).
+54|M|`ma`: `main` não está no vocabulário; tipos de matriz são oferecidos.
+55|G|`normalize` é o único item.
+56|B|Pedido explícito: a lista de palavras-chave é alfabética e cortada em 100, então os nomes do próprio arquivo e as palavras-chave do fim do alfabeto (uniform, out, vec3...) ficam fora de alcance. `uNormalMatrix` não é alcançado.
+57|M|`v`: `vUv` é o 8º de 10, depois de todas as palavras-chave.
+58|M|`aT`: `aTexCoord` é o último (8º), depois de `atan` e dos atomic.
+59|G|`uProjection` é o único item.
+60|M|Erro `uiVe`: três tipos de vetor vêm antes de `uView~`.
+61|M|`v`: `vec4` é o 4º (alfabético).
+62|G|`aPosition` é o único item.
+63|G|`mediump` é o único item.
+64|B|Pedido explícito depois de `precision mediump`: a lista alfabética; `float` é o 60º.
+65|G|`vec3` em primeiro.
+66|G|`uLightDirection` é o único item.
+67|G|`vec3` em primeiro.
+68|B|Pedido explícito: a lista de palavras-chave é alfabética e cortada em 100, então os nomes do próprio arquivo e as palavras-chave do fim do alfabeto (uniform, out, vec3...) ficam fora de alcance. `uBaseColor` não é alcançado.
+69|M|`u`: `uniform` é o 6º (alfabético).
+70|G|Erro de digitação corrigido: `uShininess~`.
+71|G|`varying` é o único item.
+72|B|Pedido explícito: a lista de palavras-chave é alfabética e cortada em 100, então os nomes do próprio arquivo e as palavras-chave do fim do alfabeto (uniform, out, vec3...) ficam fora de alcance. `vNormal` não é alcançado.
+73|G|`varying` em primeiro.
+74|G|`vViewDirection` é o único item.
+75|G|`float` em primeiro.
+76|B|Pedido explícito: a lista de palavras-chave é alfabética e cortada em 100, então os nomes do próprio arquivo e as palavras-chave do fim do alfabeto (uniform, out, vec3...) ficam fora de alcance. `vec3` fica fora das 100 primeiras.
+77|M|`n`: o parâmetro `normal` é o último (5º), depois das funções embutidas.
+78|G|`light` em primeiro.
+79|G|`return` é o único item.
+80|G|`dot` em primeiro.
+81|M|`n`: `normalize` é o 2º (depois de `noperspective`).
+82|M|`no`: `normalize` é o 2º (depois de `noperspective`).
+83|G|`light` em primeiro.
+84|M|Pedido explícito no nome de uma função: as funções embutidas em ordem alfabética; `main` não está no vocabulário.
+85|M|`f`: `float` é o 6º (alfabético).
+86|M|`di`: a função `diffuse` é a última (3ª), depois de `discard` e `distance`.
+87|G|`uLightDirection` é o único item.
+88|B|Pedido explícito: a lista de palavras-chave é alfabética e cortada em 100, então os nomes do próprio arquivo e as palavras-chave do fim do alfabeto (uniform, out, vec3...) ficam fora de alcance. `halfVector` vem primeiro (está depois do cursor), mas `vec3` fica fora das 100 primeiras.
+89|M|`n`: `normalize` é o 2º (depois de `noperspective`).
+90|G|Erro de digitação corrigido: `uLightDirection~`.
+91|G|`float` em primeiro.
+92|B|Pedido explícito: a lista de palavras-chave é alfabética e cortada em 100, então os nomes do próprio arquivo e as palavras-chave do fim do alfabeto (uniform, out, vec3...) ficam fora de alcance. `diffuse` e `uShininess`, próximos, vêm primeiro; `specular` não é alcançado.
+93|M|`m`: `max` é o 14º de 20 (tipos de matriz vêm antes).
+94|G|`dot` em primeiro.
+95|G|`halfVector` é o único item.
+96|B|Pedido explícito: a lista de palavras-chave é alfabética e cortada em 100, então os nomes do próprio arquivo e as palavras-chave do fim do alfabeto (uniform, out, vec3...) ficam fora de alcance. `uShininess`, que está ali perto, fica fora das 100 primeiras.
+97|M|`d`: `discard` é o 6º de 17 (alfabético).
+98|M|`gl`: só `glsl` (a tag da string) é oferecido; `gl_FragColor` não está no vocabulário.
+99|G|`uBaseColor` é o único item.
+100|B|Pedido explícito: a lista de palavras-chave é alfabética e cortada em 100, então os nomes do próprio arquivo e as palavras-chave do fim do alfabeto (uniform, out, vec3...) ficam fora de alcance. `vec3` fica fora das 100 primeiras.

@@ -1,0 +1,100 @@
+1|G|`apps`, `app`: palavras que começam com a (a chave não aparece em outro lugar).
+2|G|`apiVersion`, `app`.
+3|G|`value` é o único item.
+4|M|Pedido explícito no nome de uma chave: os booleanos do YAML (false, no, null, off, on, true, yes) vêm primeiro, o que não faz sentido numa chave; as palavras mais próximas vêm depois.
+5|G|`deployment` (variável do código hospedeiro) é oferecido; o valor `Deployment` não aparece em outro lugar.
+6|G|`metadata` em primeiro.
+7|G|`name` é o único item.
+8|M|Pedido explícito no nome de uma chave: os booleanos do YAML (false, no, null, off, on, true, yes) vêm primeiro, o que não faz sentido numa chave; as palavras mais próximas vêm depois. `labels` é o 22º.
+9|G|`app` em primeiro.
+10|G|`web` é o único item.
+11|G|`spec` é o único item.
+12|M|Pedido explícito no nome de uma chave: `containers` primeiro, depois os booleanos; a chave não aparece em outro lugar.
+13|G|`spec` é oferecido para `s`; a chave não aparece em outro lugar.
+14|G|Nada oferecido; a palavra não aparece em outro lugar do arquivo.
+15|G|`web` é o único item.
+16|M|Pedido explícito no nome de uma chave: os booleanos do YAML (false, no, null, off, on, true, yes) vêm primeiro, o que não faz sentido numa chave; as palavras mais próximas vêm depois.
+17|G|`matchLabels`, `metadata` (2º), `memory`.
+18|G|`labels` é o único item.
+19|G|`app` em primeiro.
+20|M|Pedido explícito num valor: os booleanos do YAML vêm antes das palavras do arquivo. `web` é o 2º.
+21|G|Palavras que começam com c.
+22|G|`name` é o único item.
+23|G|`web` é o único item.
+24|M|Pedido explícito no nome de uma chave: os booleanos do YAML (false, no, null, off, on, true, yes) vêm primeiro, o que não faz sentido numa chave; as palavras mais próximas vêm depois.
+25|G|`resources`, `replicas`.
+26|G|Nada oferecido; a palavra não aparece em outro lugar do arquivo.
+27|G|Palavras que começam com co.
+28|M|Pedido explícito no nome de uma chave: os booleanos do YAML (false, no, null, off, on, true, yes) vêm primeiro, o que não faz sentido numa chave; as palavras mais próximas vêm depois.
+29|G|Palavras que começam com c.
+30|G|Nada oferecido; a palavra não aparece em outro lugar do arquivo.
+31|G|`name` é o único item.
+32|M|Pedido explícito num valor: os booleanos do YAML vêm antes das palavras do arquivo.
+33|G|Nada oferecido; a palavra não aparece em outro lugar do arquivo.
+34|G|Nada oferecido; a palavra não aparece em outro lugar do arquivo.
+35|G|Nada oferecido; a palavra não aparece em outro lugar do arquivo.
+36|M|Pedido explícito no nome de uma chave: os booleanos do YAML (false, no, null, off, on, true, yes) vêm primeiro, o que não faz sentido numa chave; as palavras mais próximas vêm depois.
+37|G|Palavras que começam com c.
+38|G|`name` é o único item.
+39|B|`name: c`: `ci` nunca pode ser sugerido (palavras com menos de 3 letras são ignoradas).
+40|M|Pedido explícito no nome de uma chave: os booleanos do YAML (false, no, null, off, on, true, yes) vêm primeiro, o que não faz sentido numa chave; as palavras mais próximas vêm depois. `on` é o 5º.
+41|G|`build` é oferecido para `b`.
+42|G|Nada oferecido; a palavra não aparece em outro lugar do arquivo.
+43|G|`push~` é uma chave irmã plausível.
+44|M|Pedido explícito no nome de uma chave: os booleanos do YAML (false, no, null, off, on, true, yes) vêm primeiro, o que não faz sentido numa chave; as palavras mais próximas vêm depois.
+45|G|`branches` é oferecido para `b`.
+46|G|`run` é oferecido para `ru`.
+47|G|Nada oferecido; a palavra não aparece em outro lugar do arquivo.
+48|M|Pedido explícito no nome de uma chave: os booleanos do YAML (false, no, null, off, on, true, yes) vêm primeiro, o que não faz sentido numa chave; as palavras mais próximas vêm depois. `uses` é o 28º.
+49|G|`actions`, `always`.
+50|G|Nada oferecido; a palavra não aparece em outro lugar do arquivo.
+51|G|`name` é o único item.
+52|M|Pedido explícito num valor: os booleanos do YAML vêm antes das palavras do arquivo.
+53|G|`run`, `runs-on`.
+54|G|`npm` é o único item.
+55|G|`name` é o único item.
+56|M|Pedido explícito num valor: os booleanos do YAML vêm antes das palavras do arquivo. `Test` é o 15º.
+57|G|`run`, `runs-on`.
+58|G|`npm` é o único item.
+59|G|`Test` é o único item.
+60|M|Pedido explícito no nome de uma chave: os booleanos do YAML (false, no, null, off, on, true, yes) vêm primeiro, o que não faz sentido numa chave; as palavras mais próximas vêm depois.
+61|G|`true` em primeiro.
+62|G|`name` é o único item.
+63|G|`upload-artifact` é oferecido.
+64|M|Pedido explícito num valor: os booleanos do YAML vêm antes das palavras do arquivo. `coverage` é o 20º.
+65|B|`i`: `if` nunca pode ser sugerido (menos de 3 letras); `Install` é oferecido no lugar.
+66|G|Nada oferecido; a palavra não aparece em outro lugar do arquivo.
+67|G|`uses` é o único item.
+68|M|Pedido explícito num valor: os booleanos do YAML vêm antes das palavras do arquivo.
+69|G|`workflow` é oferecido para `w`; a chave `with` não aparece em outro lugar.
+70|G|`name` é o único item.
+71|G|`coverage` é o único item.
+72|M|Pedido explícito no nome de uma chave: os booleanos do YAML (false, no, null, off, on, true, yes) vêm primeiro, o que não faz sentido numa chave; as palavras mais próximas vêm depois.
+73|G|`coverage` em primeiro.
+74|G|Nada oferecido; a palavra não aparece em outro lugar do arquivo.
+75|G|Nada oferecido; a palavra não aparece em outro lugar do arquivo.
+76|M|Pedido explícito num valor: os booleanos do YAML vêm antes das palavras do arquivo. `api` é o 10º.
+77|G|Palavras que começam com p (a chave `ports` não aparece em outro lugar).
+78|G|Nada oferecido; a palavra não aparece em outro lugar do arquivo.
+79|G|`data` é oferecido para `DAT`.
+80|G|Erro de digitação corrigido: `postgres~` em primeiro.
+81|G|`api` é oferecido para `a`.
+82|G|`depends_on` é oferecido para `DE`.
+83|G|`false` é o único item.
+84|M|Pedido explícito no nome de uma chave: os booleanos do YAML (false, no, null, off, on, true, yes) vêm primeiro, o que não faz sentido numa chave; as palavras mais próximas vêm depois.
+85|B|`- d`: `db` nunca pode ser sugerido (palavras com menos de 3 letras são ignoradas).
+86|G|Nada oferecido; a palavra não aparece em outro lugar do arquivo.
+87|G|Nada oferecido; a palavra não aparece em outro lugar do arquivo.
+88|M|Pedido explícito no nome de uma chave: os booleanos do YAML (false, no, null, off, on, true, yes) vêm primeiro, o que não faz sentido numa chave; as palavras mais próximas vêm depois.
+89|G|`postgres` é o 4º de 5 (ordem alfabética de proximidade).
+90|G|Erro de digitação corrigido: `volumes~`.
+91|G|`pgdata` é o único item.
+92|M|Pedido explícito no nome de uma chave: os booleanos do YAML (false, no, null, off, on, true, yes) vêm primeiro, o que não faz sentido numa chave; as palavras mais próximas vêm depois.
+93|G|Nada oferecido; a palavra não aparece em outro lugar do arquivo.
+94|G|`postgres`, `ports` (`postgresql` não aparece em outro lugar).
+95|G|Nada oferecido; a palavra não aparece em outro lugar do arquivo.
+96|M|Pedido explícito no nome de uma chave: os booleanos do YAML (false, no, null, off, on, true, yes) vêm primeiro, o que não faz sentido numa chave; as palavras mais próximas vêm depois.
+97|G|`compose`, `const`: palavras que começam com C (do código hospedeiro).
+98|G|`pgdata` é oferecido para `pg`.
+99|G|Nada oferecido; a palavra não aparece em outro lugar do arquivo.
+100|G|Erro de digitação corrigido: `volumes~`.

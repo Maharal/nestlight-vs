@@ -162,12 +162,12 @@ namespace NestLight.Tests
         }
 
         [Fact]
-        public void In_a_tag_the_attributes_of_the_tag_come_first_and_the_tags_last()
+        public void In_a_tag_the_attributes_of_the_tag_are_offered_and_no_tag()
         {
             List<string> items = Texts("html`<button t|`", Grammar);
             Assert.Equal("type", items[0]);
             Assert.Contains("title", items);
-            Assert.True(items.IndexOf("title") < items.IndexOf("table")); // global attribute before the tag
+            Assert.DoesNotContain("table", items); // a tag name never belongs where an attribute goes
             Assert.Equal("href", Texts("html`<a h|`", Grammar)[0]);
             Assert.Equal("viewBox", Texts("svg`<svg v|`", Grammar)[0]);
         }
@@ -187,11 +187,11 @@ namespace NestLight.Tests
         }
 
         [Fact]
-        public void In_text_a_tag_name_is_not_what_is_typed()
+        public void In_text_a_tag_name_is_not_offered()
         {
             List<string> items = Texts("html`<p>dish</p><p>di|</p>`", Grammar);
             Assert.Equal("dish", items[0]);
-            Assert.Contains("div", items);
+            Assert.DoesNotContain("div", items); // no tag in a text node
         }
 
         [Fact]
