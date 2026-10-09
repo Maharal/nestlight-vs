@@ -799,6 +799,20 @@ On the 800 suggestions of the review: the word first in 348 cases (345 before th
 
 Not done: the order by use applies to the properties only; the values of a property are still in the order of their table.
 
+## CSS colors
+
+The colors of the CSS (the same in `css`, `<style>` and `style=""`).
+
+**Tokens that were one color and are now their own** ([CssTokenizer](../NestLight/Languages/Css/CssTokenizer.cs)):
+- `#id` is no longer the color of a class: it has its own classification, in the same color and in bold.
+- The name inside `[attr=...]` is not a property: it has its own classification, in the color of the properties and in italic.
+- The unit is separated from its number (`1.5` `rem`, `50` `%`, `1e3` `ms`, also the `px` after a `${...}`).
+- `!important` is not an at-rule: its own classification, in bold.
+
+**The palette** ([CssClassificationDefinitions](../NestLight/VisualStudio/CssClassificationDefinitions.cs)): the colors were tuned for the dark theme only (one RGB per type, the plugin cannot read the theme without a reference to the Shell). A single color cannot reach 4.5:1 on a white and on a #1E1E1E editor at once (the best is about 4.0:1 on both), so the colors were moved to that balanced luminance and the checks are: at least 3.5:1 against both backgrounds, at least 40 apart in RGB when they differ, and two kinds of token that share a color differ in style ([CssColorTests](../NestLight.Tests/Highlighting/CssColorTests.cs), read from the source of the formats). The cost: on the dark theme the colors are a little darker than before.
+
+Not done: a palette for each theme (needs the Shell assemblies in the project); the other languages still use the dark-only palette.
+
 ## CSS inside HTML
 
 The highlighter has always colored the CSS of a `<style>` element and of a `style="..."` attribute as CSS; the completion saw only the string as a whole, so inside them it completed as HTML (words of the text and, with a mistake, tag names: `clipPath`, `main`, `map`). Now [NestedLanguages](../NestLight/Completion/NestedLanguages.cs) finds the CSS inside an HTML or SVG string (it skips comments and the interpolations of the host, so a `>` inside `${a => a > 1}` does not end a tag), and `Locate` gives a site of language `css` there: every rule of the CSS applies (properties, values, `:hover`, `@media`, `@keyframes`, functions, the words of the style sheets of the file). A style attribute starts inside a declaration list, with no selectors. An unfinished `<style>` or `style="` runs to the end of the string, which is how it is while typing.

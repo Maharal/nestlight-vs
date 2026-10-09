@@ -87,7 +87,7 @@ namespace NestLight.Languages
                 {
                     int q = p + 1;
                     while (q < e && IsNameChar(m[q])) q++;
-                    add(p, q, ClassificationNames.CssSelectorClass);
+                    add(p, q, c == '#' ? ClassificationNames.CssSelectorId : ClassificationNames.CssSelectorClass);
                     p = q;
                     continue;
                 }
@@ -123,8 +123,8 @@ namespace NestLight.Languages
                     // the percentages of a keyframe: 50%
                     int q = p;
                     while (q < e && (char.IsDigit(m[q]) || m[q] == '.')) q++;
-                    if (q < e && m[q] == '%') q++;
                     add(p, q, ClassificationNames.CssNumber);
+                    if (q < e && m[q] == '%') { add(q, q + 1, ClassificationNames.CssUnit); q++; }
                     p = q;
                     continue;
                 }
@@ -160,7 +160,7 @@ namespace NestLight.Languages
                     int start = q;
                     while (q < e && IsNameChar(m[q])) q++;
                     // the first word is the attribute; after the operator, a word is a value (and a lone i or s is a flag)
-                    add(start, q, value ? ClassificationNames.CssValue : ClassificationNames.CssProperty);
+                    add(start, q, value ? ClassificationNames.CssValue : ClassificationNames.CssAttribute);
                     continue;
                 }
                 if (c == '=') value = true;
@@ -317,7 +317,7 @@ namespace NestLight.Languages
                     int q = p + 1;
                     while (q < e && char.IsWhiteSpace(m[q])) q++;
                     while (q < e && IsNameChar(m[q])) q++;
-                    add(p, q, ClassificationNames.CssAtRule); // !important
+                    add(p, q, ClassificationNames.CssImportant);
                     p = q;
                     continue;
                 }
@@ -340,8 +340,10 @@ namespace NestLight.Languages
                         q += 2;
                         while (q < e && char.IsDigit(m[q])) q++;
                     }
+                    int numberEnd = q;
                     while (q < e && (char.IsLetter(m[q]) || m[q] == '%' || m[q] == Mask)) q++;
-                    add(p, q, ClassificationNames.CssNumber);
+                    add(p, numberEnd, ClassificationNames.CssNumber);
+                    if (q > numberEnd) add(numberEnd, q, ClassificationNames.CssUnit); // 10px: the number and its unit
                     p = q;
                     continue;
                 }
@@ -364,8 +366,17 @@ namespace NestLight.Languages
                             for (int j = k; j < q; j++) if (!char.IsLetter(m[j])) { maskUnit = false; break; }
                         }
                     }
-                    string type = maskUnit ? ClassificationNames.CssNumber
-                                : isFn ? ClassificationNames.CssFunction
+                    if (maskUnit)
+                    {
+                        // ${expr}px: the expression and then its unit
+                        int k = nameStart;
+                        while (k < q && m[k] == Mask) k++;
+                        add(nameStart, k, ClassificationNames.CssNumber);
+                        if (k < q) add(k, q, ClassificationNames.CssUnit);
+                        p = q;
+                        continue;
+                    }
+                    string type = isFn ? ClassificationNames.CssFunction
                                 : (q - p >= 2 && m[p] == '-' && m[p + 1] == '-') ? ClassificationNames.CssCustomProperty
                                 : ClassificationNames.CssValue;
                     add(p, q, type);
