@@ -82,7 +82,13 @@ Nos mesmos 800 exemplos (529 em que a palavra existe no arquivo):
 - **Palavras de 2 letras (E36 e E38).** Passaram a ser oferecidas, depois de todas as palavras mais longas. Os casos que não tinham solução na revisão agora têm: `id` depois de `c.` e `p.` ([SQL-5](sql.md#sql-5), [SQL-86](sql.md#sql-86)), `ci` e `db` em YAML, `uv` em GLSL e WGSL, `in` e `id` em WGSL. Nos 800 exemplos a palavra fica em 1º lugar em 342 casos (339 antes) e entre os 5 primeiros em 456 (444 antes). O primeiro critério do E36 era impossível de atingir (a linha de base já era 85%, e eu pedi +15), então o experimento foi fechado e refeito como E38 com um critério que dá para cumprir; os números são os mesmos.
 - **Ruído da correção de erro com 3 letras (E37).** Não mudou. Com 3 letras digitadas a correção acerta 9 de cada 10 erros e mostra algo sem relação em 3 de cada 10 palavras novas; nenhuma das travas que testei separa os dois sem perder quase toda a correção. Fica como está até haver dados de uso real.
 
+## Quarta rodada: o vocabulário que faltava
+
+Os 15 casos em que a palavra procurada nem existia no vocabulário agora têm resposta, na primeira ou segunda posição na maioria: `es` ([GLSL-1](glsl.md#glsl-1)), `main` ([GLSL-15](glsl.md#glsl-15), [GLSL-54](glsl.md#glsl-54)), `gl_FragColor` ([GLSL-98](glsl.md#glsl-98)), `builtin` ([WGSL-19](wgsl.md#wgsl-19), [WGSL-82](wgsl.md#wgsl-82)), `vertex` ([WGSL-25](wgsl.md#wgsl-25)), `fragment` ([WGSL-44](wgsl.md#wgsl-44)), `uniform` ([WGSL-8](wgsl.md#wgsl-8)), `read` e `read_write` ([WGSL-64](wgsl.md#wgsl-64), [WGSL-69](wgsl.md#wgsl-69)), `global_invocation_id` ([WGSL-83](wgsl.md#wgsl-83)), `region` ([HTML-63](html.md#html-63)) e `currentColor` ([HTML-85](html.md#html-85)). Os números de "palavra em 1º lugar" nos 529 casos alcançáveis não mudam porque esses 15 já estavam fora da conta (a palavra não existia em lugar nenhum).
+
+Como foi feito: palavras que a linguagem tem mas o realce não colore (`main`, `gl_...`) ficam numa lista só do completar; os lugares novos (depois de `#` e de `@`, dentro de `@builtin(` e de `var<`) são regras de posição; e os valores de atributos HTML e de propriedades CSS são tabelas. Ver "The missing vocabulary" em `docs/experiments.md`.
+
 ## O que ainda não foi resolvido
 
-- O vocabulário que falta continua faltando em parte (funções de GLSL, `gl_FragColor`, atributos de WGSL, papéis ARIA).
 - O ruído da correção de erro em prefixos de 3 letras (E37).
+- Funções de SQL (`count`, `coalesce`...) já são oferecidas, mas depois das colunas; ainda não há as funções de GLSL além das embutidas que o realce conhece.

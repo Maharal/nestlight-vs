@@ -61,6 +61,8 @@ namespace NestLight.Completion
             if (Vocabularies.SameLanguage(site.LanguageId, "html")) return Html(text, floor, site);
             if (Vocabularies.SameLanguage(site.LanguageId, "json")) return Json(text, floor, site);
             if (Vocabularies.SameLanguage(site.LanguageId, "yaml")) return Yaml(text, floor, site);
+            if (Vocabularies.SameLanguage(site.LanguageId, "glsl")) return Glsl(text, floor, site);
+            if (Vocabularies.SameLanguage(site.LanguageId, "wgsl")) return Wgsl(text, floor, site);
             return null;
         }
 
@@ -513,6 +515,58 @@ namespace NestLight.Completion
             int i = before - 1;
             while (i >= 0 && char.IsWhiteSpace(text[i])) i--;
             return i;
+        }
+
+        // ---- shaders ------------------------------------------------------------------------------------------------------
+
+        private static readonly string[] GlslDirectives = { "version", "define", "ifdef", "ifndef", "if", "else", "elif", "endif", "extension", "pragma", "undef", "include" };
+        private static readonly string[] WgslAttributes = { "location", "builtin", "group", "binding", "vertex", "fragment", "compute", "workgroup_size", "size", "align", "id", "interpolate", "invariant", "must_use", "diagnostic" };
+        private static readonly string[] WgslBuiltinValues =
+            { "position", "vertex_index", "instance_index", "front_facing", "frag_depth", "local_invocation_id", "local_invocation_index", "global_invocation_id", "workgroup_id", "num_workgroups", "sample_index", "sample_mask" };
+        private static readonly string[] WgslAddressSpaces = { "function", "private", "workgroup", "uniform", "storage", "handle" };
+        private static readonly string[] WgslAccessModes = { "read", "write", "read_write" };
+
+        /// <summary>The start of the line the offset is on, not before <paramref name="floor"/>.</summary>
+        private static int LineStart(string text, int offset, int floor)
+        {
+            int i = offset;
+            while (i > floor && text[i - 1] != '\n') i--;
+            return i;
+        }
+
+        private static Position Glsl(string text, int floor, CompletionSite site)
+        {
+            int lineStart = LineStart(text, site.Start, floor);
+            string line = text.Substring(lineStart, site.Start - lineStart).TrimStart();
+            if (line.StartsWith("#", StringComparison.Ordinal))
+            {
+                string rest = line.Substring(1).TrimStart();
+                if (rest.IndexOf(' ') < 0 && rest.IndexOf('\t') < 0) return new Position("glsl:directive", GlslDirectives, onlyWords: true);
+                if (rest.StartsWith("version", StringComparison.Ordinal)) return new Position("glsl:version", new[] { "es", "core", "compatibility" }, onlyWords: true);
+            }
+            return null;
+        }
+
+        private static Position Wgsl(string text, int floor, CompletionSite site)
+        {
+            if (site.Start > floor && text[site.Start - 1] == '@') return new Position("wgsl:attribute", WgslAttributes, onlyWords: true);
+            int lineStart = LineStart(text, site.Start, floor);
+            string line = text.Substring(lineStart, site.Start - lineStart);
+
+            int builtin = line.LastIndexOf("@builtin(", StringComparison.Ordinal);
+            if (builtin >= 0 && line.IndexOf(')', builtin) < 0) return new Position("wgsl:builtin-value", WgslBuiltinValues, onlyWords: true);
+            int interpolate = line.LastIndexOf("@interpolate(", StringComparison.Ordinal);
+            if (interpolate >= 0 && line.IndexOf(')', interpolate) < 0)
+                return line.IndexOf(',', interpolate) < 0
+                    ? new Position("wgsl:interpolate-type", new[] { "perspective", "linear", "flat" }, onlyWords: true)
+                    : new Position("wgsl:interpolate-sampling", new[] { "center", "centroid", "sample", "first", "either" }, onlyWords: true);
+
+            int declaration = Math.Max(line.LastIndexOf("var<", StringComparison.Ordinal), line.LastIndexOf("ptr<", StringComparison.Ordinal));
+            if (declaration >= 0 && line.IndexOf('>', declaration + 4) < 0)
+                return line.IndexOf(',', declaration) < 0
+                    ? new Position("wgsl:address-space", WgslAddressSpaces, onlyWords: true)
+                    : new Position("wgsl:access-mode", WgslAccessModes, onlyWords: true);
+            return null;
         }
 
         // ---- JSON and YAML ----------------------------------------------------------------------------------------------

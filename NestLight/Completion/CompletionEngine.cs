@@ -182,7 +182,7 @@ namespace NestLight.Completion
             if (wordsFirst && position == null && _features.HeadKeywords > 0)
             {
                 // the most used keywords still go first where the words of the file do
-                foreach (string word in _features.OrderKeywords(site.LanguageId, Vocabularies.For(site.LanguageId)).Take(_features.HeadKeywords))
+                foreach (string word in _features.OrderKeywords(site.LanguageId, Vocabularies.ForCompletion(site.LanguageId)).Take(_features.HeadKeywords))
                 {
                     if (result.Count >= _maxItems) return result;
                     if (!StartsWithIgnoreCase(word, prefix) || word.Length == prefix.Length) continue;
@@ -193,7 +193,7 @@ namespace NestLight.Completion
             if (position != null && position.Secondary.Count > 0) AddExpected(position.Secondary, site, prefix, upper, seen, result);
 
             List<string> unlikely = null;
-            foreach (string word in position != null && position.OnlyWords ? new string[0] : _features.OrderKeywords(site.LanguageId, Vocabularies.For(site.LanguageId)))
+            foreach (string word in position != null && position.OnlyWords ? new string[0] : _features.OrderKeywords(site.LanguageId, Vocabularies.ForCompletion(site.LanguageId)))
             {
                 if (result.Count >= _maxItems) return result;
                 if (!StartsWithIgnoreCase(word, prefix) || word.Length == prefix.Length) continue;
@@ -277,7 +277,7 @@ namespace NestLight.Completion
             {
                 if (result.Count >= _maxItems) return;
                 if (!StartsWithIgnoreCase(expected, prefix) || expected.Length == prefix.Length) continue;
-                string word = Vocabularies.Find(site.LanguageId, expected) ?? expected;
+                string word = Vocabularies.FindInCompletion(site.LanguageId, expected) ?? expected;
                 if (seen.Add(word)) result.Add(new Suggestion(upper ? word.ToUpperInvariant() : word, SuggestionKind.Keyword));
             }
         }
@@ -318,7 +318,7 @@ namespace NestLight.Completion
             int capacity = limit + result.Count;
             var best = new List<Similar>(capacity + 1);
 
-            foreach (string word in shortPrefix && _features.ShortSimilarFromFileOnly ? new string[0] : Vocabularies.For(site.LanguageId))
+            foreach (string word in shortPrefix && _features.ShortSimilarFromFileOnly ? new string[0] : Vocabularies.ForCompletion(site.LanguageId))
             {
                 if (++examined % CancellationStride == 0) cancellation.ThrowIfCancellationRequested();
                 if (word.Length < n - k) continue;
@@ -575,7 +575,7 @@ namespace NestLight.Completion
             {
                 string word = text.Substring(m.Start, m.Length);
                 if (!seen.Add(word)) continue;
-                string keyword = Vocabularies.Find(site.LanguageId, word);
+                string keyword = Vocabularies.FindInCompletion(site.LanguageId, word);
                 result.Add(keyword != null
                     ? new Suggestion(upper ? keyword.ToUpperInvariant() : keyword, SuggestionKind.Keyword)
                     : new Suggestion(word, SuggestionKind.Word));

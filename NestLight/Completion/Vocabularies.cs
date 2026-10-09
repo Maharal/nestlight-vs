@@ -41,6 +41,46 @@ namespace NestLight.Completion
             return languageId != null && ById.TryGetValue(languageId, out words) ? words : new string[0];
         }
 
+        // words that are offered but not colored: the tokenizers know them as plain identifiers or by a prefix, so they are not in For()
+        private static readonly Dictionary<string, string[]> Extra = new Dictionary<string, string[]>(StringComparer.OrdinalIgnoreCase)
+        {
+            { "glsl", new[] { "main", "gl_FragColor", "gl_FragData", "gl_FragCoord", "gl_FragDepth", "gl_FrontFacing", "gl_PointCoord", "gl_PointSize", "gl_Position", "gl_VertexID", "gl_InstanceID" } },
+            { "wgsl", new[] { "main" } },
+        };
+
+        private static readonly Dictionary<string, IReadOnlyList<string>> Merged = new Dictionary<string, IReadOnlyList<string>>(StringComparer.OrdinalIgnoreCase);
+
+        /// <summary>
+        /// The words the completion offers for the language: the vocabulary and the words that the tokenizers do not color (<c>main</c>, the
+        /// <c>gl_</c> variables of GLSL), sorted. <see cref="For"/> stays the colored vocabulary.
+        /// </summary>
+        public static IReadOnlyList<string> ForCompletion(string languageId)
+        {
+            IReadOnlyList<string> words = For(languageId);
+            string[] extra;
+            if (languageId == null || !Extra.TryGetValue(languageId, out extra)) return words;
+            lock (Merged)
+            {
+                IReadOnlyList<string> merged;
+                if (Merged.TryGetValue(languageId.ToLowerInvariant(), out merged)) return merged;
+                var list = new List<string>(words);
+                foreach (string w in extra) if (!list.Contains(w, StringComparer.OrdinalIgnoreCase)) list.Add(w);
+                list.Sort(StringComparer.OrdinalIgnoreCase);
+                Merged[languageId.ToLowerInvariant()] = list;
+                return list;
+            }
+        }
+
+        /// <summary>Like <see cref="Find"/>, over the words the completion offers.</summary>
+        public static string FindInCompletion(string languageId, string word)
+        {
+            string colored = Find(languageId, word);
+            if (colored != null) return colored;
+            string[] extra;
+            if (languageId == null || !Extra.TryGetValue(languageId, out extra)) return null;
+            return extra.FirstOrDefault(w => string.Equals(w, word, StringComparison.OrdinalIgnoreCase));
+        }
+
         /// <summary>Whether two ids name the same language (<c>html</c> and <c>svg</c> are one, <c>yaml</c> and <c>yml</c> too).</summary>
         public static bool SameLanguage(string a, string b)
         {
@@ -202,6 +242,33 @@ namespace NestLight.Completion
             add("animation-fill-mode", "none forwards backwards both");
             add("text-overflow", "clip ellipsis");
             add("transform", "none");
+            add("font-family", "sans-serif serif monospace system-ui cursive fantasy inherit");
+            add("background-size", "cover contain auto");
+            add("background-repeat", "no-repeat repeat repeat-x repeat-y space round");
+            add("background-position", "center top bottom left right");
+            add("background-attachment", "scroll fixed local");
+            add("border-width", "thin medium thick");
+            add("border-collapse", "collapse separate");
+            add("justify-items justify-self", "start end center stretch baseline");
+            add("place-items place-content place-self", "center start end stretch space-between space-around");
+            add("mix-blend-mode", "normal multiply screen overlay darken lighten color-dodge color-burn difference exclusion");
+            add("overflow-wrap word-wrap", "normal break-word anywhere");
+            add("scroll-behavior", "auto smooth");
+            add("appearance", "none auto");
+            add("backface-visibility", "visible hidden");
+            add("content", "none normal");
+            add("list-style", "none disc circle square decimal inside outside");
+            add("object-position", "center top bottom left right");
+            add("text-decoration-line", "none underline overline line-through");
+            add("text-decoration-style", "solid double dotted dashed wavy");
+            add("table-layout", "auto fixed");
+            add("direction", "ltr rtl");
+            add("writing-mode", "horizontal-tb vertical-rl vertical-lr");
+            add("aspect-ratio", "auto");
+            add("touch-action", "auto none manipulation pan-x pan-y pinch-zoom");
+            add("isolation", "auto isolate");
+            add("hyphens", "none manual auto");
+            add("outline-offset border-radius", "0");
             return map;
         }
 
@@ -300,6 +367,42 @@ namespace NestLight.Completion
 
         private static readonly Dictionary<string, string[]> HtmlValues = new Dictionary<string, string[]>(StringComparer.OrdinalIgnoreCase)
         {
+            { "role", Words(@"alert alertdialog application article banner button cell checkbox columnheader combobox complementary contentinfo definition dialog directory document feed figure form grid gridcell group heading img link list listbox listitem log main marquee math menu menubar menuitem navigation none note option presentation progressbar radio radiogroup region row rowgroup rowheader scrollbar search searchbox separator slider spinbutton status switch tab table tablist tabpanel term textbox timer toolbar tooltip tree treegrid treeitem") },
+            { "aria-hidden", Words("true false") },
+            { "aria-expanded", Words("true false") },
+            { "aria-pressed", Words("true false mixed") },
+            { "aria-checked", Words("true false mixed") },
+            { "aria-selected", Words("true false") },
+            { "aria-disabled", Words("true false") },
+            { "aria-live", Words("polite assertive off") },
+            { "aria-current", Words("page step location date time true false") },
+            { "aria-haspopup", Words("true false menu listbox tree grid dialog") },
+            { "aria-autocomplete", Words("none inline list both") },
+            { "aria-orientation", Words("horizontal vertical") },
+            { "fill", Words("none currentColor transparent white black red green blue gray") },
+            { "stroke", Words("none currentColor transparent white black red green blue gray") },
+            { "stroke-linecap", Words("butt round square") },
+            { "stroke-linejoin", Words("miter round bevel") },
+            { "fill-rule", Words("nonzero evenodd") },
+            { "preserveAspectRatio", Words("none xMinYMin xMidYMid xMaxYMax meet slice") },
+            { "autocomplete", Words("on off name email username new-password current-password one-time-code tel street-address postal-code country cc-number") },
+            { "enctype", Words("application/x-www-form-urlencoded multipart/form-data text/plain") },
+            { "preload", Words("none metadata auto") },
+            { "crossorigin", Words("anonymous use-credentials") },
+            { "decoding", Words("sync async auto") },
+            { "referrerpolicy", Words("no-referrer origin same-origin strict-origin strict-origin-when-cross-origin unsafe-url") },
+            { "inputmode", Words("none text decimal numeric tel search email url") },
+            { "scope", Words("col row colgroup rowgroup") },
+            { "wrap", Words("soft hard off") },
+            { "spellcheck", Words("true false") },
+            { "contenteditable", Words("true false plaintext-only") },
+            { "draggable", Words("true false") },
+            { "translate", Words("yes no") },
+            { "align", Words("left center right justify") },
+            { "meta:name", Words("viewport description keywords author robots theme-color") },
+            { "link:rel", Words("stylesheet icon preload prefetch canonical manifest alternate") },
+            { "script:type", Words("module text/javascript application/json importmap") },
+            { "input:autocomplete", Words("on off name email username new-password current-password one-time-code tel") },
             { "input:type", Words("text password email number checkbox radio submit button reset file date hidden search tel url") },
             { "button:type", Words("submit button reset") },
             { "target", Words("_blank _self _parent _top") },

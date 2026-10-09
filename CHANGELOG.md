@@ -14,6 +14,9 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - Similar words in the completion: when nothing starts with what was typed (3 or more letters), the keywords and the words of the document that are one or two edits away are offered after the exact ones (`SELCT` offers `SELECT`). Experiments E23 to E27; E27 replaces E18.
 - Completion inside embedded strings: keywords of the language of the string (SQL, CSS, HTML / SVG, GraphQL, JSON, YAML, GLSL, WGSL) and words that already exist in the document, nearest to the caret first.
 
+### Added
+- Vocabulary the review of 800 suggestions found missing: `main` and the `gl_` variables of GLSL; directives and the `#version` profile of GLSL; the attributes, builtin values, interpolation, address spaces and access modes of WGSL; the ARIA roles and the values of more attributes in HTML and SVG; more values of CSS properties.
+
 ### Changed
 - Words of two letters (`id`, `db`, `in`, `uv`) are offered, after all the longer words (experiments E36 and E38). On the 800 hand-written examples the words of 2 letters within the first 5 go from 77.8% to 97.4%, and the longer words do not change. The similar-words stage keeps looking from 3 letters: no gate that was tried (E37) removes its noise with a new 3-letter word (31% of cases in the corpus) without losing most of its recovery of mistakes.
 - Where the place of the caret has no rule (GLSL, WGSL, GraphQL, and the places the rules do not know) the words of the file come before the keywords, and the keywords are offered in the order of how much code uses them, with the 12 most used still in front (experiment E35; hand-written examples: 58.3% to 69.4% within the first 5). The order is learned from a generated corpus (`KeywordUse`).

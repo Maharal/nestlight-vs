@@ -716,6 +716,8 @@ The editor sorts the list by the sort text of each item, which is the text unles
 
 **On the 800 suggestions of the review**, with the plugin's engine: the word is first in 339 cases (281 before the corrections of the grammar, 303 after them), among the first five in 444 (382, 395); with Ctrl+Space among the first twenty in 71 of 110 (42, 51). GLSL goes from 36 to 56 first places and WGSL from 37 to 48.
 
+**Rerun after the missing vocabulary was added** (`main` and `gl_` of GLSL, the attributes, address spaces and access modes of WGSL, below): the test files give +2.96 points (74.5% to 77.4%), 0.04 under the criterion, with no language worse and +11.0 on the hand-written files. The criterion is a threshold on a measure that moves by a few tenths of a point with changes that have nothing to do with it, so the adoption stays: the result is **at the limit**, and the hand-written files are the evidence that holds.
+
 **What it says, and what it does not.** The order of the keywords by use is a **prior learned from generated code**: it says which keywords this corpus uses, not which ones real projects use. The generators and the person reading the result are the same, and training and test files come from the same generators; the hand-written files are the only independent check. The prior is in [KeywordUse](../NestLight/Completion/KeywordUse.cs), written by `dotnet run --project NestLight.Experiments -- --priors <file>`, and is meant to be replaced by what the files of the user say.
 
 **Revisit when.** There are real files to learn the order from, or the plugin learns it from the files the user opens.
@@ -742,6 +744,8 @@ The editor sorts the list by the sort text of each item, which is the text unles
 
 **On the 800 suggestions of the review** the cases that could not be solved now are: `id` after `c.` and `p.` ([SQL-5](suggestion-review/sql.md#sql-5), [SQL-86](suggestion-review/sql.md#sql-86)), `ci` and `db` in YAML, `uv` in GLSL and WGSL, `in` and `id` in WGSL; the word is first in 342 cases instead of 339 and among the first five in 456 instead of 444.
 
+**Rerun after the missing vocabulary was added:** the baseline of the words of 2 letters moved from 85.2% to 86.6% (GLSL and WGSL now find `uv` and `id` through their own places), the two-letter tier gains +6.5 points, 0.2 under half of the gap (+6.7), and minimum 2 meets the criterion and would be the one chosen. The tier stays because the decision was made on the numbers before the vocabulary and for a reason the corpus cannot measure (the host code), and the difference between the variants is small; it is the most fragile decision of this work.
+
 **Limits.** The words of 2 letters in the corpus are the ones its generators write.
 
 ## E37: does the similar-words stage make noise with short prefixes, and what removes it?
@@ -762,6 +766,15 @@ The editor sorts the list by the sort text of each item, which is the text unles
 **What it says.** At 3 letters the stage corrects 9 mistakes in 10 and shows something unrelated in 3 new words in 10; no gate that was tried separates the two. The cost of the noise is a few extra items under the exact ones, that disappear with the next letter (17% at 4 letters, 7% at 5). Without knowing how often people mistype against how often they type a new word, there is no basis to take the recovery away. The measure also counts a single similar item as noise, which hides what the cap of 3 does to the size of the list.
 
 **Revisit when.** There are real sessions to tell how many 3-letter prefixes are mistakes, or the stage can use how often a candidate is used (a candidate used five times is likelier than one used once).
+
+## The missing vocabulary
+
+The review of 800 suggestions listed words the plugin never offered. They are now, in three ways:
+- **Words offered but not colored** ([Vocabularies.ForCompletion](../NestLight/Completion/Vocabularies.cs)): `main` and the `gl_` variables of GLSL (`gl_FragColor`, `gl_Position`, `gl_FragCoord`...) and `main` of WGSL. They are not in the vocabulary the tokenizers share, so E19 (offering a word and coloring it agree) keeps measuring the colored vocabulary only.
+- **Places** ([Positions](../NestLight/Completion/Positions.cs)): GLSL after `#` (`version`, `define`, `ifdef`, `endif`...) and after `#version 300 ` (`es`, `core`); WGSL after `@` (`builtin`, `location`, `group`, `binding`, `vertex`, `fragment`, `compute`, `workgroup_size`...), inside `@builtin(` (`position`, `global_invocation_id`...), inside `@interpolate(`, inside `var<` (`uniform`, `storage`...) and after the comma (`read`, `write`, `read_write`).
+- **Values** of HTML attributes (the ARIA roles, `aria-*`, `fill` and `stroke` with `currentColor`, `stroke-linecap`, `autocomplete`, `enctype`, `loading`, `meta name`, `script type`...) and of CSS properties (`font-family`, `background-size`, `background-repeat`, `scroll-behavior`, `mix-blend-mode`, `border-collapse`...).
+
+On the 800 suggestions of the review the 15 cases of this kind that had no answer now have one: [GLSL-1](suggestion-review/glsl.md#glsl-1) `es`, [GLSL-15](suggestion-review/glsl.md#glsl-15) `main`, [GLSL-98](suggestion-review/glsl.md#glsl-98) `gl_FragColor`, [WGSL-19](suggestion-review/wgsl.md#wgsl-19) `builtin`, [WGSL-25](suggestion-review/wgsl.md#wgsl-25) `vertex`, [WGSL-64](suggestion-review/wgsl.md#wgsl-64) `read`, [HTML-63](suggestion-review/html.md#html-63) `region`, [HTML-85](suggestion-review/html.md#html-85) `currentColor`... They are not experiments: a word either exists or not, and the 58 tests of the places check each one.
 
 ## Notes on the context ranking
 
