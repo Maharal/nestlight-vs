@@ -4,7 +4,7 @@ namespace NestLight.Experiments
 {
     internal static class Catalog
     {
-        /// <summary>Experiments/Automatic: own corpora, run by default.</summary>
+        /// <summary>Experiments/Automatic: they measure and decide their own criterion.</summary>
         public static IList<Experiment> Automatic()
         {
             return new Experiment[]
@@ -39,14 +39,6 @@ namespace NestLight.Experiments
                 new E36_ShortWords(),
                 new E37_SimilarNoiseShortPrefix(),
                 new E38_ShortWordsRestated(),
-            };
-        }
-
-        /// <summary>Experiments/Manual: run on demand (--manual) over the code of the generator, one file for each host x language combination.</summary>
-        public static IList<Experiment> Manual()
-        {
-            return new Experiment[]
-            {
                 new E39_CombinationMatrix(),
             };
         }

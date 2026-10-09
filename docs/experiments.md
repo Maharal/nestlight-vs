@@ -15,8 +15,10 @@ Besides the unit tests (`NestLight.Tests`, which say whether the code is right) 
 
 | Folder | What it is | How to run |
 |---|---|---|
-| `Automatic/` | own corpora and synthetic files; the default run | `dotnet run -c Release --project NestLight.Experiments` |
-| `Manual/` | run on demand, over the code the generator writes for each host x embedded language combination | `dotnet run -c Release --project NestLight.Experiments -- --manual` |
+| `Automatic/` | they measure, apply their own criterion and write the report | `dotnet run -c Release --project NestLight.Experiments` |
+| `Manual/` | a qualitative review with no criterion: one file per host x embedded language combination, to be read case by case | `dotnet run -c Release --project NestLight.Experiments -- --manual <dir>` |
+
+"Manual" is for whoever reads: running it is one command. [CombinationReview](../NestLight.Experiments/Experiments/Manual/CombinationReview.cs) generates the code of every combination, runs the plugin over it and writes for each one the source, the strings found, every token with its type, the words of the string that got no color, the completion for each word typed with 1 and 2 letters (site, place in the grammar, rank of the intended word, top 10) and the carets in host code and in interpolations, where the plugin must offer nothing. `INDEX.md` counts the gaps, the misses and the wrong sites to say what to read first; a count is a pointer, not a verdict (plain text in Markdown is a gap that is correct). `--host` and `--language` narrow the run.
 
 ### The code generator
 
@@ -27,7 +29,7 @@ dotnet run -c Release --project NestLight.Experiments -- --generate out         
 dotnet run -c Release --project NestLight.Experiments -- --generate out --host python --language sql --repeat 1000   # one big file
 ```
 
-To add a language, add its sample to `LanguageSamples`; to add a host, add a rule to `Reason` and a writer to the generator. A new manual experiment goes in `Experiments/Manual/` and loops over `CombinationGenerator.Applicable()` and `CombinationCheck.Check`.
+To add a language, add its sample to `LanguageSamples`; to add a host, add a rule to `Reason` and a writer to the generator. A new check over the matrix goes through `CombinationGenerator.Applicable()` and `CombinationCheck.Check` (E39); a new section of the review goes in `CombinationReview.Review`.
 
 ## How it works
 
@@ -94,7 +96,7 @@ All the criteria below were written before the run that decided them, except tho
 | [E36](#e36-should-words-of-two-letters-be-offered) | Should words of two letters be offered? | Automated, generated code | Closed | Not met: the criterion could not be met; E38 |
 | [E37](#e37-does-the-similar-words-stage-make-noise-with-short-prefixes-and-what-removes-it) | Does the similar-words stage make noise with short prefixes? | Automated, generated code | Done | Not met; kept as it is |
 | [E38](#e38-should-words-of-two-letters-be-offered-e36-with-a-criterion-that-can-be-met) | E36 with a criterion that can be met | Automated, generated code | Done | Adopted: two-letter words last |
-| [E39](#e39-every-host-with-every-embedded-language) | Does every host work with every embedded language? | Manual, generated code | Done | Met |
+| [E39](#e39-every-host-with-every-embedded-language) | Does every host work with every embedded language? | Automated, generated code | Done | Met |
 
 ## Latest runs
 
@@ -601,11 +603,11 @@ The first runs were on commit `70e9ffd` (.NET 8 in Release, a 4-core Linux machi
 
 **Hypothesis.** The unit tests try each host with some languages and each language mostly in a JavaScript host. A combination nobody wrote a test for may be missed or read as another language.
 
-**Test.** Manual (`Experiments/Manual`). The [generator](#the-code-generator) writes a file for each of the 168 applicable combinations; each is run through the scan and the highlighter at 1 and at 200 copies of the sample and compared with what the generator put there (strings, interpolations, language, tokens inside the strings). The time to highlight 200 copies is reported by host and language.
+**Test.** The [generator](#the-code-generator) writes a file for each of the 168 applicable combinations; each is run through the scan and the highlighter at 1 and at 200 copies of the sample and compared with what the generator put there (strings, interpolations, language, tokens inside the strings). The time to highlight 200 copies is reported by host and language.
 
 **Criterion.** Every applicable combination passes at both sizes.
 
-**Result.** Met on the first run: 168 combinations, 0 failing checks. Times for 200 copies are between 0.4 and 4 ms in every host.
+**Result.** Met on the first run: 168 combinations, 0 failing checks. Times for 200 copies are between 0.4 and 4 ms in every host. What E39 cannot say is whether the colors and the suggestions are good: that is the manual review of the same files.
 
 ## Context ranking (E28 to E38)
 
