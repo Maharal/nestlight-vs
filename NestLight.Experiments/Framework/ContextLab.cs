@@ -200,14 +200,14 @@ namespace NestLight.Experiments
 
         // ---- the cost of a session with the features on --------------------------------------------------------------------
 
-        private static string Tail(HostLanguage host, string typed)
+        private static string Tail(HostLanguage host, string typed, string after)
         {
             switch (host)
             {
-                case HostLanguage.JavaScript: return "sql`" + typed + "|`;\n";
-                case HostLanguage.CSharp: return "// language=sql\nvar q = \"" + typed + "|\";\n";
-                case HostLanguage.Python: return "# language=sql\nq = \"" + typed + "|\"\n";
-                default: return "// language=sql\nauto q = R\"(" + typed + "|)\";\n";
+                case HostLanguage.JavaScript: return "sql`" + typed + "|" + after + "`;\n";
+                case HostLanguage.CSharp: return "// language=sql\nvar q = \"" + typed + "|" + after + "\";\n";
+                case HostLanguage.Python: return "# language=sql\nq = \"" + typed + "|" + after + "\"\n";
+                default: return "// language=sql\nauto q = R\"(" + typed + "|" + after + ")\";\n";
             }
         }
 
@@ -215,9 +215,9 @@ namespace NestLight.Experiments
         /// The median time of the start of a completion session (the classifier has highlighted the text, the scan is shared, the text
         /// is a new instance) on structured files of increasing size, for each variant. Returns the slowest at the largest size.
         /// </summary>
-        public static Table Latency(Settings settings, string[] names, Func<IHostScanner, CompletionEngine>[] factories, string typed, out double worst, out string worstCase)
+        public static Table Latency(Settings settings, string[] names, Func<IHostScanner, CompletionEngine>[] factories, string typed, out double worst, out string worstCase, string after = "")
         {
-            var table = new Table("Median time of the start of one completion session (typed `" + typed + "` in an SQL string, structured files)",
+            var table = new Table("Median time of the start of one completion session (typed `" + typed + "|" + after + "` in an SQL string, structured files)",
                 new[] { "Host", "Lines", "Characters" }.Concat(names).ToArray());
             int largest = settings.Lines.Max();
             worst = 0; worstCase = "";
@@ -225,7 +225,7 @@ namespace NestLight.Experiments
                 foreach (int lines in settings.Lines)
                 {
                     string body = SyntheticCorpus.File(host, 77, 0.5, Math.Max(1, lines / 10), true);
-                    string tail = Tail(host, typed);
+                    string tail = Tail(host, typed, after);
                     int caret = body.Length + tail.IndexOf('|');
                     string baseText = body + tail.Remove(tail.IndexOf('|'), 1);
                     int copies = settings.Warmup + settings.Runs;

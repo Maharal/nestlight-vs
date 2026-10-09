@@ -18,15 +18,24 @@ namespace NestLight.Completion
         public readonly bool WordsFirst;
         /// <summary>The keywords that do not belong here go after the words of the document; null: none.</summary>
         public readonly Func<string, bool> Unlikely;
+        /// <summary>What the place asks of the schema of the document (SQL only): a table, a column of the tables in the statement, a member of a qualifier.</summary>
+        public readonly PlaceRole Role;
+        /// <summary>For <see cref="PlaceRole.Member"/>, the word before the dot (an alias or a table).</summary>
+        public readonly string Qualifier;
 
-        public Position(string name, IEnumerable<string> expected = null, bool wordsFirst = false, Func<string, bool> unlikely = null)
+        public Position(string name, IEnumerable<string> expected = null, bool wordsFirst = false, Func<string, bool> unlikely = null,
+            PlaceRole role = PlaceRole.None, string qualifier = null)
         {
             Name = name;
             Expected = expected == null ? new string[0] : expected.ToList();
             WordsFirst = wordsFirst;
             Unlikely = unlikely;
+            Role = role;
+            Qualifier = qualifier;
         }
     }
+
+    internal enum PlaceRole { None, Table, Column, Member }
 
     internal static class Positions
     {
@@ -137,17 +146,19 @@ namespace NestLight.Completion
             // a number is an operand too
             if (last != null && char.IsDigit(last[0])) last = "\u0001";
 
-            if (between.Contains('.')) return new Position("sql:member", wordsFirst: true, unlikely: Always);
+            if (between.Contains('.'))
+                return new Position("sql:member", wordsFirst: true, unlikely: Always, role: last != null && last != "\u0001" ? PlaceRole.Member : PlaceRole.None, qualifier: last);
             if (last == null) return new Position("sql:statement", SqlStarters);
             char tail = between.Count > 0 ? between[between.Count - 1] : ' ';
             if (tail == '(' || tail == ',' || tail == '=' || tail == '<' || tail == '>' || tail == '+' || tail == '-' || tail == '*' || tail == '/')
-                return new Position("sql:expression", wordsFirst: true);
+                return new Position("sql:expression", wordsFirst: true, role: PlaceRole.Column);
 
             string[] next;
             if (last != "\u0001" && SqlNext.TryGetValue(last, out next))
-                return new Position("sql:after-" + last.ToLowerInvariant(), next, wordsFirst: last.Equals("select", StringComparison.OrdinalIgnoreCase));
-            if (last != "\u0001" && SqlTableAfter.Contains(last)) return new Position("sql:table", wordsFirst: true, unlikely: Always);
-            if (last != "\u0001" && SqlExpressionAfter.Contains(last)) return new Position("sql:expression", wordsFirst: true);
+                return new Position("sql:after-" + last.ToLowerInvariant(), next, wordsFirst: last.Equals("select", StringComparison.OrdinalIgnoreCase),
+                    role: last.Equals("select", StringComparison.OrdinalIgnoreCase) ? PlaceRole.Column : PlaceRole.None);
+            if (last != "\u0001" && SqlTableAfter.Contains(last)) return new Position("sql:table", wordsFirst: true, unlikely: Always, role: PlaceRole.Table);
+            if (last != "\u0001" && SqlExpressionAfter.Contains(last)) return new Position("sql:expression", wordsFirst: true, role: PlaceRole.Column);
 
             // after a column, a table, a literal or a closing parenthesis: the word that continues the clause
             if (last == "\u0001" || Vocabularies.Find("sql", last) == null || tail == ')')

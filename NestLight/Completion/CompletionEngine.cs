@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using NestLight.Common;
 
@@ -158,8 +159,14 @@ namespace NestLight.Completion
 
             bool upper = Vocabularies.FollowsTypedCase(site.LanguageId) && prefix.Length > 0 && !HasLower(prefix);
 
-            // the words that followed the same word before come first; with the features off nothing is scanned before the keywords
+            // the place of the caret and the schema of the document come first, then the words that followed the same word before;
+            // with the features off nothing is scanned before the keywords
             int[] scope = _features.SameLanguageWords ? CodeRanges(text, site) : null;
+            Position place = _features.Grammar || _features.Schema ? Positions.At(text, site) : null;
+            Position position = _features.Grammar ? place : null;
+            List<string> schema = _features.Schema && place != null && place.Role != PlaceRole.None ? SchemaWords(text, site, place, scope) : null;
+            if (schema != null && place.Role != PlaceRole.Table) AddCandidates(schema, prefix, seen, result);
+
             PreviousContext context = _features.PreviousWord ? ContextBefore(text, site) : default(PreviousContext);
             WordScan scan = null;
             if (context.Has)
@@ -167,9 +174,9 @@ namespace NestLight.Completion
                 scan = ScanWords(text, site, prefix, context, scope);
                 AddFollowing(text, site, scan, upper, seen, result);
             }
+            if (schema != null && place.Role == PlaceRole.Table) AddCandidates(schema, prefix, seen, result);
 
             // what the grammar expects at the caret, then (where the place says so) the words of the document, then the other keywords
-            Position position = _features.Grammar ? Positions.At(text, site) : null;
             if (position != null) AddExpected(position, site, prefix, upper, seen, result);
             bool wordsFirst = position != null && position.WordsFirst;
             if (wordsFirst) AddWords(text, site, prefix, context, scope, ref scan, seen, result);
@@ -208,6 +215,47 @@ namespace NestLight.Completion
             foreach (string word in OrderedWords(text, site, scan))
             {
                 if (result.Count >= _maxItems) break;
+                if (seen.Add(word)) result.Add(new Suggestion(word, SuggestionKind.Word));
+            }
+        }
+
+        /// <summary>The words that the schema of the document says belong here, in order; null when it knows nothing for this place.</summary>
+        private List<string> SchemaWords(string text, CompletionSite site, Position place, int[] scope)
+        {
+            if (!Vocabularies.SameLanguage(site.LanguageId, "sql")) return null;
+            int[] ranges = scope ?? CodeRanges(text, site);
+            SqlSchema.Statement current;
+            SqlSchema schema = SqlSchema.Read(text, ranges, Math.Max(0, site.Caret - WordScanWindow), Math.Min(text.Length, site.Caret + WordScanWindow), site.Start, site.End, out current);
+
+            var words = new List<string>();
+            switch (place.Role)
+            {
+                case PlaceRole.Table:
+                    foreach (SqlSchema.Table t in schema.Tables.OrderByDescending(t => t.Declared).ThenByDescending(t => t.Uses).ThenBy(t => t.Name, StringComparer.OrdinalIgnoreCase))
+                        words.Add(t.Name);
+                    break;
+                case PlaceRole.Member:
+                {
+                    SqlSchema.Table table;
+                    if (!current.Names.TryGetValue(place.Qualifier, out table)) table = schema.Find(place.Qualifier);
+                    if (table != null) words.AddRange(table.Columns);
+                    break;
+                }
+                case PlaceRole.Column:
+                    foreach (SqlSchema.Table table in current.Tables)
+                        foreach (string column in table.Columns)
+                            if (!words.Contains(column, StringComparer.OrdinalIgnoreCase)) words.Add(column);
+                    break;
+            }
+            return words.Count == 0 ? null : words;
+        }
+
+        private void AddCandidates(List<string> words, string prefix, HashSet<string> seen, List<Suggestion> result)
+        {
+            foreach (string word in words)
+            {
+                if (result.Count >= _maxItems) return;
+                if (!StartsWithIgnoreCase(word, prefix) || word.Length == prefix.Length) continue;
                 if (seen.Add(word)) result.Add(new Suggestion(word, SuggestionKind.Word));
             }
         }

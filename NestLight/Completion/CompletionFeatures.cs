@@ -31,11 +31,19 @@ namespace NestLight.Completion
         /// </summary>
         public readonly bool Grammar;
 
-        public CompletionFeatures(bool previousWord = false, bool sameLanguageWords = false, bool grammar = false)
+        /// <summary>
+        /// The tables and columns the SQL of the document talks about (a <c>CREATE TABLE</c>, the <c>FROM</c> of the statement, an alias) tell
+        /// which table to offer after <c>FROM</c> and which columns after <c>u.</c> or in the select list. It needs the place of the caret,
+        /// which is computed even when <see cref="Grammar"/> is off.
+        /// </summary>
+        public readonly bool Schema;
+
+        public CompletionFeatures(bool previousWord = false, bool sameLanguageWords = false, bool grammar = false, bool schema = false)
         {
             PreviousWord = previousWord;
             SameLanguageWords = sameLanguageWords;
             Grammar = grammar;
+            Schema = schema;
         }
     }
 }

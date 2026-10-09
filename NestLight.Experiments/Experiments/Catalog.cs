@@ -30,6 +30,7 @@ namespace NestLight.Experiments
                 new E28_PreviousWord(),
                 new E29_SameLanguageWords(),
                 new E30_GrammarPosition(),
+                new E31_SqlSchema(),
             };
         }
     }

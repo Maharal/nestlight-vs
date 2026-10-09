@@ -66,6 +66,7 @@ All the criteria below were written before the run that decided them, except tho
 | [E28](#e28-does-the-word-before-the-caret-help-to-rank-the-suggestions) | Does the word before the caret help to rank the suggestions? | Automated, generated code | Done | Adopted: criterion met |
 | [E29](#e29-do-the-words-of-the-same-language-come-first) | Do the words of the same language come first? | Automated, generated code | Done | Adopted: criterion met |
 | [E30](#e30-does-the-place-in-the-grammar-help-to-rank-the-suggestions) | Does the place in the grammar help to rank the suggestions? | Automated, generated code | Done | Adopted: criterion met |
+| [E31](#e31-does-the-schema-read-from-the-sql-of-the-document-help) | Does the schema read from the SQL of the document help? | Automated, generated code | Done | Not adopted: criterion not met |
 
 ## Latest runs
 
@@ -629,6 +630,26 @@ The editor sorts the list by the sort text of each item, which is the text unles
 **Limits.** The grammar covers SQL, CSS and HTML / SVG. A place the rules do not recognize (inside `url(`, a language without rules) is ranked as before. The tables are short: about 150 attributes, 40 properties with values, 60 SQL continuations.
 
 **Revisit when.** Real files give a hit rate to compare with this one, or a table turns out to hide a word people use (watch `Unlikely`).
+
+## E31: does the schema read from the SQL of the document help?
+
+**Status:** Done · **Decision:** Not adopted (`CompletionFeatures.Schema` stays in the code, off)
+
+**Hypothesis.** The tables and columns the SQL of the file talks about ([SqlSchema](../NestLight/Completion/SqlSchema.cs): a `CREATE TABLE`, the `FROM` and `JOIN` of the statement, the aliases, the column list of an `INSERT`, the `SET` of an `UPDATE`) tell which table to offer after `FROM` and which columns belong after `u.` or in the select list. That is more precise than the previous word, because an alias means a different table in every statement. The reader is a scan of the common shapes, not a parser.
+
+**Test.** E28's probes reported by the place of the caret: the order by distance alone; the previous word, the language and the grammar (what the plugin ran with); the same plus the schema; the schema alone. Files with a `CREATE TABLE` for each table and joins with the aliases `t` and `o` reused for a different table in every statement. Also, apart from the criterion, 200 short files (4 functions each), where the previous word has little history. Also the start of a session with `select u.comp| from users u` typed at the end of files of 1,200 to 60,000 lines, where every SQL string in the window is read.
+
+**Criterion.** At least 1 point better within the first 5 over all the reachable cases; the places that need a table or a column (`sql:table`, `sql:member`, `sql:expression`) do not fall; the session under 16 ms at 60,000 lines in every host.
+
+**Result.** Not met. Within the first 5: 97.2% before, 97.5% with the schema (+0.3 points); the schema alone gets 84.6% against 72.5% for distance alone. By place: `sql:table` 98.4% to 100%, `sql:member` 99.2% to 99.8%, `sql:expression` 98.8% to 99.1%; none falls. The time is the problem: the session goes from about 5 ms to 6.4-7.6 ms at 60,000 lines in three hosts, and one run measured 16.08 ms in the fourth (C++; the other runs of the same case were 6.5 and 8.7 ms in other sessions), above the frame.
+- **Short files:** where the document gives the previous word little to learn from, the schema pays more: `sql:table` 93.8% to 99.5%, `sql:member` 97.5% to 100%; over all the reachable prefixes 98.5% to 98.8%.
+- **Why so little overall:** the previous word and the grammar already put the right table or column in the first 5 in 97% of the cases, so there are 2.8 points left to gain.
+
+**What it says.** On a corpus built around a schema, with the previous word and the grammar in front, the schema fixes the last few misses and costs more than the rest of the ranking together: every request reads every SQL string around the caret. The criterion was written before the run and it is not met, so the plugin does not turn it on.
+
+**Decision.** Off in `CompletionFeatures.Default`. The code and its 15 tests stay, because the short-files table says where it would pay.
+
+**Revisit when.** The schema of a text is kept between requests (a cache next to the scan, so a keystroke does not read the file again), or real files turn out to have few repeated queries and a `CREATE TABLE` close by.
 
 ## Notes on the context ranking
 
