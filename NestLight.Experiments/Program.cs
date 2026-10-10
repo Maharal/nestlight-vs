@@ -17,6 +17,9 @@ namespace NestLight.Experiments
   --manual [dir]   the manual experiments (Experiments/Manual): generate the code of every host x embedded language combination,
                    run the plugin over it and write the artifacts (Markdown and HTML) of each combination, to read and judge (--host and --language narrow it).
                    Default folder: artifacts/EM01/<time of the run>
+  --gallery [dir]  the visual gallery (EM02): random snippets of every host x language combination, painted as HTML pages to open in a browser, and the same snippets
+                   with no marker and the automatic detection on (--host and --language narrow it; --samples n snippets per combination, default 3).
+                   Default folder: artifacts/EM02/<time of the run>
   --generate [dir] write that code, one file per combination, and exit (--host, --language and --repeat narrow or enlarge it).
                    Default folder: artifacts/generated/<time of the run>
   --host h         with --generate or --manual: javascript, csharp, python or cpp
@@ -37,8 +40,8 @@ namespace NestLight.Experiments
             System.Globalization.CultureInfo.CurrentCulture = System.Globalization.CultureInfo.InvariantCulture;
 
             var settings = new Settings();
-            string only = null, outDir = null, generate = null, review = null, host = null, language = null;
-            int repeat = 3;
+            string only = null, outDir = null, generate = null, review = null, gallery = null, host = null, language = null;
+            int repeat = 3, samples = 3;
             bool list = false;
             for (int i = 0; i < args.Length; i++)
             {
@@ -49,6 +52,8 @@ namespace NestLight.Experiments
                     case "--only" when i + 1 < args.Length: only = args[++i]; break;
                     case "--out" when i + 1 < args.Length: outDir = args[++i]; break;
                     case "--manual": review = i + 1 < args.Length && !args[i + 1].StartsWith("--") ? args[++i] : ""; break;
+                    case "--gallery": gallery = i + 1 < args.Length && !args[i + 1].StartsWith("--") ? args[++i] : ""; break;
+                    case "--samples" when i + 1 < args.Length && int.TryParse(args[i + 1], out samples) && samples > 0: i++; break;
                     case "--generate": generate = i + 1 < args.Length && !args[i + 1].StartsWith("--") ? args[++i] : ""; break;
                     case "--host" when i + 1 < args.Length: host = args[++i]; break;
                     case "--language" when i + 1 < args.Length: language = args[++i]; break;
@@ -66,6 +71,8 @@ namespace NestLight.Experiments
             string stamp = DateTime.UtcNow.ToString("yyyy-MM-dd_HH-mm-ss'Z'", System.Globalization.CultureInfo.InvariantCulture);
             if (review != null)
                 return EM01_CombinationReview.Run(review.Length > 0 ? review : Path.Combine(FindRepoRoot(), "artifacts", EM01_CombinationReview.Id, stamp), filter);
+            if (gallery != null)
+                return EM02_VisualGallery.Run(gallery.Length > 0 ? gallery : Path.Combine(FindRepoRoot(), "artifacts", EM02_VisualGallery.Id, stamp), filter, samples);
             if (generate != null)
             {
                 if (generate.Length == 0) generate = Path.Combine(FindRepoRoot(), "artifacts", "generated", stamp);

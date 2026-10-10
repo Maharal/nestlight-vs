@@ -107,8 +107,13 @@ namespace NestLight.Experiments
         /// <summary>The source of a file with <paramref name="repeat"/> copies of the sample of the combination.</summary>
         public static string Generate(Combination c, int repeat)
         {
+            return Generate(c, repeat, LanguageSamples.For(c.Language));
+        }
+
+        /// <summary>Like <see cref="Generate(Combination, int)"/>, with the sample given (it carries <see cref="LanguageSamples.Slot"/> where the interpolation goes).</summary>
+        public static string Generate(Combination c, int repeat, string sample)
+        {
             if (!c.Applicable) throw new ArgumentException(c.Name + " is not applicable: " + c.NotApplicable);
-            string sample = LanguageSamples.For(c.Language);
             var sb = new StringBuilder();
             for (int i = 0; i < repeat; i++)
             {

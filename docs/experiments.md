@@ -24,7 +24,7 @@ Rules:
 | Criterion | written before the run | none; findings |
 | Input | its own corpora and synthetic files, or the generator | the generator |
 | Output | a report in `reports/` | artifacts in `artifacts/`, one set per case |
-| Run | `dotnet run -c Release --project NestLight.Experiments` | `dotnet run -c Release --project NestLight.Experiments -- --manual` |
+| Run | `dotnet run -c Release --project NestLight.Experiments` | `dotnet run -c Release --project NestLight.Experiments -- --manual` (EM01), `-- --gallery` (EM02) |
 
 ### The code generator
 
@@ -108,3 +108,4 @@ An experiment is one source file with a document of the same name beside it: `Ex
 | [EA33](../NestLight.Experiments/Experiments/Automatic/EA33_IncrementalLocate.md) | Does scanning only the lines around the edit make `Locate` faster? | Automatic |
 | [EA34](../NestLight.Experiments/Experiments/Automatic/EA34_AutoDetectorCost.md) | What does an automatic language detector cost in time and memory? | Automatic |
 | [EM01](../NestLight.Experiments/Experiments/Manual/EM01_CombinationReview.md) | What does the plugin do, case by case, with every host and language? | Manual |
+| [EM02](../NestLight.Experiments/Experiments/Manual/EM02_VisualGallery.md) | Do random snippets, painted in a browser, show a color that is wrong or missing? | Manual |
