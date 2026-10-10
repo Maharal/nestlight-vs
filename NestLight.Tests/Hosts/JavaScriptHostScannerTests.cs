@@ -246,5 +246,59 @@ namespace NestLight.Tests
             Assert.Single(t.Interpolations);
             Assert.True(t.Escapes[0].Start + 2 <= t.Interpolations[0].Start && t.Interpolations[0].End <= t.Escapes[1].Start);
         }
+
+        // ---- regular expression literals ----------------------------------------
+
+        [Theory]
+        [InlineData("const r = /`/;")]
+        [InlineData("const r = /\"/g;")]
+        [InlineData("const r = /'/;")]
+        [InlineData("const r = /[`'\"]/gi;")]
+        [InlineData("const r = /[/`]/;")]
+        [InlineData("const r = /\\/`/;")]
+        [InlineData("x = a ? /`/ : /'/;")]
+        [InlineData("f(/`/);")]
+        [InlineData("if (x) return /`/.test(s);")]
+        [InlineData("const r = [/`/, /'/];")]
+        [InlineData("const r = {a: /`/};")]
+        [InlineData("const r = !/`/.test(s);")]
+        [InlineData("const r = a && /`/.test(s);")]
+        [InlineData("const r = s.replace(/`/g, '');")]
+        public void A_quote_or_backtick_in_a_regex_literal_does_not_open_a_string(string prefix)
+        {
+            string code = prefix + "\nconst q = sql`SELECT 1`;";
+            EmbeddedString t = Lexer.Templates(code).Single();
+            Assert.Equal("SELECT 1", Body(code, t));
+        }
+
+        [Fact]
+        public void A_division_is_not_a_regex()
+        {
+            const string code = "const a = x / 2; const b = (y) / 3; const c = z[0] / 4;\nconst q = sql`SELECT 1`; const d = a / b / c;";
+            EmbeddedString t = Lexer.Templates(code).Single();
+            Assert.Equal("SELECT 1", Body(code, t));
+        }
+
+        [Fact]
+        public void A_slash_without_a_closing_slash_on_its_line_is_not_a_regex()
+        {
+            const string code = "const a = (/ ;\nconst q = sql`SELECT 1`;";
+            Assert.Single(Lexer.Templates(code));
+        }
+
+        [Fact]
+        public void A_regex_literal_in_an_interpolation_is_skipped()
+        {
+            const string code = "html`<b>${s.replace(/`/g, '')}</b>${x}`;";
+            EmbeddedString t = Lexer.Templates(code).Single();
+            Assert.Equal(2, t.Interpolations.Count);
+        }
+
+        [Fact]
+        public void A_regex_literal_between_a_marker_comment_and_a_template_consumes_the_marker()
+        {
+            const string code = "/* sql */ const r = /a/; const s = `SELECT 1`;";
+            Assert.Empty(Lexer.Templates(code));
+        }
     }
 }
