@@ -42,6 +42,23 @@ namespace NestLight.Tests
         }
 
         [Fact]
+        public void A_file_another_program_holds_open_gives_the_defaults()
+        {
+            string path = Path.Combine(Path.GetTempPath(), "nestlight-test-" + Guid.NewGuid().ToString("N") + ".txt");
+            File.WriteAllText(path, "enabled=true\n");
+            try
+            {
+                using (new FileStream(path, FileMode.Open, FileAccess.ReadWrite, FileShare.None))
+                {
+                    DetectionOptions loaded = DetectionOptionsFile.Load(path);
+                    Assert.False(loaded.Enabled); // the file is there and says true, but it cannot be read: the defaults stand
+                }
+                Assert.True(DetectionOptionsFile.Load(path).Enabled);
+            }
+            finally { File.Delete(path); }
+        }
+
+        [Fact]
         public void A_file_without_the_enabled_key_leaves_the_defaults_even_if_it_lists_languages()
         {
             string path = Path.Combine(Path.GetTempPath(), "nestlight-test-" + Guid.NewGuid().ToString("N") + ".txt");

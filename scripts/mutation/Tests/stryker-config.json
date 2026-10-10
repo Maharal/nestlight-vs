@@ -1,0 +1,8 @@
+{
+  "stryker-config": {
+    "project": "Core.csproj",
+    "reporters": [ "html", "json", "cleartext" ],
+    "concurrency": 16,
+    "thresholds": { "high": 90, "low": 70, "break": 0 }
+  }
+}

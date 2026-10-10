@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- The shared source of the extension (everything but VisualStudio\) as a plain net8.0 library, so Stryker can mutate it.
+       The test project itself targets net48 and compiles this source in, which Stryker cannot mutate. -->
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <AssemblyName>NestLightCore</AssemblyName>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="..\..\..\NestLight\Common\**\*.cs" />
+    <Compile Include="..\..\..\NestLight\Completion\**\*.cs" />
+    <Compile Include="..\..\..\NestLight\Detection\**\*.cs" />
+    <Compile Include="..\..\..\NestLight\Hosts\**\*.cs" />
+    <Compile Include="..\..\..\NestLight\EmbeddedLanguages\**\*.cs" />
+    <Compile Include="..\..\..\NestLight\Highlighting\**\*.cs" />
+    <InternalsVisibleTo Include="MutTests" />
+  </ItemGroup>
+</Project>
