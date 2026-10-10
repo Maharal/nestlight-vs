@@ -18,9 +18,13 @@ namespace NestLight.Highlighting
         private readonly object _gate = new object();
         private TSnapshot _snapshot;
         private IReadOnlyList<Token> _tokens = NoTokens;
+        private readonly Func<int> _stateVersion;
+        private int _version;
 
-        public SnapshotTokenCache(IHighlighter highlighter, Func<TSnapshot, string> getText)
+        /// <param name="stateVersion">The version of whatever else decides the tokens (the detection options); the tokens of another version are stale.</param>
+        public SnapshotTokenCache(IHighlighter highlighter, Func<TSnapshot, string> getText, Func<int> stateVersion = null)
         {
+            _stateVersion = stateVersion;
             if (highlighter == null) throw new ArgumentNullException("highlighter");
             if (getText == null) throw new ArgumentNullException("getText");
             _highlighter = highlighter;
@@ -49,10 +53,12 @@ namespace NestLight.Highlighting
         {
             lock (_gate)
             {
-                if (!ReferenceEquals(_snapshot, snapshot))
+                int version = _stateVersion == null ? 0 : _stateVersion();
+                if (!ReferenceEquals(_snapshot, snapshot) || version != _version)
                 {
                     _tokens = Run(snapshot);
                     _snapshot = snapshot;
+                    _version = version;
                 }
                 return _tokens;
             }

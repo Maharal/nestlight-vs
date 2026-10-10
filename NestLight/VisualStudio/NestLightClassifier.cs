@@ -5,6 +5,7 @@ using Microsoft.VisualStudio.Text;
 using Microsoft.VisualStudio.Text.Classification;
 using Microsoft.VisualStudio.Utilities;
 using NestLight.Common;
+using NestLight.Detection;
 using NestLight.Highlighting;
 
 namespace NestLight.VisualStudio
@@ -67,13 +68,51 @@ namespace NestLight.VisualStudio
         private readonly SnapshotTokenCache<ITextSnapshot> _cache;
         private readonly Dictionary<string, IClassificationType> _types = new Dictionary<string, IClassificationType>();
 
+        private readonly ITextBuffer _buffer;
+
         public event EventHandler<ClassificationChangedEventArgs> ClassificationChanged;
 
         public NestLightClassifier(ITextBuffer buffer, IClassificationTypeRegistryService registry, NestLightBuffer shared)
         {
             _registry = registry;
-            _cache = new SnapshotTokenCache<ITextSnapshot>(shared.Analysis.Highlighter, shared.Text.Of);
+            _buffer = buffer;
+            DetectionOptions options = shared.Options;
+            _cache = new SnapshotTokenCache<ITextSnapshot>(shared.Analysis.Highlighter, shared.Text.Of, () => options.Version);
             buffer.ChangedLowPriority += OnBufferChanged;
+            new WeakOptionsListener(options, this);
+        }
+
+        /// <summary>The detection options changed (from the options page): everything in the buffer may have another color now.</summary>
+        private void OnOptionsChanged()
+        {
+            var handler = ClassificationChanged;
+            ITextSnapshot snapshot = _buffer.CurrentSnapshot;
+            if (handler != null)
+                handler(this, new ClassificationChangedEventArgs(new SnapshotSpan(snapshot, 0, snapshot.Length)));
+        }
+
+        /// <summary>
+        /// The options outlive every buffer. A listener that held the classifier would keep a closed document alive, so it holds it weakly
+        /// and unsubscribes itself the first time the classifier is gone.
+        /// </summary>
+        private sealed class WeakOptionsListener
+        {
+            private readonly DetectionOptions _options;
+            private readonly WeakReference<NestLightClassifier> _target;
+
+            public WeakOptionsListener(DetectionOptions options, NestLightClassifier target)
+            {
+                _options = options;
+                _target = new WeakReference<NestLightClassifier>(target);
+                options.Changed += OnChanged;
+            }
+
+            private void OnChanged(object sender, EventArgs e)
+            {
+                NestLightClassifier classifier;
+                if (_target.TryGetTarget(out classifier)) classifier.OnOptionsChanged();
+                else _options.Changed -= OnChanged;
+            }
         }
 
         private void OnBufferChanged(object sender, TextContentChangedEventArgs e)
@@ -116,10 +155,12 @@ namespace NestLight.VisualStudio
     {
         private NestLightBuffer(HostLanguage host)
         {
-            Analysis = NestLightComposition.CreateForBuffer(host);
+            Options = NestLightOptions.Detection;
+            Analysis = NestLightComposition.CreateForBuffer(host, Options);
             Text = new SnapshotTextCache<ITextSnapshot>(snapshot => snapshot.GetText());
         }
 
+        public DetectionOptions Options { get; private set; }
         public BufferAnalysis Analysis { get; private set; }
         public SnapshotTextCache<ITextSnapshot> Text { get; private set; }
 

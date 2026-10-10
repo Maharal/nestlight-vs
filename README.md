@@ -18,7 +18,7 @@ Nestlight recognizes code embedded in string literals from a tag or a marker com
 
 ## Marking a string
 
-A string is embedded code only when it is marked. Nestlight never guesses from the content.
+A string is embedded code when it is marked. Nestlight guesses from the content only if you turn on [automatic detection](#automatic-detection), which is off by default.
 
 - **Tag** (JavaScript / TypeScript): `` html`...` ``. The tag is a language id or alias and touches the backtick. Member access works (`` ui.html`...` ``).
 - **Marker comment** (every host): a comment immediately before the string, on the same line or the line above, containing `id`, `language=id` or `lang=id`.
@@ -44,6 +44,12 @@ page = f"""<li class="item">{name}</li>"""
 // language=html
 auto page = R"(<li class="item">name</li>)";
 ```
+
+## Automatic detection
+
+Off by default. Under **Tools > Options > NestLight > Automatic detection** you can turn on the guess of the language of strings you did not mark, and choose which languages it may guess: SQL, HTML, CSS, JSON and GraphQL (the list follows the detectors the plugin has). A string that is guessed is colored and completed like a marked one.
+
+It is a heuristic and can be wrong: a string that only looks like code is colored as code (`"Update the set of items"` can pass for SQL). A mark always wins over the guess, so `// language=yaml` or a tag settles any doubt, and a language you turn off is never guessed. It reads only the content of the string, cheaply: [EA34](docs/experiments.md) measures the cost. In C#, `json` stays with Visual Studio, as for marked strings. The choice is kept in `%LOCALAPPDATA%\NestLight\detection.txt`.
 
 ## Embedded languages
 
@@ -110,6 +116,7 @@ The code is split by responsibility, and every dependency is injected through a 
 | `Completion` | The completion engine, the distance used for similar words and the rankers of the words of the document (`IWordRanker`: nearest, frequency, blend); in `Completion/Languages`, one strategy per embedded language (its words and the order they are used in, what counts as a word, the grammar of the place of the caret) |
 | `Common` | The model (embedded string, interpolation, token), the interfaces everything else depends on, marker rules and text helpers |
 | `Hosts` | One scanner per host language |
+| `Detection` | The automatic detector (one strategy per language it can guess, behind `ILanguageDetector`) and the options that turn it and each language on and off |
 | `EmbeddedLanguages` | One tokenizer per embedded language |
 | `Highlighting` | The engine, the registry, the snapshot and scan caches (the classifier and the completion of a buffer share one scan per snapshot) and the composition root, the only place that knows the concrete classes |
 | `VisualStudio` | The only code that touches the editor: classifier and completion providers, and the classification types and default colors |
@@ -139,6 +146,7 @@ Reports (`reports/`) and artifacts (`artifacts/`) are named by the time of the r
 
 - Code inside an interpolation gets a neutral color, not host-language highlighting.
 - Python implicit string concatenation is not joined: each literal is analyzed on its own.
+- Automatic detection reads the string as written, with escapes and interpolations undecoded, so JSON inside a C# regular string (`\"`) is not recognized. In JavaScript only template literals are considered.
 - `<script>` content, SCSS / LESS and JSX / TSX are not highlighted.
 
 ## License

@@ -106,4 +106,5 @@ An experiment is one source file with a document of the same name beside it: `Ex
 | [EA30](../NestLight.Experiments/Experiments/Automatic/EA30_ShortWordsRestated.md) | EA28 with a criterion that can be met | Automatic |
 | [EA31](../NestLight.Experiments/Experiments/Automatic/EA31_CombinationMatrix.md) | Does every host work with every embedded language? | Automatic |
 | [EA33](../NestLight.Experiments/Experiments/Automatic/EA33_IncrementalLocate.md) | Does scanning only the lines around the edit make `Locate` faster? | Automatic |
+| [EA34](../NestLight.Experiments/Experiments/Automatic/EA34_AutoDetectorCost.md) | What does an automatic language detector cost in time and memory? | Automatic |
 | [EM01](../NestLight.Experiments/Experiments/Manual/EM01_CombinationReview.md) | What does the plugin do, case by case, with every host and language? | Manual |

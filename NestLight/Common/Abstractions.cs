@@ -12,6 +12,13 @@ namespace NestLight.Common
         IReadOnlyList<EmbeddedString> Scan(string text);
     }
 
+    /// <summary>Guesses the language of a string nobody marked, from its content. It is only a guess: the answer may be wrong or null.</summary>
+    internal interface ILanguageGuesser
+    {
+        /// <summary>The id of the language of text[start, end), or null when it does not look like any. Never throws.</summary>
+        string Guess(string text, int start, int end);
+    }
+
     /// <summary>Tokenizes the code of an embedded language.</summary>
     internal interface IEmbeddedLanguageTokenizer
     {

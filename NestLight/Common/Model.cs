@@ -44,8 +44,8 @@ namespace NestLight.Common
             EmbeddedLanguageId = embeddedLanguageId;
         }
 
-        /// <summary>Lower-case language id or alias that marked the string (<c>html</c>, <c>sql</c>...).</summary>
-        public string EmbeddedLanguageId { get; private set; }
+        /// <summary>Lower-case language id or alias that marked the string (<c>html</c>, <c>sql</c>...), or the one guessed from its content; null while a string nobody marked has not been guessed.</summary>
+        public string EmbeddedLanguageId { get; internal set; }
 
         /// <summary>First character of the literal, including prefixes and the opening quote.</summary>
         public int OuterStart;

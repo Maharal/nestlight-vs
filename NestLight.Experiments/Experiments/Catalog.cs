@@ -41,6 +41,7 @@ namespace NestLight.Experiments
                 new EA30_ShortWordsRestated(),
                 new EA31_CombinationMatrix(),
                 new EA33_IncrementalLocate(),
+                new EA34_AutoDetectorCost(),
             };
         }
     }
