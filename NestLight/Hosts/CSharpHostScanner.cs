@@ -191,7 +191,7 @@ namespace NestLight.Hosts
                 if (ats == 0 && quotes >= 3) ReadRaw(s, j, quotes, dollars);
                 else ReadQuoted(s, j, ats > 0, dollars > 0);
 
-                if (id != null) _result.Add(s);
+                if (_languages.Resolve(_t, s)) _result.Add(s);
                 return true;
             }
 

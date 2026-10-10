@@ -1,6 +1,8 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 
-namespace NestLight.Experiments.Detection
+namespace NestLight.Detection
 {
     internal sealed class SqlDetector : ILanguageDetector
     {
@@ -118,13 +120,17 @@ namespace NestLight.Experiments.Detection
 
         public static LanguageDetector Create(bool gate)
         {
-            return new LanguageDetector(new ILanguageDetector[] { new SqlDetector(), new HtmlDetector(), new JsonDetector(), new CssDetector(), new GraphQlDetector() }, gate);
+            return new LanguageDetector(Strategies(), gate);
         }
 
+        /// <summary>One strategy per language that can be detected. The only place that lists them: the options page and the settings file follow it.</summary>
         public static ILanguageDetector[] Strategies()
         {
             return new ILanguageDetector[] { new SqlDetector(), new HtmlDetector(), new JsonDetector(), new CssDetector(), new GraphQlDetector() };
         }
+
+        /// <summary>The ids of the languages that can be detected, in the order of <see cref="Strategies"/>.</summary>
+        public static readonly IReadOnlyList<string> Languages = Array.AsReadOnly(Strategies().Select(s => s.Id).ToArray());
 
         public string Detect(string text, int start, int end)
         {

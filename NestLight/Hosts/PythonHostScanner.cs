@@ -143,7 +143,7 @@ namespace NestLight.Hosts
                     {
                         s.End = _i;
                         s.OuterEnd = _i += quoteLength;
-                        if (id != null) _result.Add(s);
+                        if (_languages.Resolve(_t, s)) _result.Add(s);
                         return true;
                     }
                     else if (c == '\n' && !triple)
@@ -162,7 +162,7 @@ namespace NestLight.Hosts
                     }
                 }
                 s.End = s.OuterEnd = Math.Min(_i, _t.Length);
-                if (id != null) _result.Add(s);
+                if (_languages.Resolve(_t, s)) _result.Add(s);
                 return true;
             }
 

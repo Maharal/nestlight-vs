@@ -5,6 +5,7 @@ The extension project. See the [main README](../README.md) for what it highlight
 ## Layout
 - `Common/`: model, interfaces, marker rules, text helpers
 - `Hosts/`: scanners for JavaScript / TypeScript, C#, Python and C++
+- `Detection/`: the optional automatic detector of the language of unmarked strings (one `ILanguageDetector` strategy per language) and its options
 - `EmbeddedLanguages/`: tokenizers for HTML, CSS, SQL, JSON, GraphQL, XML, Markdown, YAML, regular expressions and shaders (GLSL, WGSL)
 - `Highlighting/`: engine, language registry, snapshot cache and the composition root (`NestLightComposition`)
 - `VisualStudio/`: MEF classifier providers, classification types and default formats
@@ -18,6 +19,9 @@ Dependencies are passed through constructors. Only `VisualStudio/` references th
 
 ## Colors
 Tools > Options > Environment > Fonts and Colors > "Text Editor" > items "Template <Language> ...".
+
+## Adding a language to the automatic detection
+Write an `ILanguageDetector` in `Detection/Detectors.cs` (a cheap look at the first character and a score that reads the text where it is, without allocating), add it to `LanguageDetector.Strategies()` and give it a tokenizer with the same id. The options page and the options file follow that list; a test fails if a detectable language has no tokenizer.
 
 ## Adding a language
 1. Write a tokenizer in `EmbeddedLanguages/` (`IEmbeddedLanguageTokenizer`) and add it to `NestLightComposition.CreateEmbeddedLanguages`.

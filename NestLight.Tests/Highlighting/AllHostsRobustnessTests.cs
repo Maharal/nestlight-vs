@@ -14,7 +14,7 @@ namespace NestLight.Tests
     /// </summary>
     public class AllHostsRobustnessTests
     {
-        private const string JavaScript = @"
+        internal const string JavaScript = @"
 const re = /[`'""]+\/`/gi; const half = total / 2 / n;
 const q2 = s.replace(/`/g, '').split(/'/);
 const q = sql`SELECT * FROM t WHERE id = ${id} -- c`;
@@ -38,7 +38,7 @@ const k = css`a:not(.b, #c) > li:nth-child(2n+1)::before, input[type=""text"" i]
 @keyframes s { from { opacity: 0 } 50% { opacity: .5 } } @container card (width > 400px) { .c { d: e } } @layer a, b; @import url(x.css) layer(base);`;
 ";
 
-        private const string CSharp = @"
+        internal const string CSharp = @"
 // html
 var a = $""<ul>{ string.Join("""", xs.Select(x => /* html */ $""<li class='{x.C}'>{x.Name:N2}</li>"")) }</ul>"";
 // sql
@@ -54,7 +54,7 @@ var e = '""'; var f = '\''; // language=html
 var g = $@""<b>{{literal}} {value}</b>"";
 ";
 
-        private const string Python = @"
+        internal const string Python = @"
 # language=html
 a = f'''<ul>{ ''.join(
     # html
@@ -68,7 +68,7 @@ d = ""{\""a\"": [1, 2]}""
 e = t'<b>{{x}} {y}</b>'  # html
 ";
 
-        private const string Cpp = @"
+        internal const string Cpp = @"
 // language=html
 auto a = R""x(<ul class=""a""><li>1</li></ul>)x"";
 /* sql */ const char* b = u8R""(select 1 from t where x = '1')"";

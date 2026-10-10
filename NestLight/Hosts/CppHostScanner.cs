@@ -163,7 +163,7 @@ namespace NestLight.Hosts
                     s.End = close;
                     s.OuterEnd = _i = close + terminator.Length;
                 }
-                if (id != null) _result.Add(s);
+                if (_languages.Resolve(_t, s)) _result.Add(s);
             }
 
             private static bool IsDelimiterChar(char c)

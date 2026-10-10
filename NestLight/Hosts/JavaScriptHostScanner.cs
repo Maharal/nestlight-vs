@@ -150,7 +150,7 @@ namespace NestLight.Hosts
                     {
                         info.End = _i;
                         info.OuterEnd = ++_i;
-                        if (id != null) _result.Add(info);
+                        if (_languages.Resolve(_t, info)) _result.Add(info);
                         return;
                     }
                     else if (c == '$' && _i + 1 < _t.Length && _t[_i + 1] == '{')
@@ -169,7 +169,7 @@ namespace NestLight.Hosts
                     }
                 }
                 info.End = info.OuterEnd = _t.Length;
-                if (id != null) _result.Add(info);
+                if (_languages.Resolve(_t, info)) _result.Add(info);
             }
 
             /// <summary>

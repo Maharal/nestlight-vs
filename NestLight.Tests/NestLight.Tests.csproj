@@ -12,6 +12,7 @@
   <ItemGroup>
     <Compile Include="..\NestLight\Common\**\*.cs" LinkBase="Source\Common" />
     <Compile Include="..\NestLight\Completion\**\*.cs" LinkBase="Source\Completion" />
+    <Compile Include="..\NestLight\Detection\**\*.cs" LinkBase="Source\Detection" />
     <Compile Include="..\NestLight\Hosts\**\*.cs" LinkBase="Source\Hosts" />
     <Compile Include="..\NestLight\EmbeddedLanguages\**\*.cs" LinkBase="Source\EmbeddedLanguages" />
     <Compile Include="..\NestLight\Highlighting\**\*.cs" LinkBase="Source\Highlighting" />

@@ -22,11 +22,18 @@ namespace NestLight.Highlighting
         private WeakReference<string> _text;
         private IReadOnlyList<EmbeddedString> _result;
         private HostScan _scan; // of the same text, when the scanner can resume
+        private readonly Func<int> _stateVersion;
+        private int _version;
 
-        public CachingHostScanner(IHostScanner inner)
+        /// <param name="stateVersion">
+        /// The version of whatever else decides what the scanner finds (the detection options). When it changes, what is remembered is
+        /// stale and the next scan is whole; the strings of an edit are only reused while the version is the one they were found under.
+        /// </param>
+        public CachingHostScanner(IHostScanner inner, Func<int> stateVersion = null)
         {
             if (inner == null) throw new ArgumentNullException("inner");
             _inner = inner;
+            _stateVersion = stateVersion;
         }
 
         public IReadOnlyList<EmbeddedString> Scan(string text)
@@ -34,6 +41,12 @@ namespace NestLight.Highlighting
             if (text == null) return _inner.Scan(text);
             lock (_gate)
             {
+                int version = _stateVersion == null ? 0 : _stateVersion();
+                if (version != _version)
+                {
+                    _text = null; _result = null; _scan = null;
+                    _version = version;
+                }
                 string known = null;
                 if (_text != null) _text.TryGetTarget(out known);
                 if (known != null && ReferenceEquals(known, text)) return _result;

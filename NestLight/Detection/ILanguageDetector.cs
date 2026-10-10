@@ -1,6 +1,6 @@
 using System;
 
-namespace NestLight.Experiments.Detection
+namespace NestLight.Detection
 {
     /// <summary>
     /// One strategy of the automatic detector: how sure it is that a string holds code of one language. It reads the text where it is

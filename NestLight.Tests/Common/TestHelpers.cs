@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using NestLight.Common;
+using NestLight.Detection;
 using NestLight.Highlighting;
 
 namespace NestLight.Tests

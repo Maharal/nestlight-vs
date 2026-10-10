@@ -9,11 +9,30 @@ namespace NestLight.Common
         private readonly IEmbeddedLanguageRegistry _registry;
         private readonly HashSet<string> _excluded;
 
-        public AcceptedEmbeddedLanguages(IEmbeddedLanguageRegistry registry, IEnumerable<string> excluded = null)
+        private readonly ILanguageGuesser _guesser;
+
+        /// <param name="guesser">Guesses the language of the strings nobody marked; null (the default) leaves them alone, as the plugin always did.</param>
+        public AcceptedEmbeddedLanguages(IEmbeddedLanguageRegistry registry, IEnumerable<string> excluded = null, ILanguageGuesser guesser = null)
         {
             if (registry == null) throw new ArgumentNullException("registry");
             _registry = registry;
             _excluded = new HashSet<string>(excluded ?? new string[0], StringComparer.OrdinalIgnoreCase);
+            _guesser = guesser;
+        }
+
+        /// <summary>
+        /// Call when a string has been read to its end: a string that nobody marked gets the language guessed from its content, if the host
+        /// accepts it. A marked string keeps its mark, whatever the content looks like.
+        /// </summary>
+        /// <returns>True when the string is embedded code and belongs in the result.</returns>
+        public bool Resolve(string text, EmbeddedString s)
+        {
+            if (s.EmbeddedLanguageId == null && _guesser != null && s.End > s.Start)
+            {
+                string guessed = _guesser.Guess(text, s.Start, Math.Min(s.End, text.Length));
+                if (Accepts(guessed)) s.EmbeddedLanguageId = guessed;
+            }
+            return s.EmbeddedLanguageId != null;
         }
 
         public bool Accepts(string id)

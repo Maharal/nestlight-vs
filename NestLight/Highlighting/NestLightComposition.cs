@@ -1,5 +1,6 @@
 using System;
 using NestLight.Common;
+using NestLight.Detection;
 using NestLight.Completion;
 using NestLight.Hosts;
 using NestLight.EmbeddedLanguages;
@@ -37,32 +38,35 @@ namespace NestLight.Highlighting
             });
         }
 
-        public static IHostScanner CreateScanner(HostLanguage host, IEmbeddedLanguageRegistry languages)
+        /// <param name="detection">When given, strings nobody marked get the language guessed from their content, under these options; null (the default) never guesses.</param>
+        public static IHostScanner CreateScanner(HostLanguage host, IEmbeddedLanguageRegistry languages, DetectionOptions detection = null)
         {
+            ILanguageGuesser guesser = detection == null ? null : new OptionsLanguageGuesser(detection, LanguageDetector.Create(true));
             switch (host)
             {
-                case HostLanguage.JavaScript: return new JavaScriptHostScanner(new AcceptedEmbeddedLanguages(languages));
-                case HostLanguage.CSharp: return new CSharpHostScanner(new AcceptedEmbeddedLanguages(languages, LeftToVisualStudio));
-                case HostLanguage.Python: return new PythonHostScanner(new AcceptedEmbeddedLanguages(languages));
-                case HostLanguage.Cpp: return new CppHostScanner(new AcceptedEmbeddedLanguages(languages));
+                case HostLanguage.JavaScript: return new JavaScriptHostScanner(new AcceptedEmbeddedLanguages(languages, null, guesser));
+                case HostLanguage.CSharp: return new CSharpHostScanner(new AcceptedEmbeddedLanguages(languages, LeftToVisualStudio, guesser));
+                case HostLanguage.Python: return new PythonHostScanner(new AcceptedEmbeddedLanguages(languages, null, guesser));
+                case HostLanguage.Cpp: return new CppHostScanner(new AcceptedEmbeddedLanguages(languages, null, guesser));
                 default: throw new ArgumentOutOfRangeException("host");
             }
         }
 
-        public static IHighlighter CreateHighlighter(HostLanguage host)
+        public static IHighlighter CreateHighlighter(HostLanguage host, DetectionOptions detection = null)
         {
             IEmbeddedLanguageRegistry languages = CreateEmbeddedLanguages();
-            return new HighlightEngine(CreateScanner(host, languages), languages);
+            return new HighlightEngine(CreateScanner(host, languages, detection), languages);
         }
 
         /// <summary>
         /// The pieces of one buffer. The highlighter and the completion share one scanner that remembers its last scan, so the
         /// strings of a snapshot are found once for both.
         /// </summary>
-        public static BufferAnalysis CreateForBuffer(HostLanguage host)
+        public static BufferAnalysis CreateForBuffer(HostLanguage host, DetectionOptions detection = null)
         {
             IEmbeddedLanguageRegistry languages = CreateEmbeddedLanguages();
-            IHostScanner scanner = new CachingHostScanner(CreateScanner(host, languages));
+            Func<int> version = detection == null ? (Func<int>)null : () => detection.Version;
+            IHostScanner scanner = new CachingHostScanner(CreateScanner(host, languages, detection), version);
             return new BufferAnalysis(new HighlightEngine(scanner, languages), new CompletionEngine(scanner, matcher: new BandedPrefixMatcher(), features: CompletionFeatures.Default));
         }
     }
