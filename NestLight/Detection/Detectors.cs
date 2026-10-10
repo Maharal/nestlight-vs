@@ -7,7 +7,8 @@ namespace NestLight.Detection
     internal sealed class SqlDetector : ILanguageDetector
     {
         private static readonly string[] Verbs = { "select", "insert", "update", "delete", "create", "alter", "drop", "with" };
-        private static readonly string[] Followers = { " from ", " into ", " set ", " table ", " values", " where ", " join " };
+        private static readonly string[] Followers = { "from", "into", "set", "table", "values", "where", "join" };
+        private static readonly string[] Articles = { "an", "the", "your", "my", "this", "that", "some", "any" };
 
         public string Id { get { return "sql"; } }
 
@@ -20,15 +21,28 @@ namespace NestLight.Detection
         public int Score(string t, int start, int end)
         {
             char last = t[end - 1];
-            if (last == '.' || last == '?' || last == '!') return 0; // a sentence, not a statement
+            if (last == '.' || last == '?' || last == '!') return 0;
             foreach (string verb in Verbs)
             {
                 if (!Probe.StartsWithWord(t, start, end, verb)) continue;
                 foreach (string follower in Followers)
-                    if (Probe.Contains(t, start, end, follower)) return 3;
+                    if (Probe.ContainsWord(t, start, end, follower))
+                    {
+                        if (LooksLikeProse(t, start, end, verb)) return 0;
+                        return 3;
+                    }
                 return 0;
             }
             return 0;
+        }
+
+        private static bool LooksLikeProse(string t, int start, int end, string verb)
+        {
+            int afterVerb = start + verb.Length;
+            while (afterVerb < end && char.IsWhiteSpace(t[afterVerb])) afterVerb++;
+            foreach (string article in Articles)
+                if (Probe.StartsWithWord(t, afterVerb, end, article)) return true;
+            return false;
         }
     }
 
@@ -70,12 +84,15 @@ namespace NestLight.Detection
     {
         public string Id { get { return "css"; } }
 
-        public bool CanStartWith(char first) { return first == '.' || first == '#' || first == '@' || first == ':' || char.IsLetter(first); }
+        public bool CanStartWith(char first) { return first == '.' || first == '#' || first == '@' || first == ':' || first == '/' || char.IsLetter(first); }
 
         public int Score(string t, int start, int end)
         {
             if (t[end - 1] != '}') return 0;
-            int brace = Probe.IndexOf(t, start, end, '{');
+            int s = Probe.SkipCStyleComments(t, start, end);
+            if (s >= end) return 0;
+            if (t[s] == '#' && s + 1 < end && (t[s + 1] == ' ' || t[s + 1] == '\t')) return 0;
+            int brace = Probe.IndexOf(t, s, end, '{');
             if (brace < 0) return 0;
             int colon = Probe.IndexOf(t, brace, end, ':');
             if (colon < 0) return 0;
@@ -87,15 +104,27 @@ namespace NestLight.Detection
     {
         public string Id { get { return "graphql"; } }
 
-        public bool CanStartWith(char first) { return first == 'q' || first == 'm' || first == 's' || first == 'f' || first == '{'; }
+        public bool CanStartWith(char first) { return first == 'q' || first == 'm' || first == 's' || first == 'f' || first == '{' || first == '#'; }
 
         public int Score(string t, int start, int end)
         {
             if (t[end - 1] != '}') return 0;
-            if (t[start] == '{') return char.IsLetter(Probe.NextSignificant(t, start + 1, end)) ? 2 : 0;
-            if (Probe.StartsWithWord(t, start, end, "query") || Probe.StartsWithWord(t, start, end, "mutation")
-                || Probe.StartsWithWord(t, start, end, "subscription") || Probe.StartsWithWord(t, start, end, "fragment"))
-                return Probe.IndexOf(t, start, end, '{') >= 0 ? 3 : 0;
+            int s = Probe.SkipLineComments(t, start, end, '#');
+            if (s >= end) return 0;
+            if (t[s] == '{')
+            {
+                if (!char.IsLetter(Probe.NextSignificant(t, s + 1, end))) return 0;
+                int firstClose = Probe.IndexOf(t, s + 1, end, '}');
+                if (firstClose >= 0 && firstClose < end - 1)
+                {
+                    char afterClose = Probe.NextSignificant(t, firstClose + 1, end);
+                    if (afterClose != '\0' && afterClose != '}') return 0;
+                }
+                return 2;
+            }
+            if (Probe.StartsWithWord(t, s, end, "query") || Probe.StartsWithWord(t, s, end, "mutation")
+                || Probe.StartsWithWord(t, s, end, "subscription") || Probe.StartsWithWord(t, s, end, "fragment"))
+                return Probe.IndexOf(t, s, end, '{') >= 0 ? 3 : 0;
             return 0;
         }
     }

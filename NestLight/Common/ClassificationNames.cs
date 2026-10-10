@@ -44,6 +44,7 @@ namespace NestLight.Common
         public const string SqlString = "template.sql.string";
         public const string SqlNumber = "template.sql.number";
         public const string SqlOperator = "template.sql.operator";
+        public const string SqlParameter = "template.sql.parameter";
         public const string SqlComment = "template.sql.comment";
 
         // JSON

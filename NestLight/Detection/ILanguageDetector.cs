@@ -33,6 +33,22 @@ namespace NestLight.Detection
             return t.IndexOf(needle, start, end - start, StringComparison.OrdinalIgnoreCase) >= 0;
         }
 
+        public static bool ContainsWord(string t, int start, int end, string word)
+        {
+            int pos = start;
+            while (pos < end)
+            {
+                int found = t.IndexOf(word, pos, end - pos, StringComparison.OrdinalIgnoreCase);
+                if (found < 0) return false;
+                bool leftOk = found == start || t[found - 1] == ' ' || t[found - 1] == '\n' || t[found - 1] == '\r' || t[found - 1] == '\t' || t[found - 1] == ',';
+                int after = found + word.Length;
+                bool rightOk = after == end || t[after] == ' ' || t[after] == '\n' || t[after] == '\r' || t[after] == '\t' || t[after] == ',';
+                if (leftOk && rightOk) return true;
+                pos = found + 1;
+            }
+            return false;
+        }
+
         public static int IndexOf(string t, int start, int end, char c)
         {
             return t.IndexOf(c, start, end - start);
@@ -42,6 +58,41 @@ namespace NestLight.Detection
         {
             for (int i = from; i < end; i++) if (!char.IsWhiteSpace(t[i])) return t[i];
             return '\0';
+        }
+
+        public static int SkipCStyleComments(string t, int start, int end)
+        {
+            int i = start;
+            while (i + 1 < end)
+            {
+                if (char.IsWhiteSpace(t[i])) { i++; continue; }
+                if (t[i] == '/' && t[i + 1] == '*')
+                {
+                    int close = t.IndexOf("*/", i + 2, end - i - 2, StringComparison.Ordinal);
+                    if (close < 0) return end;
+                    i = close + 2;
+                    continue;
+                }
+                break;
+            }
+            return i;
+        }
+
+        public static int SkipLineComments(string t, int start, int end, char marker)
+        {
+            int i = start;
+            while (i < end)
+            {
+                if (char.IsWhiteSpace(t[i])) { i++; continue; }
+                if (t[i] == marker)
+                {
+                    int nl = t.IndexOf('\n', i, end - i);
+                    i = nl < 0 ? end : nl + 1;
+                    continue;
+                }
+                break;
+            }
+            return i;
         }
     }
 }

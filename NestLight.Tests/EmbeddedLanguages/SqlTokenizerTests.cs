@@ -133,7 +133,7 @@ namespace NestLight.Tests
         [InlineData("$1")]
         public void Parameters_are_identifiers(string parameter)
         {
-            Assert.Equal(new[] { "sql.identifier|" + parameter }, S(parameter));
+            Assert.Equal(new[] { "sql.parameter|" + parameter }, S(parameter));
         }
 
         [Fact]

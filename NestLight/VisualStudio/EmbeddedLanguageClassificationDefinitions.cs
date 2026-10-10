@@ -18,6 +18,9 @@ namespace NestLight.VisualStudio
         [Export(typeof(ClassificationTypeDefinition))][Name(ClassificationNames.SqlIdentifier)]
         internal static ClassificationTypeDefinition Identifier;
 
+        [Export(typeof(ClassificationTypeDefinition))][Name(ClassificationNames.SqlParameter)]
+        internal static ClassificationTypeDefinition Parameter;
+
         [Export(typeof(ClassificationTypeDefinition))][Name(ClassificationNames.SqlString)]
         internal static ClassificationTypeDefinition String;
 
@@ -38,8 +41,13 @@ namespace NestLight.VisualStudio
 
     [Export(typeof(EditorFormatDefinition))]
     [ClassificationType(ClassificationTypeNames = ClassificationNames.SqlIdentifier)]
-    [Name("Template SQL Identifier / Parameter Format")][UserVisible(true)][Order(After = Priority.High)]
-    internal sealed class SQLIdentifierFormat : TplFormat { public SQLIdentifierFormat() : base("Template SQL Identifier / Parameter", 0x9C, 0xDC, 0xFE) { } }
+    [Name("Template SQL Identifier Format")][UserVisible(true)][Order(After = Priority.High)]
+    internal sealed class SQLIdentifierFormat : TplFormat { public SQLIdentifierFormat() : base("Template SQL Identifier", 0x9C, 0xDC, 0xFE) { } }
+
+    [Export(typeof(EditorFormatDefinition))]
+    [ClassificationType(ClassificationTypeNames = ClassificationNames.SqlParameter)]
+    [Name("Template SQL Parameter Format")][UserVisible(true)][Order(After = Priority.High)]
+    internal sealed class SQLParameterFormat : TplFormat { public SQLParameterFormat() : base("Template SQL Parameter", 0xE0, 0x6C, 0xC0) { } }
 
     [Export(typeof(EditorFormatDefinition))]
     [ClassificationType(ClassificationTypeNames = ClassificationNames.SqlString)]

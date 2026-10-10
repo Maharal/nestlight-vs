@@ -107,10 +107,20 @@ namespace NestLight.Tests
             Assert.Equal(language, Detect(code));
         }
 
-        [Fact(Skip = "Known gap found by EA35: SqlDetector looks for ' from ' with a blank on each side, so a statement whose FROM or WHERE starts a line is not recognized (about half of the multi-line SQL).")]
+        [Fact]
         public void A_sql_statement_written_on_several_lines_is_recognized()
         {
             Assert.Equal("sql", Detect("SELECT a\nFROM t\nWHERE a = 1"));
+        }
+
+        [Theory]
+        [InlineData("css", "/* reset */ body { color: red; }")]
+        [InlineData("css", "/* comment */\n.card { margin: 0 auto; }")]
+        [InlineData("graphql", "# fetch user\nquery Q { user { name } }")]
+        [InlineData("graphql", "# comment\n{ viewer { login } }")]
+        public void Code_with_leading_comments_is_recognized(string language, string code)
+        {
+            Assert.Equal(language, Detect(code));
         }
 
         [Theory]
@@ -122,6 +132,10 @@ namespace NestLight.Tests
         [InlineData("select the right one.")]
         [InlineData("<not a tag, just a bracket")]
         [InlineData("a { b } c")]
+        [InlineData("Select an option from the list")]
+        [InlineData("select the best item from the store")]
+        [InlineData("Delete your account from settings")]
+        [InlineData("{name} has joined {room}")]
         public void Ordinary_strings_stay_plain(string text)
         {
             Assert.Null(Detect(text));
