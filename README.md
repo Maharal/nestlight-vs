@@ -138,7 +138,6 @@ Reports (`reports/`) and artifacts (`artifacts/`) are named by the time of the r
 ## Limitations
 
 - Code inside an interpolation gets a neutral color, not host-language highlighting.
-- The JavaScript / TypeScript scanner does not understand regex literals, so one containing a quote or a backtick can derail the scan for the rest of the file.
 - Python implicit string concatenation is not joined: each literal is analyzed on its own.
 - `<script>` content, SCSS / LESS and JSX / TSX are not highlighted.
 

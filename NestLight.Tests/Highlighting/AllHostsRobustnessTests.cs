@@ -15,6 +15,8 @@ namespace NestLight.Tests
     public class AllHostsRobustnessTests
     {
         private const string JavaScript = @"
+const re = /[`'""]+\/`/gi; const half = total / 2 / n;
+const q2 = s.replace(/`/g, '').split(/'/);
 const q = sql`SELECT * FROM t WHERE id = ${id} -- c`;
 const j = /* json */ `{""a"": [1, true, ${x}]}`;
 const g = gql`query Q($id: ID!) { user(id: $id) @skip(if: false) { name } }`;

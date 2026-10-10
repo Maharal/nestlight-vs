@@ -7,7 +7,7 @@ namespace NestLight.Hosts
     /// <summary>
     /// JavaScript / TypeScript: template literals, marked by a tag glued to the backtick
     /// (<c>html`...`</c>, <c>ui.html`...`</c>) or by a marker comment (<c>/* css */</c>, <c>// language=sql</c>).
-    /// Skips comments and ordinary strings. Templates nested in a <c>${}</c> are found at every level.
+    /// Skips comments, ordinary strings and regular expression literals. Templates nested in a <c>${}</c> are found at every level.
     /// </summary>
     internal sealed class JavaScriptHostScanner : IResumableHostScanner
     {
@@ -95,6 +95,11 @@ namespace NestLight.Hosts
                         _markers.Take(_t, _i);
                         _i = SkipString(_i);
                     }
+                    else if (c == '/' && RegexLiteralEnd(_i) > 0)
+                    {
+                        _markers.Take(_t, _i);
+                        _i = RegexLiteralEnd(_i);
+                    }
                     else if (c == '`')
                     {
                         ScanTemplate();
@@ -166,6 +171,58 @@ namespace NestLight.Hosts
                 info.End = info.OuterEnd = _t.Length;
                 if (id != null) _result.Add(info);
             }
+
+            /// <summary>
+            /// The end of the regular expression literal that starts at <paramref name="start"/> (after its flags), or 0 when the
+            /// slash is a division. A slash starts a regex only where an operand is expected, which the previous token tells; the
+            /// scan looks backwards, so it needs no state and a resumed scan decides the same. A regex literal never spans lines,
+            /// and its quotes and backticks are content: skipping it keeps them from opening a string or template.
+            /// </summary>
+            private int RegexLiteralEnd(int start)
+            {
+                if (!OperandExpectedBefore(start)) return 0;
+                int i = start + 1;
+                bool inClass = false;
+                while (i < _t.Length)
+                {
+                    char c = _t[i];
+                    if (c == '\n' || c == '\r') return 0; // unterminated: not a regex
+                    if (c == '\\') { i += 2; continue; }
+                    if (c == '[') inClass = true;
+                    else if (c == ']') inClass = false;
+                    else if (c == '/' && !inClass)
+                    {
+                        i++;
+                        while (i < _t.Length && char.IsLetter(_t[i])) i++; // flags
+                        return i;
+                    }
+                    i++;
+                }
+                return 0;
+            }
+
+            private static readonly HashSet<string> KeywordsBeforeOperand = new HashSet<string>(StringComparer.Ordinal)
+            {
+                "return", "typeof", "instanceof", "in", "of", "new", "delete", "void", "throw", "case", "do", "else", "yield", "await"
+            };
+
+            private bool OperandExpectedBefore(int slash)
+            {
+                int p = slash - 1;
+                while (p >= 0 && char.IsWhiteSpace(_t[p])) p--;
+                if (p < 0) return true;
+                char c = _t[p];
+                if (IsIdentifierChar(c))
+                {
+                    int e = p;
+                    while (p > 0 && IsIdentifierChar(_t[p - 1])) p--;
+                    return KeywordsBeforeOperand.Contains(_t.Substring(p, e - p + 1)); // a name or a number: division
+                }
+                // After a value (')', ']', a string or a template) the slash divides; after a block ('}') or an operator it starts a regex.
+                return c != ')' && c != ']' && c != '"' && c != '\'' && c != '`';
+            }
+
+            private static bool IsIdentifierChar(char c) { return char.IsLetterOrDigit(c) || c == '_' || c == '$'; }
 
             private int SkipString(int i)
             {
