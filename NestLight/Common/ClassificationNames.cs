@@ -80,6 +80,7 @@ namespace NestLight.Common
         public const string MdCode = "template.markdown.code";
         public const string MdLink = "template.markdown.link";
         public const string MdList = "template.markdown.list";
+        public const string MdMath = "template.markdown.math";
 
         // YAML
         public const string YamlKey = "template.yaml.key";

@@ -207,5 +207,44 @@ namespace NestLight.Tests
             var templates = Lexer.Templates("html`${css`a{}`}`");
             Assert.Equal(new[] { "html", "css" }, templates.Select(t => Lexer.Family(t)).ToArray());
         }
+
+        // ---- escapes ----------------------------------------------------------------------------------------
+
+        [Fact]
+        public void An_escaped_backtick_is_an_escape_sequence_for_the_embedded_language()
+        {
+            const string code = "md`a \\`b\\` c`";
+            EmbeddedString t = Lexer.Templates(code).Single();
+            Assert.Equal(new[] { 5, 8 }, t.Escapes.Select(e => e.Start).ToArray());
+            Assert.All(t.Escapes, e => { Assert.Equal(2, e.Length); Assert.Equal('`', e.Value); });
+        }
+
+        [Fact]
+        public void An_escaped_backtick_does_not_end_the_template()
+        {
+            const string code = "md`a \\` b`; const x = 1;";
+            EmbeddedString t = Lexer.Templates(code).Single();
+            Assert.Equal("a \\` b", Body(code, t));
+        }
+
+        [Theory]
+        [InlineData("regex`\\d+\\$`")]
+        [InlineData("css`content: \"\\201C\"`")]
+        [InlineData("html`a\\nb`")]
+        [InlineData("md`\\*a\\*`")]
+        public void Other_escapes_stay_as_written_because_the_backslash_is_content(string code)
+        {
+            Assert.Empty(Lexer.Templates(code).Single().Escapes);
+        }
+
+        [Fact]
+        public void Escaped_backticks_and_interpolations_do_not_overlap()
+        {
+            const string code = "md`\\`${a}\\``";
+            EmbeddedString t = Lexer.Templates(code).Single();
+            Assert.Equal(2, t.Escapes.Count);
+            Assert.Single(t.Interpolations);
+            Assert.True(t.Escapes[0].Start + 2 <= t.Interpolations[0].Start && t.Interpolations[0].End <= t.Escapes[1].Start);
+        }
     }
 }

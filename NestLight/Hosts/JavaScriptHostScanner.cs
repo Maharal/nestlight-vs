@@ -135,6 +135,10 @@ namespace NestLight.Hosts
                     char c = _t[_i];
                     if (c == '\\')
                     {
+                        // A backtick cannot be written in a template without the backslash, so the backslash is not part of the code:
+                        // the embedded language sees the backtick (Markdown has code spans and fences). Any other escape stays as written,
+                        // since for a regular expression or CSS the backslash is content.
+                        if (_i + 1 < _t.Length && _t[_i + 1] == '`') info.Escapes.Add(new EscapeSequence(_i, 2, '`'));
                         _i += 2;
                     }
                     else if (c == '`')

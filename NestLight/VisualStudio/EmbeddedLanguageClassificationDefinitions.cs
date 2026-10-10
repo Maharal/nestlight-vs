@@ -261,6 +261,9 @@ namespace NestLight.VisualStudio
 
         [Export(typeof(ClassificationTypeDefinition))][Name(ClassificationNames.MdList)]
         internal static ClassificationTypeDefinition List;
+
+        [Export(typeof(ClassificationTypeDefinition))][Name(ClassificationNames.MdMath)]
+        internal static ClassificationTypeDefinition Math;
     }
 
     [Export(typeof(EditorFormatDefinition))]
@@ -292,6 +295,11 @@ namespace NestLight.VisualStudio
     [ClassificationType(ClassificationTypeNames = ClassificationNames.MdList)]
     [Name("Template Markdown List Marker Format")][UserVisible(true)][Order(After = Priority.High)]
     internal sealed class MarkdownListFormat : TplFormat { public MarkdownListFormat() : base("Template Markdown List Marker", 0xC5, 0x86, 0xC0) { } }
+
+    [Export(typeof(EditorFormatDefinition))]
+    [ClassificationType(ClassificationTypeNames = ClassificationNames.MdMath)]
+    [Name("Template Markdown Math Format")][UserVisible(true)][Order(After = Priority.High)]
+    internal sealed class MarkdownMathFormat : TplFormat { public MarkdownMathFormat() : base("Template Markdown Math", 0xB5, 0xCE, 0xA8) { } }
 
     // ---- YAML ----
     internal static class YAMLClassificationTypes
