@@ -24,7 +24,7 @@ Rules:
 | Criterion | written before the run | none; findings |
 | Input | its own corpora and synthetic files, or the generator | the generator |
 | Output | a report in `reports/` | artifacts in `artifacts/`, one set per case |
-| Run | `dotnet run -c Release --project NestLight.Experiments` | `dotnet run -c Release --project NestLight.Experiments -- --manual` |
+| Run | `dotnet run -c Release --project NestLight.Experiments` | `dotnet run -c Release --project NestLight.Experiments -- --manual` (EM01), `-- --gallery` (EM02) |
 
 ### The code generator
 
@@ -107,4 +107,7 @@ An experiment is one source file with a document of the same name beside it: `Ex
 | [EA31](../NestLight.Experiments/Experiments/Automatic/EA31_CombinationMatrix.md) | Does every host work with every embedded language? | Automatic |
 | [EA33](../NestLight.Experiments/Experiments/Automatic/EA33_IncrementalLocate.md) | Does scanning only the lines around the edit make `Locate` faster? | Automatic |
 | [EA34](../NestLight.Experiments/Experiments/Automatic/EA34_AutoDetectorCost.md) | What does an automatic language detector cost in time and memory? | Automatic |
+| [EA35](../NestLight.Experiments/Experiments/Automatic/EA35_DetectionAccuracy.md) | Does the automatic detector recognize the code, and leave the text alone? | Automatic |
+| [EA36](../NestLight.Experiments/Experiments/Automatic/EA36_DetectionStability.md) | Does the language of a string flicker while it is typed? | Automatic |
 | [EM01](../NestLight.Experiments/Experiments/Manual/EM01_CombinationReview.md) | What does the plugin do, case by case, with every host and language? | Manual |
+| [EM02](../NestLight.Experiments/Experiments/Manual/EM02_VisualGallery.md) | Do random snippets, painted in a browser, show a color that is wrong or missing? | Manual |

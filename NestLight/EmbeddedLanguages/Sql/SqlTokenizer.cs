@@ -80,7 +80,7 @@ namespace NestLight.EmbeddedLanguages
                     // parameters: @name, :name, $1
                     int end = i + 1;
                     while (end < to && TextUtil.IsWordChar(m[end])) end++;
-                    emit(i, end, ClassificationNames.SqlIdentifier);
+                    emit(i, end, ClassificationNames.SqlParameter);
                     i = end;
                 }
                 else if (TextUtil.IsWordStart(c))

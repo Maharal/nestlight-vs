@@ -24,6 +24,13 @@ namespace NestLight.Tests
         [InlineData("a:hover { text-decoration: underline }", "css")]
         [InlineData("query Users($id: ID!) { user(id: $id) { name } }", "graphql")]
         [InlineData("{ viewer { login repositories(first: 5) { totalCount } } }", "graphql")]
+        [InlineData("SELECT a\nFROM t\nWHERE a = 1", "sql")]
+        [InlineData("SELECT id\n  FROM users\n  WHERE active = 1", "sql")]
+        [InlineData("/* reset */ body { color: red; }", "css")]
+        [InlineData("/* vars */\n:root { --c: red; }", "css")]
+        [InlineData("#main { display: flex; }", "css")]
+        [InlineData("# comment\nquery Q { user { name } }", "graphql")]
+        [InlineData("# comment\n{ viewer { login } }", "graphql")]
         public void Code_is_recognized(string text, string language)
         {
             Assert.Equal(language, Detect(text));
@@ -41,6 +48,9 @@ namespace NestLight.Tests
         [InlineData("a < b and b > c")]
         [InlineData("{0} items selected")]
         [InlineData("application/json")]
+        [InlineData("Select an option from the list")]
+        [InlineData("Delete your account from settings")]
+        [InlineData("{name} has joined {room}")]
         public void Ordinary_text_is_left_alone(string text)
         {
             Assert.Null(Detect(text));

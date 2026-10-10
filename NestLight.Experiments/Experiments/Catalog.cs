@@ -42,6 +42,8 @@ namespace NestLight.Experiments
                 new EA31_CombinationMatrix(),
                 new EA33_IncrementalLocate(),
                 new EA34_AutoDetectorCost(),
+                new EA35_DetectionAccuracy(),
+                new EA36_DetectionStability(),
             };
         }
     }
