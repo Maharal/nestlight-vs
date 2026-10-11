@@ -32,7 +32,8 @@ namespace NestLight.Completion
             return new ICompletionLanguage[]
             {
                 new SqlCompletion(), new CssCompletion(), new HtmlCompletion(), new GraphQlCompletion(), new JsonCompletion(), new YamlCompletion(),
-                new GlslCompletion(), new WgslCompletion(), new XmlCompletion(), new MarkdownCompletion(), new RegexCompletion()
+                new GlslCompletion(), new WgslCompletion(), new XmlCompletion(), new MarkdownCompletion(), new RegexCompletion(),
+                new ShellCompletion(), new TomlCompletion()
             };
         }
 

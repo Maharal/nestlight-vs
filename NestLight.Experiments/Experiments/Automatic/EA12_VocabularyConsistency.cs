@@ -37,6 +37,10 @@ namespace NestLight.Experiments
             new Spec { Ids = new[] { "html" }, Contexts = new[] { "<{0}>" }, Accepted = new[] { ClassificationNames.Tag } },
             new Spec { Ids = new[] { "css" }, Contexts = new[] { ".a { {0}: 1 }", ".a { color: {0} }" },
                        Accepted = new[] { ClassificationNames.CssProperty, ClassificationNames.CssValue } },
+            new Spec { Ids = new[] { "shell" }, Contexts = new[] { "{0} hello", "echo hello | {0} pattern" },
+                       Accepted = new[] { ClassificationNames.ShellKeyword, ClassificationNames.ShellBuiltin, ClassificationNames.ShellCommand } },
+            new Spec { Ids = new[] { "toml" }, Contexts = new[] { "enabled = {0}" },
+                       Accepted = new[] { ClassificationNames.TomlLiteral } },
         };
 
         private sealed class Found { public int Start, End; public string Type; }

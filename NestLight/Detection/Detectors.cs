@@ -129,6 +129,119 @@ namespace NestLight.Detection
         }
     }
 
+    internal sealed class XmlDetector : ILanguageDetector
+    {
+        public string Id { get { return "xml"; } }
+
+        public bool CanStartWith(char first) { return first == '<'; }
+
+        public int Score(string t, int start, int end)
+        {
+            if (end - start < 5) return 0;
+            if (Probe.Contains(t, start, end, "<?xml")) return 3;
+            char next = t[start + 1];
+            if (!char.IsLetter(next) && next != '!' && next != '/' && next != '?') return 0;
+            if (t[end - 1] != '>') return 0;
+            if (Probe.Contains(t, start, end, "xmlns") || Probe.Contains(t, start, end, "xmlns:")) return 3;
+            bool hasColon = false;
+            for (int i = start + 1; i < end && t[i] != '>' && t[i] != ' '; i++)
+                if (t[i] == ':') { hasColon = true; break; }
+            if (hasColon && (Probe.Contains(t, start, end, "</") || Probe.Contains(t, start, end, "/>"))) return 3;
+            return 0;
+        }
+    }
+
+    internal sealed class YamlDetector : ILanguageDetector
+    {
+        public string Id { get { return "yaml"; } }
+
+        public bool CanStartWith(char first) { return first == '-' || char.IsLetter(first) || first == '#'; }
+
+        public int Score(string t, int start, int end)
+        {
+            if (Probe.StartsWithWord(t, start, end, "---") || (t[start] == '-' && start + 3 < end && t[start + 1] == '-' && t[start + 2] == '-'))
+                return Probe.IndexOf(t, start, end, ':') >= 0 ? 3 : 2;
+            int colons = 0, lines = 0;
+            for (int i = start; i < end; i++)
+            {
+                if (t[i] == '\n') lines++;
+                if (t[i] == ':' && i + 1 < end && (t[i + 1] == ' ' || t[i + 1] == '\n'))
+                {
+                    if (i > start && t[i - 1] != ' ' && t[i - 1] != '\t') colons++;
+                }
+            }
+            if (colons >= 2 && lines >= 1) return 3;
+            if (colons >= 1 && lines >= 1) return 2;
+            return 0;
+        }
+    }
+
+    internal sealed class ShellDetector : ILanguageDetector
+    {
+        private static readonly string[] ShellStarters = { "#!/", "if ", "for ", "while ", "case ", "echo ", "export ", "set ", "cd ", "mkdir ", "rm ", "cp ", "mv ", "grep ", "find ", "curl ", "wget ", "sudo ", "apt ", "docker " };
+
+        public string Id { get { return "shell"; } }
+
+        public bool CanStartWith(char first) { return first == '#' || first == 'i' || first == 'f' || first == 'w' || first == 'c' || first == 'e' || first == 's' || first == 'm' || first == 'r' || first == 'g' || first == 'd' || first == 'a'; }
+
+        public int Score(string t, int start, int end)
+        {
+            if (Probe.Contains(t, start, Math.Min(start + 30, end), "#!/")) return 3;
+            int pipes = 0, dollars = 0;
+            for (int i = start; i < end; i++)
+            {
+                if (t[i] == '|' && i + 1 < end && t[i + 1] != '|') pipes++;
+                if (t[i] == '$') dollars++;
+            }
+            if (pipes >= 1 && dollars >= 1) return 3;
+            foreach (string s in ShellStarters)
+                if (Probe.StartsWithWord(t, start, end, s.TrimEnd()) && (pipes >= 1 || dollars >= 1)) return 2;
+            return 0;
+        }
+    }
+
+    internal sealed class TomlDetector : ILanguageDetector
+    {
+        public string Id { get { return "toml"; } }
+
+        public bool CanStartWith(char first) { return first == '[' || char.IsLetter(first) || first == '#'; }
+
+        public int Score(string t, int start, int end)
+        {
+            bool hasTable = false, hasKeyValue = false;
+            int i = start;
+            while (i < end)
+            {
+                int lineEnd = t.IndexOf('\n', i, end - i);
+                if (lineEnd < 0) lineEnd = end;
+                int p = i;
+                while (p < lineEnd && (t[p] == ' ' || t[p] == '\t')) p++;
+                if (p < lineEnd)
+                {
+                    if (t[p] == '[' && Probe.IndexOf(t, p, lineEnd, ']') >= 0) hasTable = true;
+                    else if (t[p] != '#')
+                    {
+                        int eq = Probe.IndexOf(t, p, lineEnd, '=');
+                        if (eq >= 0)
+                        {
+                            bool bareKey = true;
+                            for (int k = p; k < eq; k++)
+                            {
+                                char c = t[k];
+                                if (!(char.IsLetterOrDigit(c) || c == '_' || c == '-' || c == '.' || c == ' ' || c == '\t' || c == '"' || c == '\'')) { bareKey = false; break; }
+                            }
+                            if (bareKey) hasKeyValue = true;
+                        }
+                    }
+                }
+                i = lineEnd + 1;
+            }
+            if (hasTable && hasKeyValue) return 3;
+            if (hasTable || hasKeyValue) return 0;
+            return 0;
+        }
+    }
+
     /// <summary>
     /// The context of the strategy pattern: asks each strategy and answers with the language of the highest score, or null when none
     /// reaches the threshold. With <c>gate</c> a strategy is only asked when it can start with the first character of the text.
@@ -155,7 +268,7 @@ namespace NestLight.Detection
         /// <summary>One strategy per language that can be detected. The only place that lists them: the options page and the settings file follow it.</summary>
         public static ILanguageDetector[] Strategies()
         {
-            return new ILanguageDetector[] { new SqlDetector(), new HtmlDetector(), new JsonDetector(), new CssDetector(), new GraphQlDetector() };
+            return new ILanguageDetector[] { new SqlDetector(), new HtmlDetector(), new JsonDetector(), new CssDetector(), new GraphQlDetector(), new XmlDetector(), new YamlDetector(), new ShellDetector(), new TomlDetector() };
         }
 
         /// <summary>The ids of the languages that can be detected, in the order of <see cref="Strategies"/>.</summary>

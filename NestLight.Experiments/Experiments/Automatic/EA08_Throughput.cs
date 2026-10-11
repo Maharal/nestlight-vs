@@ -29,6 +29,8 @@ namespace NestLight.Experiments
             P("regex", "^(?<y>\\d{4})-[a-z]+(\\s|\\.)*$|[^abc]{2,5}?\n"),
             P("glsl", "#version 300 es\nuniform vec3 c; void main() { gl_FragColor = vec4(c, 1.0); }\n"),
             P("wgsl", "@vertex fn main() -> @builtin(position) vec4f { return vec4f(1.0); }\n"),
+            P("shell", "#!/bin/bash\necho $HOME | grep -r 'pattern' --include '*.txt'\nif [ -f config ]; then source config; fi\nfor f in *.log; do cat $f >> all.log; done\n"),
+            P("toml", "[package]\nname = \"demo\"\nversion = 1\nenabled = true\ndate = 2024-01-15\n\n[[dependencies]]\nname = \"lib\"\npath = \"/usr/local\" # comment\n"),
         };
 
         private static KeyValuePair<string, string> P(string id, string snippet) { return new KeyValuePair<string, string>(id, snippet); }

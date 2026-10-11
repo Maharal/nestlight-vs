@@ -12,9 +12,10 @@ namespace NestLight.Experiments
         {
             { "sql", Sql() }, { "css", Css() }, { "html", Html() }, { "graphql", GraphQl() },
             { "json", Json() }, { "yaml", Yaml() }, { "glsl", Glsl() }, { "wgsl", Wgsl() },
+            { "shell", Shell() }, { "toml", Toml() },
         };
 
-        public static readonly string[] Languages = { "sql", "css", "html", "graphql", "json", "yaml", "glsl", "wgsl" };
+        public static readonly string[] Languages = { "sql", "css", "html", "graphql", "json", "yaml", "glsl", "wgsl", "shell", "toml" };
 
         private static string[] Sql()
         {
