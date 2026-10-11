@@ -1,5 +1,6 @@
 using System.Linq;
 using NestLight.Common;
+using NestLight.Highlighting;
 using Xunit;
 
 namespace NestLight.Tests
@@ -299,6 +300,50 @@ namespace NestLight.Tests
         {
             const string code = "/* sql */ const r = /a/; const s = `SELECT 1`;";
             Assert.Empty(Lexer.Templates(code));
+        }
+
+        // ---- document order with nesting --------------------------------------------------------
+
+        [Fact]
+        public void Nested_templates_are_in_document_order()
+        {
+            string code = "html`<a>${ html`<b></b>` }</a>`";
+            var templates = Lexer.Templates(code);
+            Assert.Equal(2, templates.Count);
+            for (int i = 1; i < templates.Count; i++)
+                Assert.True(templates[i].OuterStart >= templates[i - 1].OuterStart);
+        }
+
+        [Fact]
+        public void Three_levels_of_nesting_are_in_document_order()
+        {
+            string code = "html`<a>${ html`<b>${ css`c{}` }</b>` }</a>`";
+            var templates = Lexer.Templates(code);
+            Assert.Equal(3, templates.Count);
+            for (int i = 1; i < templates.Count; i++)
+                Assert.True(templates[i].OuterStart >= templates[i - 1].OuterStart,
+                    "out of order at " + i + ": " + templates[i - 1].OuterStart + " then " + templates[i].OuterStart);
+        }
+
+        [Fact]
+        public void Sibling_nested_templates_are_in_document_order()
+        {
+            string code = "html`${ html`<a></a>` } ${ css`b{}` }`";
+            var templates = Lexer.Templates(code);
+            Assert.Equal(3, templates.Count);
+            for (int i = 1; i < templates.Count; i++)
+                Assert.True(templates[i].OuterStart >= templates[i - 1].OuterStart);
+        }
+
+        [Fact]
+        public void ScanAll_returns_strings_in_document_order()
+        {
+            string code = "html`<a>${ html`<b></b>` }</a>`; css`c{}`";
+            var scanner = (IResumableHostScanner)Pipeline.Scanner(HostLanguage.JavaScript);
+            var scan = scanner.ScanAll(code);
+            for (int i = 1; i < scan.Strings.Count; i++)
+                Assert.True(scan.Strings[i].OuterStart >= scan.Strings[i - 1].OuterStart,
+                    "ScanAll out of order at " + i);
         }
     }
 }

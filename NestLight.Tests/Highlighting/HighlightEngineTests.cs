@@ -164,6 +164,41 @@ namespace NestLight.Tests
             Assert.Equal(tokens.OrderBy(t => t.Start).Select(t => t.Start).ToArray(), tokens.Select(t => t.Start).ToArray());
         }
 
+        // ---- ordering invariant --------------------------------------------------------------------------
+
+        [Fact]
+        public void Tokens_from_multiple_strings_are_in_document_order()
+        {
+            var tokenizer = new FakeTokenizer { Behavior = (t, from, to, emit) => emit(from, to, "t") };
+            var s1 = Fake(1, 4);
+            var s2 = Fake(6, 9);
+            var s3 = Fake(11, 14);
+            string text = "'abc' 'def' 'ghi'";
+
+            var tokens = new HighlightEngine(new FakeScanner(s1, s2, s3), new FakeRegistry(tokenizer)).Highlight(text);
+
+            for (int i = 1; i < tokens.Count; i++)
+                Assert.True(tokens[i].Start >= tokens[i - 1].Start,
+                    "tokens out of order at index " + i + ": " + tokens[i - 1].Start + " then " + tokens[i].Start);
+        }
+
+        [Fact]
+        public void Tokens_from_strings_with_interpolations_are_in_document_order()
+        {
+            var tokenizer = new FakeTokenizer { Behavior = (t, from, to, emit) => emit(from, to, "t") };
+            var s1 = Fake(1, 10);
+            s1.Interpolations.Add(new Interpolation(4, 7, 1, 1));
+            var s2 = Fake(12, 21);
+            s2.Interpolations.Add(new Interpolation(15, 18, 1, 1));
+            string text = "'ab{xxx}cd' 'ef{yyy}gh'";
+
+            var tokens = new HighlightEngine(new FakeScanner(s1, s2), new FakeRegistry(tokenizer)).Highlight(text);
+
+            for (int i = 1; i < tokens.Count; i++)
+                Assert.True(tokens[i].Start >= tokens[i - 1].Start,
+                    "tokens out of order at index " + i + ": " + tokens[i - 1].Start + " then " + tokens[i].Start);
+        }
+
         // ---- real hosts and languages ------------------------------------------------------------------
 
         [Fact]
@@ -287,6 +322,32 @@ namespace NestLight.Tests
                 if (t.Type.StartsWith("template.expression")) continue;
                 Assert.DoesNotContain("zz", t.Text);
             }
+        }
+
+        // ---- per-string sort and nesting fallback -----------------------------------------------
+
+        [Theory]
+        [InlineData(HostLanguage.JavaScript, "html`<a>${ html`<b></b>` }</a>`")]
+        [InlineData(HostLanguage.CSharp, "// html\nvar a = $\"<a>{ // html\n$\"<b/>\" }</a>\";")]
+        [InlineData(HostLanguage.Python, "# html\nx = f'<a>{ # html\nf\"<b/>\" }</a>'")]
+        public void Tokens_from_nested_strings_are_in_document_order_for_all_hosts(HostLanguage host, string code)
+        {
+            var toks = Lexer.Lex(host, code);
+            for (int i = 1; i < toks.Count; i++)
+                Assert.True(toks[i].Start >= toks[i - 1].Start,
+                    "token out of order at " + i + ": " + toks[i - 1].Start + " then " + toks[i].Start);
+            Assert.False(Lexer.HasOverlap(toks));
+        }
+
+        [Fact]
+        public void Three_level_nesting_produces_ordered_non_overlapping_tokens()
+        {
+            string code = "html`<a>${ html`<b>${ css`c{}` }</b>` }</a>`";
+            var toks = Lexer.Lex(HostLanguage.JavaScript, code);
+            for (int i = 1; i < toks.Count; i++)
+                Assert.True(toks[i].Start >= toks[i - 1].Start,
+                    "token out of order at " + i);
+            Assert.False(Lexer.HasOverlap(toks));
         }
     }
 }

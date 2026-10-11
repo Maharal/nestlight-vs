@@ -26,7 +26,6 @@ namespace NestLight.Hosts
         {
             var result = new List<EmbeddedString>();
             new Run(text, _languages, result).ScanCode(0);
-            result.Sort((a, b) => a.OuterStart.CompareTo(b.OuterStart));
             return result;
         }
 
@@ -35,7 +34,6 @@ namespace NestLight.Hosts
             var result = new List<EmbeddedString>();
             var safe = new SafePoints(_safePointGap);
             new Run(text, _languages, result, safe, 0).ScanCode(0);
-            result.Sort((a, b) => a.OuterStart.CompareTo(b.OuterStart));
             return new HostScan(result, safe.ToArray());
         }
 
@@ -44,7 +42,6 @@ namespace NestLight.Hosts
             var result = new List<EmbeddedString>();
             var safe = new SafePoints(minStop, knownSafe, _safePointGap);
             new Run(text, _languages, result, safe, from).ScanCode(0);
-            result.Sort((a, b) => a.OuterStart.CompareTo(b.OuterStart));
             return new HostScan(result, safe.ToArray(), safe.StoppedAt);
         }
 
@@ -172,6 +169,7 @@ namespace NestLight.Hosts
 
             private bool TryString()
             {
+                int insertAt = _result.Count;
                 int start = _i, j = _i, dollars = 0, ats = 0;
                 while (j < _t.Length && (_t[j] == '$' || _t[j] == '@') && j - start < 4)
                 {
@@ -191,7 +189,7 @@ namespace NestLight.Hosts
                 if (ats == 0 && quotes >= 3) ReadRaw(s, j, quotes, dollars);
                 else ReadQuoted(s, j, ats > 0, dollars > 0);
 
-                if (_languages.Resolve(_t, s)) _result.Add(s);
+                if (_languages.Resolve(_t, s)) _result.Insert(insertAt, s);
                 return true;
             }
 

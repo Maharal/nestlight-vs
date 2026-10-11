@@ -154,6 +154,29 @@ int n = 1'000'000; char q = '""';
 
         [Theory]
         [MemberData(nameof(Samples))]
+        public void Scanner_returns_strings_in_document_order(HostLanguage host, string sample)
+        {
+            var strings = Lexer.Scan(host, sample);
+            for (int i = 1; i < strings.Count; i++)
+                Assert.True(strings[i].OuterStart >= strings[i - 1].OuterStart,
+                    host + ": strings out of order at index " + i + ": OuterStart " + strings[i - 1].OuterStart + " then " + strings[i].OuterStart);
+        }
+
+        [Theory]
+        [MemberData(nameof(Samples))]
+        public void Scanner_returns_strings_in_document_order_on_every_prefix(HostLanguage host, string sample)
+        {
+            for (int n = 1; n <= sample.Length; n++)
+            {
+                var strings = Lexer.Scan(host, sample.Substring(0, n));
+                for (int i = 1; i < strings.Count; i++)
+                    Assert.True(strings[i].OuterStart >= strings[i - 1].OuterStart,
+                        host + " prefix " + n + ": strings out of order at index " + i);
+            }
+        }
+
+        [Theory]
+        [MemberData(nameof(Samples))]
         public void Analysis_is_deterministic(HostLanguage host, string sample)
         {
             Assert.Equal(Lexer.Seq(host, sample), Lexer.Seq(host, sample));

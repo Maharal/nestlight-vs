@@ -10,6 +10,8 @@ namespace NestLight.Highlighting
     /// </summary>
     internal sealed class HighlightEngine : IHighlighter
     {
+        private static readonly Comparer<Token> ByStart = Comparer<Token>.Create((a, b) => a.Start.CompareTo(b.Start));
+
         private readonly IHostScanner _scanner;
         private readonly IEmbeddedLanguageRegistry _languages;
 
@@ -23,28 +25,39 @@ namespace NestLight.Highlighting
 
         public IReadOnlyList<Token> Highlight(string text)
         {
-            var tokens = new List<Token>();
             IReadOnlyList<EmbeddedString> strings = _scanner.Scan(text);
+            var tokens = new List<Token>(strings.Count * 6);
+            bool nested = false;
+            char[] decodedBuf = null;
+            int[] mapBuf = null;
             foreach (EmbeddedString s in strings)
             {
                 IEmbeddedLanguageTokenizer tokenizer = _languages.Find(s.EmbeddedLanguageId);
                 if (tokenizer == null) continue;
+                int mark = tokens.Count;
                 EmitInterpolations(s, strings, tokens);
-                EmitLanguage(text, s, tokenizer, tokens);
+                int maxLen = Math.Max(0, Math.Min(s.End, text.Length) - s.Start);
+                if (decodedBuf == null || decodedBuf.Length < maxLen)
+                    decodedBuf = new char[Math.Max(maxLen, 256)];
+                if (mapBuf == null || mapBuf.Length < maxLen + 1)
+                    mapBuf = new int[Math.Max(maxLen + 1, 257)];
+                int decodedLen = Decode(text, s, decodedBuf, mapBuf);
+                EmitLanguage(decodedBuf, decodedLen, mapBuf, s, tokenizer, tokens);
+                int added = tokens.Count - mark;
+                if (added > 1 && s.Interpolations.Count > 0)
+                    tokens.Sort(mark, added, ByStart);
+                if (!nested && mark > 0 && added > 0 && tokens[mark].Start < tokens[mark - 1].End)
+                    nested = true;
             }
-            tokens.Sort((a, b) => a.Start.CompareTo(b.Start));
+            if (nested) tokens.Sort(ByStart);
             return tokens;
         }
 
         // ---- the code of the embedded language --------------------------------------------------------------
 
-        private static void EmitLanguage(string text, EmbeddedString s, IEmbeddedLanguageTokenizer tokenizer, List<Token> output)
+        private static void EmitLanguage(char[] decoded, int count, int[] map, EmbeddedString s, IEmbeddedLanguageTokenizer tokenizer, List<Token> output)
         {
-            int[] map;
-            char[] decoded = Decode(text, s, out map);
-            if (decoded.Length == 0) return;
-
-            int count = decoded.Length;
+            if (count == 0) return;
             tokenizer.Tokenize(decoded, 0, count, (a, b, type) =>
             {
                 if (a < 0) a = 0;
@@ -53,16 +66,10 @@ namespace NestLight.Highlighting
             });
         }
 
-        /// <summary>
-        /// The text of the string as the embedded language sees it. map[k] is the source offset of character k,
-        /// and map[length] the end of the content.
-        /// </summary>
-        private static char[] Decode(string text, EmbeddedString s, out int[] map)
+        private static int Decode(string text, EmbeddedString s, char[] chars, int[] offsets)
         {
             int start = s.Start, end = Math.Min(s.End, text.Length);
-            var chars = new List<char>(Math.Max(0, end - start));
-            var offsets = new List<int>(Math.Max(0, end - start) + 1);
-
+            int n = 0;
             int interpolation = 0, escape = 0;
             int p = start;
             while (p < end)
@@ -70,8 +77,9 @@ namespace NestLight.Highlighting
                 while (interpolation < s.Interpolations.Count && s.Interpolations[interpolation].End <= p) interpolation++;
                 if (interpolation < s.Interpolations.Count && s.Interpolations[interpolation].Start <= p)
                 {
-                    chars.Add(TextUtil.Mask);
-                    offsets.Add(p);
+                    chars[n] = TextUtil.Mask;
+                    offsets[n] = p;
+                    n++;
                     p++;
                     continue;
                 }
@@ -79,19 +87,20 @@ namespace NestLight.Highlighting
                 while (escape < s.Escapes.Count && s.Escapes[escape].Start < p) escape++;
                 if (escape < s.Escapes.Count && s.Escapes[escape].Start == p && p + s.Escapes[escape].Length <= end)
                 {
-                    chars.Add(s.Escapes[escape].Value);
-                    offsets.Add(p);
+                    chars[n] = s.Escapes[escape].Value;
+                    offsets[n] = p;
+                    n++;
                     p += s.Escapes[escape].Length;
                     continue;
                 }
 
-                chars.Add(text[p]);
-                offsets.Add(p);
+                chars[n] = text[p];
+                offsets[n] = p;
+                n++;
                 p++;
             }
-            offsets.Add(Math.Max(start, end));
-            map = offsets.ToArray();
-            return chars.ToArray();
+            offsets[n] = Math.Max(start, end);
+            return n;
         }
 
         /// <summary>

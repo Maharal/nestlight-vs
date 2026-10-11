@@ -32,7 +32,6 @@ namespace NestLight.Hosts
         {
             var result = new List<EmbeddedString>();
             new Run(text, _languages, result).ScanCode();
-            result.Sort((a, b) => a.OuterStart.CompareTo(b.OuterStart));
             return result;
         }
 
@@ -41,7 +40,6 @@ namespace NestLight.Hosts
             var result = new List<EmbeddedString>();
             var safe = new SafePoints(_safePointGap);
             new Run(text, _languages, result, safe, 0).ScanCode();
-            result.Sort((a, b) => a.OuterStart.CompareTo(b.OuterStart));
             return new HostScan(result, safe.ToArray());
         }
 
@@ -50,7 +48,6 @@ namespace NestLight.Hosts
             var result = new List<EmbeddedString>();
             var safe = new SafePoints(minStop, knownSafe, _safePointGap);
             new Run(text, _languages, result, safe, from).ScanCode();
-            result.Sort((a, b) => a.OuterStart.CompareTo(b.OuterStart));
             return new HostScan(result, safe.ToArray(), safe.StoppedAt);
         }
 
@@ -105,6 +102,7 @@ namespace NestLight.Hosts
             /// <summary>At a string literal (with or without prefix), reads it and returns true.</summary>
             private bool TryString()
             {
+                int insertAt = _result.Count;
                 int start = _i, q = _i;
                 if (TextUtil.IsWordStart(_t[q]))
                 {
@@ -143,7 +141,7 @@ namespace NestLight.Hosts
                     {
                         s.End = _i;
                         s.OuterEnd = _i += quoteLength;
-                        if (_languages.Resolve(_t, s)) _result.Add(s);
+                        if (_languages.Resolve(_t, s)) _result.Insert(insertAt, s);
                         return true;
                     }
                     else if (c == '\n' && !triple)
@@ -162,7 +160,7 @@ namespace NestLight.Hosts
                     }
                 }
                 s.End = s.OuterEnd = Math.Min(_i, _t.Length);
-                if (_languages.Resolve(_t, s)) _result.Add(s);
+                if (_languages.Resolve(_t, s)) _result.Insert(insertAt, s);
                 return true;
             }
 

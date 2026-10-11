@@ -223,5 +223,39 @@ namespace NestLight.Tests
             string code = "n = 1_000\n# html\nx = f'<b>{n}</b>'";
             Assert.Single(Scan(code));
         }
+
+        // ---- document order with nesting --------------------------------------------------------
+
+        [Fact]
+        public void Nested_fstrings_are_in_document_order()
+        {
+            string code = "# html\nx = f\"\"\"<b>{\n  # css\n  f'c'\n}</b>\"\"\"";
+            var s = Scan(code);
+            Assert.Equal(2, s.Count);
+            Assert.True(s[0].OuterStart <= s[1].OuterStart,
+                "outer: " + s[0].OuterStart + " then " + s[1].OuterStart);
+        }
+
+        [Fact]
+        public void Sibling_nested_fstrings_are_in_document_order()
+        {
+            string code = "# html\nx = f\"\"\"<b>{\n  # css\n  f'c'\n}{\n  # sql\n  f'd'\n}</b>\"\"\"";
+            var s = Scan(code);
+            Assert.True(s.Count >= 3, "expected >= 3 strings, got " + s.Count);
+            for (int i = 1; i < s.Count; i++)
+                Assert.True(s[i].OuterStart >= s[i - 1].OuterStart,
+                    "out of order at " + i);
+        }
+
+        [Fact]
+        public void ScanAll_returns_strings_in_document_order()
+        {
+            string code = "# html\nx = f\"\"\"<b>{\n  # css\n  f'c'\n}</b>\"\"\"\n# sql\ny = 'd'";
+            var scanner = (IResumableHostScanner)Pipeline.Scanner(HostLanguage.Python);
+            var scan = scanner.ScanAll(code);
+            for (int i = 1; i < scan.Strings.Count; i++)
+                Assert.True(scan.Strings[i].OuterStart >= scan.Strings[i - 1].OuterStart,
+                    "ScanAll out of order at " + i);
+        }
     }
 }
