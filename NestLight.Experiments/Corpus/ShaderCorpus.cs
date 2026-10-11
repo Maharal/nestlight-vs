@@ -135,7 +135,7 @@ namespace NestLight.Experiments
         public const int SnippetsPerLanguage = 500;
         public const int PerFile = 10;
 
-        public static readonly string[] Languages = { "sql", "css", "html", "graphql", "json", "yaml", "glsl", "wgsl" };
+        public static readonly string[] Languages = { "sql", "css", "html", "graphql", "json", "yaml", "glsl", "wgsl", "shell", "toml" };
 
         public static List<CorpusDocument> Documents(string language, int snippets, int seed)
         {
@@ -154,7 +154,9 @@ namespace NestLight.Experiments
                     case "json": document = DataCorpus.Json(d, PerFile); break;
                     case "yaml": document = DataCorpus.Yaml(d, PerFile); break;
                     case "glsl": document = ShaderCorpus.Glsl(d, PerFile); break;
-                    default: document = ShaderCorpus.Wgsl(d, PerFile); break;
+                    case "wgsl": document = ShaderCorpus.Wgsl(d, PerFile); break;
+                    case "shell": document = ScriptCorpus.Shell(d, PerFile); break;
+                    default: document = ScriptCorpus.Toml(d, PerFile); break;
                 }
                 document.Train = f % 2 == 0;
                 documents.Add(document);

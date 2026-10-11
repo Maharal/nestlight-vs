@@ -655,6 +655,177 @@ void main() {
             };
         }
 
+        private static string[] Shell()
+        {
+            return new[]
+            {
+"""
+const deploy = shell`
+#!/bin/bash
+set -euo pipefail
+
+DEPLOY_DIR="/opt/app"
+LOG_FILE="/var/log/deploy.log"
+
+echo "Starting deployment to $DEPLOY_DIR"
+
+# Build the project
+cd /home/build/project
+npm ci --production
+npm run build 2>&1 | tee -a $LOG_FILE
+
+# Copy artifacts
+if [ -d "$DEPLOY_DIR/backup" ]; then
+  rm -rf "$DEPLOY_DIR/backup"
+fi
+cp -r "$DEPLOY_DIR/current" "$DEPLOY_DIR/backup"
+cp -r dist/* "$DEPLOY_DIR/current/"
+
+echo "Deployment complete at $(date)"
+`;
+""",
+"""
+const setup = shell`
+#!/bin/bash
+
+# Install dependencies
+for pkg in curl wget git jq; do
+  if ! command -v $pkg &> /dev/null; then
+    echo "Installing $pkg..."
+    sudo apt-get install -y $pkg
+  fi
+done
+
+# Create directories
+mkdir -p ~/.config/myapp
+mkdir -p ~/logs
+
+# Download config
+curl -sS https://example.com/config.json > ~/.config/myapp/config.json
+
+# Set permissions
+chmod 600 ~/.config/myapp/config.json
+chown $USER:$USER ~/logs
+
+echo "Setup done. Found $(ls ~/logs | wc -l) existing logs."
+`;
+""",
+"""
+const pipeline = shell`
+#!/bin/bash
+set -e
+
+SOURCE_DIR="${1:-./data}"
+OUTPUT_DIR="${2:-./output}"
+
+# Process each CSV
+find "$SOURCE_DIR" -name '*.csv' -type f | sort | while read f; do
+  name=$(basename "$f" .csv)
+  echo "Processing $name..."
+  cat "$f" | grep -v '^#' | sort -t',' -k2 -n | head -100 > "$OUTPUT_DIR/${name}_top100.csv"
+done
+
+# Summary
+total=$(find "$OUTPUT_DIR" -name '*_top100.csv' | wc -l)
+echo "Processed $total files"
+
+if [ $total -eq 0 ]; then
+  echo "Warning: no files processed" >&2
+  exit 1
+fi
+`;
+""",
+            };
+        }
+
+        private static string[] Toml()
+        {
+            return new[]
+            {
+"""
+const cargoToml = toml`
+[package]
+name = "my-service"
+version = "0.4.2"
+edition = "2021"
+authors = ["Alice <alice@example.com>"]
+description = "A fast HTTP service"
+license = "MIT"
+rust-version = "1.70"
+
+[dependencies]
+tokio = { version = "1.32", features = ["full"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+tracing = "0.1"
+
+[dev-dependencies]
+criterion = "0.5"
+
+[[bin]]
+name = "server"
+path = "src/main.rs"
+`;
+""",
+"""
+const pyproject = toml`
+[project]
+name = "data-pipeline"
+version = "1.2.0"
+requires-python = ">=3.10"
+description = "ETL pipeline for analytics"
+
+[project.optional-dependencies]
+dev = ["pytest >= 7.0", "ruff", "mypy"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I"]
+ignore = ["E501"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "--strict-markers -v"
+markers = ["slow: marks tests as slow"]
+`;
+""",
+"""
+const config = toml`
+# Server configuration
+[server]
+host = "0.0.0.0"
+port = 8080
+workers = 4
+timeout = 30
+
+[database]
+url = "postgres://localhost:5432/myapp"
+pool_size = 10
+ssl = true
+idle_timeout = 300
+
+[logging]
+level = "info"
+format = "json"
+file = "/var/log/app.log"
+
+[[routes]]
+path = "/api/v1"
+handler = "api"
+rate_limit = 1000
+
+[[routes]]
+path = "/health"
+handler = "health"
+rate_limit = 0
+`;
+""",
+            };
+        }
+
         private static string[] Wgsl()
         {
             return new[]
