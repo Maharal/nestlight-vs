@@ -6,7 +6,6 @@ namespace NestLight.Tests
 {
     public class SafePointsMutationTests
     {
-        // SafePoints.Reached: mutations at L78 (equality gap check) and L79 (equality _knownSafe/minStop)
 
         [Fact]
         public void Points_closer_than_the_gap_are_skipped()
@@ -72,7 +71,6 @@ namespace NestLight.Tests
 
     public class TextDiffMutationTests
     {
-        // TextDiff.CommonPrefix/CommonSuffix: mutations at L101 (equality), L110 (equality/arithmetic)
 
         [Fact]
         public void CommonPrefix_returns_zero_for_different_starts()

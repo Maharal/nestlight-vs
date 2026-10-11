@@ -28,8 +28,6 @@ namespace NestLight.Tests
             return items?.Select(s => s.Text).ToList();
         }
 
-        // ---- L197: PriorOrder conditional ----
-
         [Fact]
         public void Grammar_position_with_prior_order_reorders_expected()
         {
@@ -38,8 +36,6 @@ namespace NestLight.Tests
             Assert.NotNull(items);
             Assert.Contains("color", items);
         }
-
-        // ---- L199: wordsFirst equality ----
 
         [Fact]
         public void WordsFirst_puts_words_before_keywords_when_position_says_so()
@@ -50,9 +46,6 @@ namespace NestLight.Tests
             Assert.NotNull(items);
             Assert.True(items.Count > 0);
         }
-
-        // ---- L204-L206: maxItems and prefix checks in HeadKeywords loop ----
-
         [Fact]
         public void HeadKeywords_respects_maxItems_limit()
         {
@@ -69,8 +62,6 @@ namespace NestLight.Tests
             Assert.DoesNotContain("select", items);
         }
 
-        // ---- L210: secondary expected ----
-
         [Fact]
         public void Secondary_keywords_appear_after_primary()
         {
@@ -78,8 +69,6 @@ namespace NestLight.Tests
             var items = Texts("sql`select a from t |`", features);
             Assert.NotNull(items);
         }
-
-        // ---- L220: unlikely keywords are deferred ----
 
         [Fact]
         public void Unlikely_keywords_come_after_regular_ones()
@@ -89,9 +78,6 @@ namespace NestLight.Tests
             Assert.NotNull(items);
             Assert.Contains(items, s => s.Text == "select");
         }
-
-        // ---- L230-L231: unlikely list respects maxItems ----
-
         [Fact]
         public void Unlikely_keywords_respect_maxItems()
         {
@@ -99,8 +85,6 @@ namespace NestLight.Tests
             var items = Suggest("sql`|`", features, maxItems: 2);
             Assert.True(items.Count <= 2);
         }
-
-        // ---- L234: fuzzy stage triggers ----
 
         [Fact]
         public void Fuzzy_stage_requires_minimum_prefix_length()
@@ -116,8 +100,6 @@ namespace NestLight.Tests
             Assert.Contains(items, s => s.Text == "select" && s.Distance > 0);
         }
 
-        // ---- L263: AddCandidates maxItems check ----
-
         [Fact]
         public void Schema_candidates_respect_maxItems()
         {
@@ -126,9 +108,6 @@ namespace NestLight.Tests
             var items = Suggest(tables + "sql`select t.| from t`", features, maxItems: 3);
             Assert.True(items.Count <= 3);
         }
-
-        // ---- L273-L275: AddExpected maxItems and null coalescing ----
-
         [Fact]
         public void Expected_words_respect_maxItems()
         {
@@ -136,8 +115,6 @@ namespace NestLight.Tests
             var items = Suggest("css`.a { | }`", features, maxItems: 2);
             Assert.True(items.Count <= 2);
         }
-
-        // ---- L285: ToleranceFor boundary ----
 
         [Fact]
         public void ToleranceFor_returns_1_for_short_prefix()
@@ -152,9 +129,6 @@ namespace NestLight.Tests
             Assert.Equal(2, CompletionEngine.ToleranceFor(6));
             Assert.Equal(2, CompletionEngine.ToleranceFor(10));
         }
-
-        // ---- L311-L314: CodeRanges / scope ----
-
         [Fact]
         public void Words_from_same_language_strings_come_before_others_when_sameLanguageWords_is_on()
         {
@@ -163,9 +137,6 @@ namespace NestLight.Tests
             var items = Texts(code, features);
             Assert.True(items.IndexOf("customerName") < items.IndexOf("customerStyle"));
         }
-
-        // ---- L340-L345: ScanWords word detection, dash handling ----
-
         [Fact]
         public void Css_dashes_are_part_of_words()
         {
@@ -189,9 +160,6 @@ namespace NestLight.Tests
             var items = Texts("const " + word64 + " = 1;\nsql`a|`");
             Assert.Contains(word64, items);
         }
-
-        // ---- L478-L482: AddPieces skips interpolations ----
-
         [Fact]
         public void Words_inside_interpolations_rank_lower_than_same_language()
         {
@@ -200,8 +168,6 @@ namespace NestLight.Tests
             var items = Texts(code, features);
             Assert.Contains("sqlWord", items);
         }
-
-        // ---- L468: Follows context boolean check ----
 
         [Fact]
         public void Previous_word_context_offers_following_words()
@@ -213,8 +179,6 @@ namespace NestLight.Tests
             Assert.Contains("tbl_two", items);
         }
 
-        // ---- L559: short words last feature ----
-
         [Fact]
         public void Short_words_come_last_when_feature_is_on()
         {
@@ -224,8 +188,6 @@ namespace NestLight.Tests
             int longIdx = items.FindIndex(s => s.Text == "abcd");
             Assert.True(longIdx >= 0);
         }
-
-        // ---- Cancellation token ----
 
         [Fact]
         public void Cancelled_token_stops_suggest()
@@ -237,8 +199,6 @@ namespace NestLight.Tests
             var site = engine.Locate(code, 8);
             Assert.Throws<OperationCanceledException>(() => engine.Suggest(code, site, cts.Token));
         }
-
-        // ---- Suggest with null/invalid inputs ----
 
         [Fact]
         public void Suggest_with_null_text_returns_empty()

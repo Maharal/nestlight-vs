@@ -5,7 +5,6 @@ namespace NestLight.Tests
 {
     public class ProbeMutationTests
     {
-        // StartsWithWord: mutations at L26 (equality on length), L28 (logical/boolean negation)
 
         [Fact]
         public void StartsWithWord_requires_the_text_longer_than_the_word()
@@ -26,9 +25,6 @@ namespace NestLight.Tests
         {
             Assert.False(Probe.StartsWithWord("from_x ", 0, 7, "from"));
         }
-
-        // ContainsWord: mutations at L39 (equality), L42-L46 (logical/equality in boundary checks)
-
         [Fact]
         public void ContainsWord_finds_word_at_start()
         {
@@ -76,9 +72,6 @@ namespace NestLight.Tests
         {
             Assert.False(Probe.ContainsWord("select into", 0, 11, "from"));
         }
-
-        // NextSignificant: mutations at L59 (equality on loop)
-
         [Fact]
         public void NextSignificant_skips_whitespace()
         {
@@ -96,9 +89,6 @@ namespace NestLight.Tests
         {
             Assert.Equal('a', Probe.NextSignificant("abc", 0, 3));
         }
-
-        // SkipCStyleComments: mutations at L66-L78
-
         [Fact]
         public void SkipCStyleComments_skips_block_comment()
         {
@@ -122,9 +112,6 @@ namespace NestLight.Tests
         {
             Assert.Equal(0, Probe.SkipCStyleComments("abc", 0, 3));
         }
-
-        // SkipLineComments: mutations at L82-L96
-
         [Fact]
         public void SkipLineComments_skips_hash_comment()
         {
@@ -148,9 +135,6 @@ namespace NestLight.Tests
         {
             Assert.Equal(12, Probe.SkipLineComments("  # comment\ncode", 0, 16, '#'));
         }
-
-        // IndexOf: mutations at L53
-
         [Fact]
         public void IndexOf_finds_character()
         {

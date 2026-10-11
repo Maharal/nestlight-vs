@@ -8,7 +8,6 @@ namespace NestLight.Tests
 {
     public class WordRankingMutationTests
     {
-        // WordText.Distance: mutations at L58 (equality on Start > caret, arithmetic)
 
         [Fact]
         public void Distance_for_word_after_caret()
@@ -53,9 +52,6 @@ namespace NestLight.Tests
             const string text = "abcxyz";
             Assert.NotEqual(WordText.Hash(text, 0, 3), WordText.Hash(text, 3, 3));
         }
-
-        // CountingWordRanker.Collect: mutation at L158 (logical), L166 (equality on near < c.Near)
-
         [Fact]
         public void Frequency_ranker_nearest_occurrence_wins_when_count_is_same()
         {
@@ -72,9 +68,6 @@ namespace NestLight.Tests
             Assert.Single(ranked);
             Assert.True(ranked[0].Start > 10);
         }
-
-        // BlendWordRanker: mutation at L184 (string mutation on "weight" parameter name)
-
         [Fact]
         public void Blend_throws_for_NaN()
         {
@@ -95,9 +88,6 @@ namespace NestLight.Tests
             var ex = Assert.Throws<ArgumentOutOfRangeException>(() => WordRankers.Blend(-0.1));
             Assert.Equal("weight", ex.ParamName);
         }
-
-        // NearestWordRanker.RankFollowing: mutation at L97 conditional
-
         [Fact]
         public void RankFollowing_sorts_by_distance_then_start()
         {

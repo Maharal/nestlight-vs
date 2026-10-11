@@ -19,8 +19,6 @@ namespace NestLight.Tests
             return engine.Suggest(code, site).Where(s => !onlyWords || s.Kind == SuggestionKind.Word).Select(s => s.Text).ToList();
         }
 
-        // ---- Table.Add deduplication (L25, L27) ----
-
         [Fact]
         public void Table_Add_rejects_duplicate_columns_case_insensitively()
         {
@@ -28,9 +26,6 @@ namespace NestLight.Tests
             var items = Texts(code, Schema);
             Assert.Equal(1, items.Where(i => i.Equals("name", System.StringComparison.OrdinalIgnoreCase) || i.Equals("Name", System.StringComparison.OrdinalIgnoreCase)).Take(2).Count());
         }
-
-        // ---- Tokenizer: comment skipping (L72, L74-L79) ----
-
         [Fact]
         public void Comments_in_sql_are_skipped_by_the_schema()
         {
@@ -48,9 +43,6 @@ namespace NestLight.Tests
             Assert.Contains("id", items);
             Assert.Contains("name", items);
         }
-
-        // ---- String literal skipping (L81-L86) ----
-
         [Fact]
         public void String_literal_content_is_not_treated_as_identifiers()
         {
@@ -59,9 +51,6 @@ namespace NestLight.Tests
             Assert.Contains("id", items);
             Assert.DoesNotContain("fake_table", items.Take(5));
         }
-
-        // ---- FROM/JOIN parsing (L163, L166-L168, L170-L181) ----
-
         [Fact]
         public void From_clause_registers_table()
         {
@@ -97,9 +86,6 @@ namespace NestLight.Tests
             Assert.Contains("a", items);
             Assert.Contains("b", items);
         }
-
-        // ---- CREATE TABLE (L197-L225) ----
-
         [Fact]
         public void Create_table_if_not_exists()
         {
@@ -127,9 +113,6 @@ namespace NestLight.Tests
             Assert.Contains("name", items);
             Assert.DoesNotContain("primary", items.Take(5));
         }
-
-        // ---- ALTER TABLE (L228-L245) ----
-
         [Fact]
         public void Alter_table_add_column_with_column_keyword()
         {
@@ -146,9 +129,6 @@ namespace NestLight.Tests
             var items = Texts(code, Schema);
             Assert.Contains("email", items);
         }
-
-        // ---- INSERT INTO (L247-L262) ----
-
         [Fact]
         public void Insert_into_learns_columns()
         {
@@ -166,9 +146,6 @@ namespace NestLight.Tests
             Assert.Contains("id", items);
             Assert.Contains("name", items);
         }
-
-        // ---- UPDATE SET (L264-L289) ----
-
         [Fact]
         public void Update_set_learns_columns()
         {
@@ -201,9 +178,6 @@ namespace NestLight.Tests
             var items = Texts(code, Schema);
             Assert.Contains("total", items);
         }
-
-        // ---- alias.column references (L186-L194) ----
-
         [Fact]
         public void Alias_dot_column_is_learned()
         {
@@ -212,9 +186,6 @@ namespace NestLight.Tests
             Assert.Contains("phone", items);
             Assert.Contains("address", items);
         }
-
-        // ---- Split: semicolons inside comments/strings do not split (L318-L333) ----
-
         [Fact]
         public void Semicolon_inside_string_does_not_split_statement()
         {
@@ -238,8 +209,6 @@ namespace NestLight.Tests
             var items = Texts(code, Schema);
             Assert.Contains("id", items);
         }
-
-        // ---- endsFrom stops FROM parsing (L163) ----
 
         [Fact]
         public void Where_clause_ends_from_tracking()
@@ -268,9 +237,6 @@ namespace NestLight.Tests
             var items = Texts(code, Schema, true);
             Assert.DoesNotContain("where", items);
         }
-
-        // ---- Uses count for table ordering (L148, L108 existing test but let's add edge case) ----
-
         [Fact]
         public void Declared_tables_come_before_undeclared_ones()
         {

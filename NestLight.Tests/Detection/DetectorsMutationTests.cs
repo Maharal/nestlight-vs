@@ -10,9 +10,6 @@ namespace NestLight.Tests
             var d = new T();
             return d.Score(text, 0, text.Length);
         }
-
-        // ---- SqlDetector: mutations at L18 (CanStartWith equality checks), L24 (logical on punctuation), L27 (negation), L29 (negate Score)
-
         [Theory]
         [InlineData('s', true)]
         [InlineData('S', true)]
@@ -71,9 +68,6 @@ namespace NestLight.Tests
         {
             Assert.Equal(0, Score<SqlDetector>("select something interesting"));
         }
-
-        // ---- HtmlDetector: mutations at L57 (equality on length), L59 (equality on next char), L61 (logical, string mutations)
-
         [Theory]
         [InlineData('<', true)]
         [InlineData('a', false)]
@@ -117,9 +111,6 @@ namespace NestLight.Tests
         {
             Assert.Equal(2, Score<HtmlDetector>("<div class=\"a\">"));
         }
-
-        // ---- JsonDetector: mutations at L78 (equality checks for opening/closing chars)
-
         [Theory]
         [InlineData('{', true)]
         [InlineData('[', true)]
@@ -182,9 +173,6 @@ namespace NestLight.Tests
         {
             Assert.Equal(2, Score<JsonDetector>("[[1, 2], [3]]"));
         }
-
-        // ---- CssDetector: mutations at L93-L99
-
         [Fact]
         public void CssDetector_rejects_without_closing_brace()
         {
@@ -226,9 +214,6 @@ namespace NestLight.Tests
         {
             Assert.Equal(2, Score<CssDetector>("a:hover { text-decoration: underline }"));
         }
-
-        // ---- GraphQlDetector: mutations at L107 (CanStartWith), L118 (equality), L125-L127
-
         [Theory]
         [InlineData('q', true)]
         [InlineData('m', true)]
@@ -295,9 +280,6 @@ namespace NestLight.Tests
         {
             Assert.Equal(0, Score<GraphQlDetector>("query without brace"));
         }
-
-        // ---- LanguageDetector context: mutations at L168 (equality MinLength), L177 (equality bestScore)
-
         [Fact]
         public void Detector_rejects_text_shorter_than_MinLength()
         {

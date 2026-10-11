@@ -8,7 +8,6 @@ namespace NestLight.Tests
 {
     public class DetectionOptionsMutationTests
     {
-        // L72: boolean mutation (recognized = false -> true)
 
         [Fact]
         public void A_file_without_enabled_key_does_not_enable_detection()
@@ -23,9 +22,6 @@ namespace NestLight.Tests
             }
             finally { Directory.Delete(Path.GetDirectoryName(path), true); }
         }
-
-        // L77: equality mutation (eq <= 0 vs eq < 0)
-
         [Fact]
         public void Lines_with_equals_at_position_zero_are_ignored()
         {
@@ -40,9 +36,6 @@ namespace NestLight.Tests
             }
             finally { Directory.Delete(Path.GetDirectoryName(path), true); }
         }
-
-        // L97: conditional mutation on enabled ternary, string mutation on "true"/"false"
-
         [Fact]
         public void Save_writes_enabled_true()
         {
@@ -71,9 +64,6 @@ namespace NestLight.Tests
             }
             finally { Directory.Delete(Path.GetDirectoryName(path), true); }
         }
-
-        // L98: OrderBy to OrderByDescending mutation
-
         [Fact]
         public void Languages_are_saved_in_alphabetical_order()
         {

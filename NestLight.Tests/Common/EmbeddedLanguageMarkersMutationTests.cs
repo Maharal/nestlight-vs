@@ -5,7 +5,6 @@ namespace NestLight.Tests
 {
     public class EmbeddedLanguageMarkersMutationTests
     {
-        // MarkerComment.Parse(text, from, to): L17 string mutation on StringComparison, L30 equality mutation on key.Length comparison
 
         [Fact]
         public void Parse_range_language_equals_html_is_case_insensitive()
@@ -63,9 +62,6 @@ namespace NestLight.Tests
             Assert.Null(MarkerComment.Parse(""));
             Assert.Null(MarkerComment.Parse("   "));
         }
-
-        // Escapes.TryDecode: mutations at L159-L164 (boolean mutations flipping return true to false)
-
         [Theory]
         [InlineData('"', '"')]
         [InlineData('\'', '\'')]

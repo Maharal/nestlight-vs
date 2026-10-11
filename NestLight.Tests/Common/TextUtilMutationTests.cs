@@ -5,8 +5,6 @@ namespace NestLight.Tests
 {
     public class TextUtilMutationTests
     {
-        // StartsWithIgnoreCase: survived mutations at L30 (logical, equality, arithmetic)
-        // The mutations flip the condition i < 0, change i + lowerCase.Length > end, and alter arithmetic in comparisons.
 
         [Fact]
         public void StartsWithIgnoreCase_returns_false_when_index_is_negative()
@@ -42,10 +40,6 @@ namespace NestLight.Tests
             var m = "HELLO".ToCharArray();
             Assert.True(TextUtil.StartsWithIgnoreCase(m, 0, 5, "hello"));
         }
-
-        // IndexOf: survived mutations at L39 (equality, arithmetic)
-        // The mutation changes i + s.Length <= end to i + s.Length < end or changes the arithmetic.
-
         [Fact]
         public void IndexOf_finds_string_at_very_end()
         {
@@ -73,9 +67,6 @@ namespace NestLight.Tests
             var m = "abcabc".ToCharArray();
             Assert.Equal(3, TextUtil.IndexOf(m, "abc", 1, 6));
         }
-
-        // IndexOfIgnoreCase: survived mutations at L45 (equality, arithmetic)
-
         [Fact]
         public void IndexOfIgnoreCase_finds_string_at_very_end()
         {
