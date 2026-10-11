@@ -9,7 +9,8 @@ They cover the whole pipeline without depending on the Visual Studio SDK.
 | `Hosts/CSharpHostScannerTests.cs` | regular, verbatim and raw strings, `$` / `$$` interpolation, escapes, format specifiers, the `json` / `regex` exclusion |
 | `Hosts/PythonHostScannerTests.cs` | quote styles and prefixes, f-strings and t-strings, replacement fields, escapes |
 | `Hosts/CppHostScannerTests.cs` | raw string literals, delimiters and prefixes, digit separators |
-| `EmbeddedLanguages/*TokenizerTests.cs` | the tokens of each embedded language (HTML, CSS, SQL, JSON, GraphQL, XML, Markdown, YAML, regex, shaders) |
+| `EmbeddedLanguages/*TokenizerTests.cs` | the tokens of each embedded language (HTML, CSS, SQL, JSON, GraphQL, XML, Markdown, YAML, regex, shaders, Shell, TOML) |
+| `Detection/NewDetectorsTests.cs` | the XML, YAML, Shell and TOML detectors, negative cases and integration with `LanguageDetector` |
 | `Highlighting/HighlightEngineTests.cs` | the engine against fake scanners and tokenizers (decoding, masking, mapping back), interpolation tokens per host, nesting at every level |
 | `Highlighting/SnapshotTokenCacheTests.cs` | caching per snapshot, span queries, failures never escaping |
 | `Completion/CompletionEngineTests.cs` | where completion applies (marked strings only, never inside an interpolation, innermost string), the keywords of each language, SQL case, and the words of the document (ranking, no self-suggestion, limits, large files) |

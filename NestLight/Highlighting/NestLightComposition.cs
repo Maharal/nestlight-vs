@@ -34,7 +34,9 @@ namespace NestLight.Highlighting
                 new ShaderTokenizer(new[] { "glsl" }, ShaderVocabulary.GlslKeywords, ShaderVocabulary.GlslTypes,
                                     ShaderVocabulary.GlslBuiltins, ShaderVocabulary.GlslBuiltinPrefix),
                 new ShaderTokenizer(new[] { "wgsl" }, ShaderVocabulary.WgslKeywords, ShaderVocabulary.WgslTypes,
-                                    ShaderVocabulary.WgslBuiltins)
+                                    ShaderVocabulary.WgslBuiltins),
+                new ShellTokenizer(),
+                new TomlTokenizer()
             });
         }
 

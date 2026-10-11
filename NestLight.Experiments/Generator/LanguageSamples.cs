@@ -13,7 +13,7 @@ namespace NestLight.Experiments
 
         /// <summary>The id the plugin knows each language by, in the order of the README.</summary>
         public static readonly string[] Languages =
-            { "html", "css", "sql", "json", "graphql", "xml", "markdown", "yaml", "regex", "glsl", "wgsl" };
+            { "html", "css", "sql", "json", "graphql", "xml", "markdown", "yaml", "regex", "glsl", "wgsl", "shell", "toml" };
 
         private static readonly Dictionary<string, string> Snippets = new Dictionary<string, string>
         {
@@ -28,6 +28,8 @@ namespace NestLight.Experiments
             { "regex", "^(?<year>\\d{4})-[a-z]+(\\s|\\.)*@@$" },
             { "glsl", "#version 300 es\nuniform vec3 c;\nvoid main() { gl_FragColor = vec4(@@, 1.0); }" },
             { "wgsl", "@fragment\nfn main() -> @location(0) vec4f { return vec4f(@@, 1.0); }" },
+            { "shell", "#!/bin/bash\necho $HOME | grep -r @@ --include '*.txt'\nif [ -f config ]; then\n  source config\nfi" },
+            { "toml", "[package]\nname = \"@@\"\nversion = 1\nenabled = true\ndate = 2024-01-15 # comment" },
         };
 
         public static string For(string language) { return Snippets[language]; }

@@ -71,7 +71,8 @@ namespace NestLight.Tests
             foreach (string id in new[]
             {
                 "html", "htm", "svg", "css", "sql", "json", "graphql", "gql", "xml", "markdown", "md",
-                "yaml", "yml", "regex", "regexp", "glsl", "wgsl"
+                "yaml", "yml", "regex", "regexp", "glsl", "wgsl",
+                "shell", "bash", "sh", "zsh", "toml"
             })
                 yield return new object[] { id };
         }
@@ -88,7 +89,7 @@ namespace NestLight.Tests
         public void Ten_documented_languages_are_served_by_eleven_tokenizers()
         {
             var tokenizers = ((EmbeddedLanguageRegistry)Pipeline.Languages).Ids.Select(Pipeline.Languages.Find).Distinct().ToList();
-            Assert.Equal(11, tokenizers.Count); // ten README rows, shaders being two tokenizers (glsl, wgsl)
+            Assert.Equal(13, tokenizers.Count); // twelve README rows, shaders being two tokenizers (glsl, wgsl)
         }
 
         [Theory]
@@ -224,7 +225,9 @@ namespace NestLight.Tests
                 "yaml`a: 1\\nb: &x \"s\"\\n# c\\nc: *x`",
                 "regex`^(a|b)[c-d]+\\\\d{2}$`",
                 "glsl`#version 300 es\\nuniform vec3 a; void main() { gl_Position = vec4(1.0); } // c`",
-                "wgsl`@vertex fn f() -> vec4f { return vec4f(1.0); }`");
+                "wgsl`@vertex fn f() -> vec4f { return vec4f(1.0); }`",
+                "shell`#!/bin/bash\\necho $HOME | grep -r 'test' --flag 42 # comment`",
+                "toml`[package]\\nname = \"test\"\\nversion = 1\\nenabled = true\\ndate = 2024-01-01 # comment`");
 
             foreach (var t in Lexer.Lex(sample))
                 Assert.True(declared.Contains(t.Type), "undeclared classification: " + t.Type);

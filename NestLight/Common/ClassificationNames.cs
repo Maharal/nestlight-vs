@@ -104,5 +104,26 @@ namespace NestLight.Common
         public const string ShaderBuiltin = "template.shader.builtin";
         public const string ShaderNumber = "template.shader.number";
         public const string ShaderComment = "template.shader.comment";
+
+        // Shell / Bash
+        public const string ShellKeyword = "template.shell.keyword";
+        public const string ShellBuiltin = "template.shell.builtin";
+        public const string ShellCommand = "template.shell.command";
+        public const string ShellVariable = "template.shell.variable";
+        public const string ShellString = "template.shell.string";
+        public const string ShellNumber = "template.shell.number";
+        public const string ShellOperator = "template.shell.operator";
+        public const string ShellFlag = "template.shell.flag";
+        public const string ShellComment = "template.shell.comment";
+
+        // TOML
+        public const string TomlTable = "template.toml.table";
+        public const string TomlKey = "template.toml.key";
+        public const string TomlString = "template.toml.string";
+        public const string TomlNumber = "template.toml.number";
+        public const string TomlLiteral = "template.toml.literal";
+        public const string TomlDate = "template.toml.date";
+        public const string TomlComment = "template.toml.comment";
+        public const string TomlPunct = "template.toml.punctuation";
     }
 }

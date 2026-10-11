@@ -47,7 +47,7 @@ auto page = R"(<li class="item">name</li>)";
 
 ## Automatic detection
 
-Off by default. Under **Tools > Options > NestLight > Automatic detection** you can turn on the guess of the language of strings you did not mark, and choose which languages it may guess: SQL, HTML, CSS, JSON and GraphQL (the list follows the detectors the plugin has). A string that is guessed is colored and completed like a marked one.
+Off by default. Under **Tools > Options > NestLight > Automatic detection** you can turn on the guess of the language of strings you did not mark, and choose which languages it may guess: SQL, HTML, CSS, JSON, GraphQL, XML, YAML, Shell and TOML (the list follows the detectors the plugin has). A string that is guessed is colored and completed like a marked one.
 
 It is a heuristic and can be wrong: a string that only looks like code is colored as code (`"Update the set of items"` can pass for SQL). A mark always wins over the guess, so `// language=yaml` or a tag settles any doubt, and a language you turn off is never guessed. It reads only the content of the string, cheaply: [EA34](docs/experiments.md) measures the cost. In C#, `json` stays with Visual Studio, as for marked strings. The choice is kept in `%LOCALAPPDATA%\NestLight\detection.txt`.
 
@@ -64,6 +64,8 @@ It is a heuristic and can be wrong: a string that only looks like code is colore
 | Markdown | `markdown`, `md` | headings, emphasis (also across line breaks), code spans and fences, links, lists, math (`$x$`, `$$x$$` and `$$` blocks) |
 | YAML | `yaml`, `yml` | keys, scalars, anchors, comments |
 | Regular expressions | `regex`, `regexp` | groups, classes, quantifiers, escapes, anchors |
+| Shell | `shell`, `bash`, `sh`, `zsh` | keywords, builtins, common commands, variables (`$HOME`, `${PATH}`), strings, numbers, operators (`\|`, `&&`), flags, redirections, comments |
+| TOML | `toml` | tables (`[package]`, `[[deps]]`), keys, strings (single/double/triple-quoted), numbers (int, float, hex, octal, binary), booleans, dates, comments, punctuation |
 | Shaders | `glsl`, `wgsl` | keywords, types, built-ins, numbers, comments |
 
 In C#, strings marked `json` or `regex` are left to Visual Studio's built-in support.
@@ -76,16 +78,38 @@ Interpolations are never colored as embedded code in any language. Templates nes
 
 Inside the code of a marked string, Nestlight adds two kinds of suggestions to the list Visual Studio shows while you type (or on **Ctrl+Space**). Outside embedded code the host language keeps its own completion, and nothing is offered inside an interpolation.
 
-- **Keywords of the language**: SQL keywords, CSS properties and values, HTML and SVG tags, GraphQL keywords, `true` / `false` / `null` in JSON and YAML, and the keywords, types and built-ins of GLSL and WGSL. SQL keywords follow the case you type (`SEL` offers `SELECT`).
+- **Keywords of the language**: SQL keywords, CSS properties and values, HTML and SVG tags, GraphQL keywords, Shell keywords, builtins and common commands, TOML literals, `true` / `false` / `null` in JSON and YAML, and the keywords, types and built-ins of GLSL and WGSL. SQL keywords follow the case you type (`SEL` offers `SELECT`).
 - **Words already in the document**, as Visual Studio Code does: identifiers of at least 3 characters that start with what you typed, nearest to the caret first. They come from the whole file, host code included, so a column or class name you already wrote is one keystroke away.
 
 XML, Markdown and regular expressions have no closed vocabulary, so they only get words from the document. Keywords come first in the list.
+
+**Shell grammar.** After a pipe (`|`), `&&`, `||` or `;`, commands are offered first. After `$`, variables are offered. After `-`, flags are offered.
+
+**TOML grammar.** After `[`, table names are offered. After `=`, values are offered.
 
 **Misspelled words.** When nothing starts with what you typed (3 or more letters), Nestlight offers up to 10 similar keywords and words of the document, after any exact ones: one edit away for 3 to 5 letters, two for 6 or more (an extra letter, a missing one, a wrong one, or two swapped), with the same first letter. `SELCT` offers `SELECT`, `<dvi` offers `div`, `custmer` offers `customerName`. Press **Ctrl+Space** after the mistake: a list opened by typing starts after one letter. When the prefix is right the list is exactly the one above.
 
 **Context.** The words that already followed the same word in the document come first: after `FROM ` the table that followed `FROM` before, after `display: ` the value used after `display:`. A short word such as `BY` is offered where it followed (`GROUP BY`). The words written in other strings of the same language come before the variables of the host code and the words of other languages, even when those are nearer to the caret.
 
 **Place in the grammar.** In SQL, CSS and HTML the place of the caret decides what comes first: a table of the document after `FROM` / `JOIN` / `INTO`, `BY` after `GROUP` / `ORDER`, the next clause after a column, a column after `u.`; in CSS the properties inside the braces, the values of the property after its colon (`display: ` offers `block`, `flex`, `grid`) and the HTML tags in a selector; in HTML the attributes of the tag inside `<button `, the values of an attribute (`type="` offers the input types) and the classes of the document inside `class="`. What does not belong there is moved to the end of the list, not removed.
+
+## Quick Info
+
+Hovering over any classified token inside an embedded string shows a tooltip describing the token's role, for example "HTML tag", "CSS property", "SQL keyword" or "Shell variable". This works for every embedded language and every host.
+
+## Diagnostics
+
+Nestlight shows warning squiggles for structural errors in embedded HTML, JSON and XML strings:
+
+- **HTML**: unclosed tags, unmatched closing tags, unclosed comments.
+- **JSON**: unmatched braces or brackets, unterminated strings.
+- **XML**: unclosed or unmatched tags.
+
+The squiggles update as you type. They are warnings, not errors, and do not block builds.
+
+## Go to Definition
+
+In an HTML string, place the caret on a class name inside `class="..."` and use **Go to Definition**: Nestlight jumps to the `.className` CSS selector in another embedded string in the same file. The same works for `id="..."` and `#id` selectors.
 
 ## Install
 
@@ -119,7 +143,7 @@ The code is split by responsibility, and every dependency is injected through a 
 | `Detection` | The automatic detector (one strategy per language it can guess, behind `ILanguageDetector`) and the options that turn it and each language on and off |
 | `EmbeddedLanguages` | One tokenizer per embedded language |
 | `Highlighting` | The engine, the registry, the snapshot and scan caches (the classifier and the completion of a buffer share one scan per snapshot) and the composition root, the only place that knows the concrete classes |
-| `VisualStudio` | The only code that touches the editor: classifier and completion providers, and the classification types and default colors |
+| `VisualStudio` | The only code that touches the editor: classifier and completion providers, quick-info tooltips, diagnostics (error squiggles), go-to-definition, and the classification types and default colors |
 
 Everything but `VisualStudio` is free of the Visual Studio SDK, so the tests run it as is.
 

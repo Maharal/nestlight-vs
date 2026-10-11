@@ -58,7 +58,8 @@ namespace NestLight.VisualStudio
     {
         private static readonly Dictionary<string, string> Names = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
         {
-            { "sql", "SQL" }, { "html", "HTML" }, { "css", "CSS" }, { "json", "JSON" }, { "graphql", "GraphQL" }
+            { "sql", "SQL" }, { "html", "HTML" }, { "css", "CSS" }, { "json", "JSON" }, { "graphql", "GraphQL" },
+            { "xml", "XML" }, { "yaml", "YAML" }, { "shell", "Shell / Bash" }, { "toml", "TOML" }
         };
 
         private readonly CheckBox _enabled;

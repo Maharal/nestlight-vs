@@ -31,6 +31,8 @@ namespace NestLight.Experiments
                 case "regex": return Regex(d);
                 case "glsl": return Glsl(d);
                 case "wgsl": return Wgsl(d);
+                case "shell": return Shell(d);
+                case "toml": return Toml(d);
                 default: throw new ArgumentException("unknown language " + language);
             }
         }
@@ -174,6 +176,68 @@ namespace NestLight.Experiments
             lines.Add("  let " + Field(d) + " = " + d.Between(0, 9) + "." + d.Between(0, 9) + ";");
             lines.Add("  return vec4<f32>(" + Slot + ", uv, 1.0);");
             lines.Add("}");
+            return string.Join("\n", lines);
+        }
+
+        private static string Shell(Dice d)
+        {
+            var lines = new List<string>();
+            if (d.Chance(0.6)) lines.Add("#!/bin/bash");
+            if (d.Chance(0.3)) lines.Add("# " + Noun(d) + " script");
+            lines.Add("set -" + d.Pick(new[] { "e", "eu", "euo pipefail" }));
+            string varName = Noun(d).ToUpperInvariant();
+            lines.Add(varName + "=\"" + d.Pick(new[] { "/usr/local/bin", "/tmp/" + Noun(d), "$HOME/." + Noun(d) }) + "\"");
+            for (int i = 0; i < d.Between(2, 4); i++)
+            {
+                string cmd = d.Pick(new[] { "echo", "cat", "grep", "find", "mkdir", "cp", "rm", "sort", "wc", "curl" });
+                string args = d.Pick(new[] { "$" + varName, "\"$1\"", Slot, Noun(d) + ".txt", "/dev/null", "${" + varName + "}" });
+                string flags = d.Chance(0.5) ? " " + d.Pick(new[] { "-r", "-f", "-v", "--quiet", "--include", "-n" }) : "";
+                string pipe = d.Chance(0.4) ? " | " + d.Pick(new[] { "sort", "uniq", "wc -l", "head -" + d.Between(1, 20), "grep " + Noun(d) }) : "";
+                string redirect = d.Chance(0.3) ? " " + d.Pick(new[] { "> /dev/null", ">> log.txt", "2>&1" }) : "";
+                lines.Add(cmd + flags + " " + args + pipe + redirect);
+            }
+            if (d.Chance(0.5))
+            {
+                lines.Add("if [ -f \"$" + varName + "\" ]; then");
+                lines.Add("  source \"$" + varName + "\"");
+                lines.Add("fi");
+            }
+            if (d.Chance(0.4))
+            {
+                lines.Add("for f in *." + d.Pick(new[] { "log", "txt", "csv", "json" }) + "; do");
+                lines.Add("  echo \"$f: $(wc -l < \"$f\")\"");
+                lines.Add("done");
+            }
+            return string.Join("\n", lines);
+        }
+
+        private static string Toml(Dice d)
+        {
+            var lines = new List<string>();
+            if (d.Chance(0.3)) lines.Add("# " + Noun(d) + " configuration");
+            lines.Add("[" + d.Pick(new[] { "package", "project", "settings", "server", "database" }) + "]");
+            lines.Add("name = \"" + Noun(d) + "-" + Noun(d) + "\"");
+            lines.Add("version = " + d.Between(0, 9) + "." + d.Between(0, 9) + "." + d.Between(0, 99));
+            lines.Add("enabled = " + (d.Chance(0.5) ? "true" : "false"));
+            if (d.Chance(0.5)) lines.Add("port = " + d.Between(1024, 9999));
+            if (d.Chance(0.5)) lines.Add("created = " + (2020 + d.Between(0, 6)) + "-" + (d.Between(1, 12)).ToString("D2") + "-" + (d.Between(1, 28)).ToString("D2"));
+            if (d.Chance(0.4)) lines.Add("tags = [\"" + Noun(d) + "\", \"" + Noun(d) + "\"]");
+            if (d.Chance(0.3)) lines.Add("path = '/usr/local/" + Noun(d) + "' # " + Noun(d));
+            if (d.Chance(0.5))
+            {
+                lines.Add("");
+                lines.Add("[[" + d.Pick(new[] { "dependencies", "plugins", "targets" }) + "]]");
+                lines.Add("name = \"" + Noun(d) + "\"");
+                lines.Add("version = " + Slot);
+                if (d.Chance(0.5)) lines.Add("optional = false");
+            }
+            if (d.Chance(0.4))
+            {
+                lines.Add("");
+                lines.Add("[" + d.Pick(new[] { "build", "test", "deploy" }) + "]");
+                lines.Add("target = \"" + d.Pick(new[] { "release", "debug", "production" }) + "\"");
+                lines.Add("threads = " + d.Between(1, 16));
+            }
             return string.Join("\n", lines);
         }
     }
