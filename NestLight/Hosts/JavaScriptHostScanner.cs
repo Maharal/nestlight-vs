@@ -27,7 +27,6 @@ namespace NestLight.Hosts
             var result = new List<EmbeddedString>();
             if (text.IndexOf('`') < 0) return result;
             new Run(text, _languages, result).ScanCode(false);
-            result.Sort((a, b) => a.OuterStart.CompareTo(b.OuterStart));
             return result;
         }
 
@@ -37,7 +36,6 @@ namespace NestLight.Hosts
             if (text.IndexOf('`') < 0) return new HostScan(result, new int[0]);
             var safe = new SafePoints(_safePointGap);
             new Run(text, _languages, result, safe, 0).ScanCode(false);
-            result.Sort((a, b) => a.OuterStart.CompareTo(b.OuterStart));
             return new HostScan(result, safe.ToArray());
         }
 
@@ -46,7 +44,6 @@ namespace NestLight.Hosts
             var result = new List<EmbeddedString>();
             var safe = new SafePoints(minStop, knownSafe, _safePointGap);
             new Run(text, _languages, result, safe, from).ScanCode(false);
-            result.Sort((a, b) => a.OuterStart.CompareTo(b.OuterStart));
             return new HostScan(result, safe.ToArray(), safe.StoppedAt);
         }
 
@@ -129,6 +126,7 @@ namespace NestLight.Hosts
             private void ScanTemplate()
             {
                 int backtick = _i;
+                int insertAt = _result.Count;
                 string marked = _markers.Take(_t, backtick);
                 string id = MarkerComment.IdBefore(_t, backtick);
                 if (!_languages.Accepts(id)) id = _languages.Accepts(marked) ? marked : null;
@@ -150,7 +148,7 @@ namespace NestLight.Hosts
                     {
                         info.End = _i;
                         info.OuterEnd = ++_i;
-                        if (_languages.Resolve(_t, info)) _result.Add(info);
+                        if (_languages.Resolve(_t, info)) _result.Insert(insertAt, info);
                         return;
                     }
                     else if (c == '$' && _i + 1 < _t.Length && _t[_i + 1] == '{')
@@ -169,7 +167,7 @@ namespace NestLight.Hosts
                     }
                 }
                 info.End = info.OuterEnd = _t.Length;
-                if (_languages.Resolve(_t, info)) _result.Add(info);
+                if (_languages.Resolve(_t, info)) _result.Insert(insertAt, info);
             }
 
             /// <summary>

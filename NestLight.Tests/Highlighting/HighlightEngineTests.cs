@@ -323,5 +323,31 @@ namespace NestLight.Tests
                 Assert.DoesNotContain("zz", t.Text);
             }
         }
+
+        // ---- per-string sort and nesting fallback -----------------------------------------------
+
+        [Theory]
+        [InlineData(HostLanguage.JavaScript, "html`<a>${ html`<b></b>` }</a>`")]
+        [InlineData(HostLanguage.CSharp, "// html\nvar a = $\"<a>{ // html\n$\"<b/>\" }</a>\";")]
+        [InlineData(HostLanguage.Python, "# html\nx = f'<a>{ # html\nf\"<b/>\" }</a>'")]
+        public void Tokens_from_nested_strings_are_in_document_order_for_all_hosts(HostLanguage host, string code)
+        {
+            var toks = Lexer.Lex(host, code);
+            for (int i = 1; i < toks.Count; i++)
+                Assert.True(toks[i].Start >= toks[i - 1].Start,
+                    "token out of order at " + i + ": " + toks[i - 1].Start + " then " + toks[i].Start);
+            Assert.False(Lexer.HasOverlap(toks));
+        }
+
+        [Fact]
+        public void Three_level_nesting_produces_ordered_non_overlapping_tokens()
+        {
+            string code = "html`<a>${ html`<b>${ css`c{}` }</b>` }</a>`";
+            var toks = Lexer.Lex(HostLanguage.JavaScript, code);
+            for (int i = 1; i < toks.Count; i++)
+                Assert.True(toks[i].Start >= toks[i - 1].Start,
+                    "token out of order at " + i);
+            Assert.False(Lexer.HasOverlap(toks));
+        }
     }
 }
