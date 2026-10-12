@@ -39,6 +39,15 @@ namespace NestLight.VisualStudio
         [Export(typeof(ClassificationTypeDefinition))][Name(ClassificationNames.Expression)]
         [BaseDefinition("identifier")]
         internal static ClassificationTypeDefinition Expression;
+
+        [Export(typeof(ClassificationTypeDefinition))][Name(ClassificationNames.ExprKeyword)]
+        internal static ClassificationTypeDefinition ExprKeyword;
+
+        [Export(typeof(ClassificationTypeDefinition))][Name(ClassificationNames.ExprString)]
+        internal static ClassificationTypeDefinition ExprString;
+
+        [Export(typeof(ClassificationTypeDefinition))][Name(ClassificationNames.ExprNumber)]
+        internal static ClassificationTypeDefinition ExprNumber;
     }
 
     // ---- Formats (default colors; editable in Tools > Options > Environment > Fonts and Colors) ----
@@ -106,4 +115,19 @@ namespace NestLight.VisualStudio
     {
         public TplExpressionFormat() { DisplayName = "Template Expression"; }
     }
+
+    [Export(typeof(EditorFormatDefinition))]
+    [ClassificationType(ClassificationTypeNames = ClassificationNames.ExprKeyword)]
+    [Name("Template Expression Keyword Format")][UserVisible(true)][Order(After = Priority.High)]
+    internal sealed class TplExprKeywordFormat : TplFormat { public TplExprKeywordFormat() : base("Template Expression Keyword", 0x56, 0x9C, 0xD6) { } }
+
+    [Export(typeof(EditorFormatDefinition))]
+    [ClassificationType(ClassificationTypeNames = ClassificationNames.ExprString)]
+    [Name("Template Expression String Format")][UserVisible(true)][Order(After = Priority.High)]
+    internal sealed class TplExprStringFormat : TplFormat { public TplExprStringFormat() : base("Template Expression String", 0xCE, 0x91, 0x78) { } }
+
+    [Export(typeof(EditorFormatDefinition))]
+    [ClassificationType(ClassificationTypeNames = ClassificationNames.ExprNumber)]
+    [Name("Template Expression Number Format")][UserVisible(true)][Order(After = Priority.High)]
+    internal sealed class TplExprNumberFormat : TplFormat { public TplExprNumberFormat() : base("Template Expression Number", 0xB5, 0xCE, 0xA8) { } }
 }

@@ -117,19 +117,29 @@ XML, Markdown and regular expressions have no closed vocabulary, so they only ge
 
 Hovering over any classified token inside an embedded string shows a tooltip describing the token's role, for example "HTML tag", "CSS property", "SQL keyword" or "Shell variable". This works for every embedded language and every host.
 
+**CSS color preview.** When the token under the cursor is a CSS color — a hex value like `#ff0000`, a named color like `red`, or a function like `rgb(128, 0, 255)` or `hsl(0, 100%, 50%)` — the tooltip includes a color swatch beside the description.
+
 ## Diagnostics
 
-Nestlight shows warning squiggles for structural errors in embedded HTML, JSON and XML strings:
+Nestlight shows warning squiggles for structural errors in embedded strings:
 
 - **HTML**: unclosed tags, unmatched closing tags, unclosed comments.
 - **JSON**: unmatched braces or brackets, unterminated strings.
 - **XML**: unclosed or unmatched tags.
+- **SQL**: unmatched parentheses, unterminated strings.
+- **CSS**: unmatched braces, brackets or parentheses, unterminated strings or comments.
+- **YAML**: mixed tabs and spaces in indentation, duplicate top-level keys.
+- **GraphQL**: unmatched braces, brackets or parentheses, unterminated strings.
 
 The squiggles update as you type. They are warnings, not errors, and do not block builds.
 
 ## Go to Definition
 
-In an HTML string, place the caret on a class name inside `class="..."` and use **Go to Definition**: Nestlight jumps to the `.className` CSS selector in another embedded string in the same file. The same works for `id="..."` and `#id` selectors.
+In an HTML string, place the caret on a class name inside `class="..."` and use **Go to Definition**: Nestlight jumps to the `.className` CSS selector in another embedded string in the same file or in another open document. The same works for `id="..."` and `#id` selectors. Same-file definitions take priority; when none is found, Nestlight searches every open document in the solution.
+
+## Rename
+
+Place the caret on a CSS class selector (`.foo`) or an HTML class/id attribute value and rename: Nestlight updates every reference to that name across the embedded strings of the current file — CSS selectors and HTML attributes alike.
 
 ## Install
 
@@ -188,9 +198,9 @@ Reports (`reports/`) and artifacts (`artifacts/`) are named by the time of the r
 
 ## Limitations
 
-- Code inside an interpolation gets a neutral color, not host-language highlighting.
+- Code inside an interpolation gets partial highlighting (keywords, strings and numbers), not full host-language highlighting.
 - Python implicit string concatenation is not joined: each literal is analyzed on its own.
-- Automatic detection reads the string as written, with escapes and interpolations undecoded, so JSON inside a C# regular string (`\"`) is not recognized. In JavaScript only template literals are considered.
+- Automatic detection in JavaScript only considers template literals.
 - `<script>` content, SCSS / LESS and JSX / TSX are not highlighted.
 
 ## License

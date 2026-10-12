@@ -92,5 +92,41 @@ namespace NestLight.Tests
         {
             Assert.Null(GoToDefinitionEngine.FindDefinition(new List<Token>(), "text", 0));
         }
+
+        [Fact]
+        public void Finds_definition_in_external_file()
+        {
+            string file1 = "const x = html`<div class=\"foo\"></div>`;";
+            string file2 = "const y = css`.foo { color: red }`;";
+            IHighlighter highlighter = NestLightComposition.CreateHighlighter(HostLanguage.JavaScript);
+            IReadOnlyList<Token> tokens1 = highlighter.Highlight(file1);
+            IReadOnlyList<Token> tokens2 = highlighter.Highlight(file2);
+
+            int classValuePos = file1.IndexOf("\"foo\"") + 1;
+            var externals = new List<ExternalFile> { new ExternalFile(tokens2, file2) };
+            DefinitionResult? result = GoToDefinitionEngine.FindDefinition(tokens1, file1, classValuePos, externals);
+
+            Assert.True(result.HasValue);
+            Assert.Equal(0, result.Value.FileIndex);
+            string definitionText = file2.Substring(result.Value.Start, result.Value.Length);
+            Assert.Equal(".foo", definitionText);
+        }
+
+        [Fact]
+        public void Same_file_definition_takes_priority_over_external()
+        {
+            string code = "const x = html`<div class=\"foo\"></div>`; const y = css`.foo { color: red }`;";
+            string file2 = "const z = css`.foo { display: block }`;";
+            IHighlighter highlighter = NestLightComposition.CreateHighlighter(HostLanguage.JavaScript);
+            IReadOnlyList<Token> tokens = highlighter.Highlight(code);
+            IReadOnlyList<Token> tokens2 = highlighter.Highlight(file2);
+
+            int classValuePos = code.IndexOf("\"foo\"") + 1;
+            var externals = new List<ExternalFile> { new ExternalFile(tokens2, file2) };
+            DefinitionResult? result = GoToDefinitionEngine.FindDefinition(tokens, code, classValuePos, externals);
+
+            Assert.True(result.HasValue);
+            Assert.Equal(-1, result.Value.FileIndex);
+        }
     }
 }

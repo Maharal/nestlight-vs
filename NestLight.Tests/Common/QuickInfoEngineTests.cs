@@ -74,5 +74,85 @@ namespace NestLight.Tests
             Assert.True(result.HasValue);
             Assert.Equal("HTML tag", result.Value.Description);
         }
+
+        [Fact]
+        public void Css_hex_color_is_parsed()
+        {
+            string code = "const x = css`.a { color: #ff0000; }`;";
+            IHighlighter highlighter = NestLightComposition.CreateHighlighter(HostLanguage.JavaScript);
+            IReadOnlyList<Token> tokens = highlighter.Highlight(code);
+
+            int colorPos = code.IndexOf("#ff0000");
+            QuickInfoResult? result = QuickInfoEngine.GetInfo(tokens, colorPos, code);
+
+            Assert.True(result.HasValue);
+            Assert.True(result.Value.Color.HasValue);
+            Assert.Equal(255, result.Value.Color.Value.R);
+            Assert.Equal(0, result.Value.Color.Value.G);
+            Assert.Equal(0, result.Value.Color.Value.B);
+        }
+
+        [Fact]
+        public void Css_named_color_is_parsed()
+        {
+            string code = "const x = css`.a { color: red; }`;";
+            IHighlighter highlighter = NestLightComposition.CreateHighlighter(HostLanguage.JavaScript);
+            IReadOnlyList<Token> tokens = highlighter.Highlight(code);
+
+            int colorPos = code.IndexOf("red");
+            QuickInfoResult? result = QuickInfoEngine.GetInfo(tokens, colorPos, code);
+
+            Assert.True(result.HasValue);
+            Assert.True(result.Value.Color.HasValue);
+            Assert.Equal(255, result.Value.Color.Value.R);
+        }
+
+        [Fact]
+        public void Non_color_css_value_has_no_color()
+        {
+            var tokens = new List<Token> { new Token(0, 5, ClassificationNames.CssProperty) };
+            QuickInfoResult? result = QuickInfoEngine.GetInfo(tokens, 2, "color");
+
+            Assert.True(result.HasValue);
+            Assert.False(result.Value.Color.HasValue);
+        }
+
+        [Fact]
+        public void Color_parser_handles_short_hex()
+        {
+            var c = CssColorParser.TryParse("#fff");
+            Assert.True(c.HasValue);
+            Assert.Equal(255, c.Value.R);
+            Assert.Equal(255, c.Value.G);
+            Assert.Equal(255, c.Value.B);
+        }
+
+        [Fact]
+        public void Color_parser_handles_rgb()
+        {
+            var c = CssColorParser.TryParse("rgb(128, 0, 255)");
+            Assert.True(c.HasValue);
+            Assert.Equal(128, c.Value.R);
+            Assert.Equal(0, c.Value.G);
+            Assert.Equal(255, c.Value.B);
+        }
+
+        [Fact]
+        public void Color_parser_handles_hsl()
+        {
+            var c = CssColorParser.TryParse("hsl(0, 100%, 50%)");
+            Assert.True(c.HasValue);
+            Assert.Equal(255, c.Value.R);
+            Assert.Equal(0, c.Value.G);
+            Assert.Equal(0, c.Value.B);
+        }
+
+        [Fact]
+        public void Color_parser_returns_null_for_non_color()
+        {
+            Assert.Null(CssColorParser.TryParse("block"));
+            Assert.Null(CssColorParser.TryParse("10px"));
+            Assert.Null(CssColorParser.TryParse(null));
+        }
     }
 }

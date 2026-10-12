@@ -46,7 +46,7 @@ namespace NestLight.Common
             {
                 Token t = tokens[k];
                 if (t.Type != targetType) continue;
-                if (t.Start == current.Start && t.Length == current.Length) continue;
+                if (current != null && t.Start == current.Start && t.Length == current.Length) continue;
                 if (t.Start + t.Length <= sourceText.Length)
                 {
                     string candidate = sourceText.Substring(t.Start, t.Length);

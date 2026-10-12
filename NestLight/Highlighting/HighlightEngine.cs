@@ -39,7 +39,7 @@ namespace NestLight.Highlighting
                 IEmbeddedLanguageTokenizer tokenizer = _languages.Find(s.EmbeddedLanguageId);
                 if (tokenizer == null) continue;
                 int mark = tokens.Count;
-                EmitInterpolations(s, strings, tokens);
+                EmitInterpolations(s, strings, tokens, text);
                 int maxLen = Math.Max(0, Math.Min(s.End, text.Length) - s.Start);
                 if (decodedBuf == null || decodedBuf.Length < maxLen)
                     decodedBuf = new char[Math.Max(maxLen, 256)];
@@ -137,7 +137,7 @@ namespace NestLight.Highlighting
         /// <summary>
         /// Delimiters and neutral expression text. Strings nested in the expression are left out: they color themselves.
         /// </summary>
-        private static void EmitInterpolations(EmbeddedString owner, IReadOnlyList<EmbeddedString> all, List<Token> output)
+        private static void EmitInterpolations(EmbeddedString owner, IReadOnlyList<EmbeddedString> all, List<Token> output, string text)
         {
             foreach (Interpolation x in owner.Interpolations)
             {
@@ -152,11 +152,18 @@ namespace NestLight.Highlighting
                     EmbeddedString nested = all[k];
                     if (nested.OuterStart >= close) break;
                     if (ReferenceEquals(nested, owner)) continue;
-                    // starts inside the expression (even if still unclosed, while typing)
-                    if (nested.OuterStart > cursor) output.Add(new Token(cursor, nested.OuterStart - cursor, ClassificationNames.Expression));
+                    if (nested.OuterStart > cursor)
+                    {
+                        output.Add(new Token(cursor, nested.OuterStart - cursor, ClassificationNames.Expression));
+                        if (text != null) InterpolationHighlighter.Highlight(text, cursor, nested.OuterStart, output);
+                    }
                     cursor = Math.Max(cursor, Math.Min(nested.OuterEnd, close));
                 }
-                if (cursor < close) output.Add(new Token(cursor, close - cursor, ClassificationNames.Expression));
+                if (cursor < close)
+                {
+                    output.Add(new Token(cursor, close - cursor, ClassificationNames.Expression));
+                    if (text != null) InterpolationHighlighter.Highlight(text, cursor, close, output);
+                }
             }
         }
 

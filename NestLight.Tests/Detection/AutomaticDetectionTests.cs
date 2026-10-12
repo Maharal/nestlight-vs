@@ -170,5 +170,14 @@ namespace NestLight.Tests
                 Assert.True(i == 0 || tokens[i - 1].End <= tokens[i].Start, "overlapping tokens at " + where);
             }
         }
+
+        [Fact]
+        public void Escaped_strings_are_decoded_before_detection()
+        {
+            string htmlCode = "q = \"<div class=\\\"x\\\">hello</div>\"";
+            var htmlResult = Scan(HostLanguage.Python, htmlCode, On("html"));
+            Assert.Single(htmlResult);
+            Assert.Equal("html", htmlResult[0].EmbeddedLanguageId);
+        }
     }
 }

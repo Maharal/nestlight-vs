@@ -1,6 +1,9 @@
 using System.ComponentModel.Composition;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Media;
 using Microsoft.VisualStudio.Language.Intellisense;
 using Microsoft.VisualStudio.Text;
 using Microsoft.VisualStudio.Text.Adornments;
@@ -100,9 +103,10 @@ namespace NestLight.VisualStudio
 
             ITextSnapshot snapshot = triggerPoint.Value.Snapshot;
             int position = triggerPoint.Value.Position;
+            string text = _shared.Text.Of(snapshot);
 
             var tokens = _cache.TokensIn(snapshot, 0, snapshot.Length);
-            QuickInfoResult? result = QuickInfoEngine.GetInfo(tokens as System.Collections.Generic.IReadOnlyList<Token> ?? new System.Collections.Generic.List<Token>(tokens), position);
+            QuickInfoResult? result = QuickInfoEngine.GetInfo(tokens as System.Collections.Generic.IReadOnlyList<Token> ?? new System.Collections.Generic.List<Token>(tokens), position, text);
 
             if (!result.HasValue) return Task.FromResult<QuickInfoItem>(null);
 
@@ -110,8 +114,29 @@ namespace NestLight.VisualStudio
             if (info.Start + info.Length > snapshot.Length) return Task.FromResult<QuickInfoItem>(null);
 
             var span = snapshot.CreateTrackingSpan(info.Start, info.Length, SpanTrackingMode.EdgeInclusive);
-            var element = new ContainerElement(ContainerElementStyle.Stacked,
-                new ClassifiedTextElement(new ClassifiedTextRun("keyword", info.Description)));
+            object element;
+            if (info.Color.HasValue)
+            {
+                var c = info.Color.Value;
+                var swatch = new Border
+                {
+                    Width = 14, Height = 14,
+                    Background = new SolidColorBrush(Color.FromArgb(c.A, c.R, c.G, c.B)),
+                    BorderBrush = new SolidColorBrush(Colors.Gray),
+                    BorderThickness = new Thickness(1),
+                    CornerRadius = new CornerRadius(2),
+                    Margin = new Thickness(0, 0, 6, 0),
+                    VerticalAlignment = VerticalAlignment.Center
+                };
+                element = new ContainerElement(ContainerElementStyle.Wrapped,
+                    swatch,
+                    new ClassifiedTextElement(new ClassifiedTextRun("keyword", info.Description)));
+            }
+            else
+            {
+                element = new ContainerElement(ContainerElementStyle.Stacked,
+                    new ClassifiedTextElement(new ClassifiedTextRun("keyword", info.Description)));
+            }
             return Task.FromResult(new QuickInfoItem(span, element));
         }
 
