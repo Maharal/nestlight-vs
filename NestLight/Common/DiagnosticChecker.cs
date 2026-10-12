@@ -83,7 +83,12 @@ namespace NestLight.Common
                     {
                         string closeTag = "</" + tag;
                         int closePos = text.IndexOf(closeTag, gt + 1, end - gt - 1, StringComparison.OrdinalIgnoreCase);
-                        if (closePos >= 0) { i = closePos; continue; }
+                        if (closePos >= 0)
+                        {
+                            int closeGt = text.IndexOf('>', closePos + closeTag.Length, end - closePos - closeTag.Length);
+                            i = closeGt >= 0 ? closeGt + 1 : closePos + closeTag.Length;
+                            continue;
+                        }
                     }
                     openTags.Add(new TagInfo(tag, lt, gt + 1));
                 }

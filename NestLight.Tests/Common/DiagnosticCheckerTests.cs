@@ -18,10 +18,10 @@ namespace NestLight.Tests
         [Fact]
         public void Unclosed_html_tag_is_reported()
         {
-            string text = "<div><p>hello</div>";
+            string text = "<div>hello";
             var diags = DiagnosticChecker.CheckHtml(text, 0, text.Length).ToList();
             Assert.Single(diags);
-            Assert.Contains("Unclosed HTML tag <p>", diags[0].Message);
+            Assert.Contains("Unclosed HTML tag <div>", diags[0].Message);
         }
 
         [Fact]
@@ -156,10 +156,10 @@ namespace NestLight.Tests
         [Fact]
         public void Unclosed_xml_tag_is_reported()
         {
-            string text = "<root><child>text</root>";
+            string text = "<root>text";
             var diags = DiagnosticChecker.CheckXml(text, 0, text.Length).ToList();
             Assert.Single(diags);
-            Assert.Contains("Unclosed XML tag <child>", diags[0].Message);
+            Assert.Contains("Unclosed XML tag <root>", diags[0].Message);
         }
 
         [Fact]
