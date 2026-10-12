@@ -28,6 +28,10 @@ namespace NestLight.Common
                 return CheckJson(text, start, end);
             if (string.Equals(languageId, "xml", StringComparison.OrdinalIgnoreCase))
                 return CheckXml(text, start, end);
+            if (string.Equals(languageId, "sql", StringComparison.OrdinalIgnoreCase))
+                return CheckSql(text, start, end);
+            if (string.Equals(languageId, "css", StringComparison.OrdinalIgnoreCase))
+                return CheckCss(text, start, end);
             return Enumerable.Empty<DiagnosticResult>();
         }
 
@@ -157,6 +161,96 @@ namespace NestLight.Common
             }
             foreach (TagInfo open in openTags)
                 yield return new DiagnosticResult(open.Start, open.End, "Unclosed XML tag <" + open.Name + ">");
+        }
+
+        internal static IEnumerable<DiagnosticResult> CheckSql(string text, int start, int end)
+        {
+            int parens = 0;
+            bool inString = false;
+            char quote = '\0';
+            for (int i = start; i < end; i++)
+            {
+                char c = text[i];
+                if (inString)
+                {
+                    if (c == quote)
+                    {
+                        if (i + 1 < end && text[i + 1] == quote) i++;
+                        else inString = false;
+                    }
+                    continue;
+                }
+                if (c == '-' && i + 1 < end && text[i + 1] == '-')
+                {
+                    int nl = text.IndexOf('\n', i + 2, end - i - 2);
+                    i = nl < 0 ? end - 1 : nl;
+                    continue;
+                }
+                if (c == '\'' || c == '"') { inString = true; quote = c; continue; }
+                if (c == '(') parens++;
+                else if (c == ')')
+                {
+                    parens--;
+                    if (parens < 0)
+                        yield return new DiagnosticResult(i, i + 1, "Unexpected closing ')'");
+                }
+            }
+            if (inString) yield return new DiagnosticResult(end - 1, end, "Unterminated SQL string");
+            if (parens > 0) yield return new DiagnosticResult(start, Math.Min(start + 1, end), "Unclosed '('");
+        }
+
+        internal static IEnumerable<DiagnosticResult> CheckCss(string text, int start, int end)
+        {
+            int braces = 0;
+            int parens = 0;
+            int brackets = 0;
+            bool inString = false;
+            char quote = '\0';
+            bool inComment = false;
+            for (int i = start; i < end; i++)
+            {
+                char c = text[i];
+                if (inComment)
+                {
+                    if (c == '*' && i + 1 < end && text[i + 1] == '/')
+                    {
+                        inComment = false;
+                        i++;
+                    }
+                    continue;
+                }
+                if (inString)
+                {
+                    if (c == '\\') i++;
+                    else if (c == quote) inString = false;
+                    continue;
+                }
+                if (c == '/' && i + 1 < end && text[i + 1] == '*') { inComment = true; i++; continue; }
+                if (c == '\'' || c == '"') { inString = true; quote = c; continue; }
+                if (c == '{') braces++;
+                else if (c == '}')
+                {
+                    braces--;
+                    if (braces < 0) yield return new DiagnosticResult(i, i + 1, "Unexpected closing '}'");
+                }
+                else if (c == '(') parens++;
+                else if (c == ')')
+                {
+                    parens--;
+                    if (parens < 0) yield return new DiagnosticResult(i, i + 1, "Unexpected closing ')'");
+                }
+                else if (c == '[') brackets++;
+                else if (c == ']')
+                {
+                    brackets--;
+                    if (brackets < 0) yield return new DiagnosticResult(i, i + 1, "Unexpected closing ']'");
+                }
+            }
+            if (inComment) yield return new DiagnosticResult(end - 1, end, "Unterminated CSS comment");
+            if (inString) yield return new DiagnosticResult(end - 1, end, "Unterminated CSS string");
+            if (braces > 0) yield return new DiagnosticResult(start, Math.Min(start + 1, end), "Unclosed '{'");
+            if (parens > 0) yield return new DiagnosticResult(start, Math.Min(start + 1, end), "Unclosed '('");
+            if (brackets > 0) yield return new DiagnosticResult(start, Math.Min(start + 1, end), "Unclosed '['");
         }
 
         private static readonly HashSet<string> VoidElements = new HashSet<string>(StringComparer.OrdinalIgnoreCase)

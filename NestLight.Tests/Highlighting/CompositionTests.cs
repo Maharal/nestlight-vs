@@ -205,6 +205,9 @@ namespace NestLight.Tests
         [InlineData("CSharp")]
         [InlineData("Python")]
         [InlineData("C/C++")]
+        [InlineData("Rust")]
+        [InlineData("Go")]
+        [InlineData("Java")]
         public void Each_documented_host_content_type_is_served(string contentType)
         {
             Assert.Contains("[ContentType(\"" + contentType + "\")]", VisualStudioSources());

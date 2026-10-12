@@ -14,6 +14,8 @@ namespace NestLight.Highlighting
 
         private readonly IHostScanner _scanner;
         private readonly IEmbeddedLanguageRegistry _languages;
+        private char[] _decodedBuf;
+        private int[] _mapBuf;
 
         public HighlightEngine(IHostScanner scanner, IEmbeddedLanguageRegistry languages)
         {
@@ -30,8 +32,8 @@ namespace NestLight.Highlighting
             IReadOnlyList<EmbeddedString> strings = _scanner.Scan(text);
             var tokens = new List<Token>(strings.Count * 6);
             bool nested = false;
-            char[] decodedBuf = null;
-            int[] mapBuf = null;
+            char[] decodedBuf = _decodedBuf;
+            int[] mapBuf = _mapBuf;
             foreach (EmbeddedString s in strings)
             {
                 IEmbeddedLanguageTokenizer tokenizer = _languages.Find(s.EmbeddedLanguageId);
@@ -51,6 +53,8 @@ namespace NestLight.Highlighting
                 if (!nested && mark > 0 && added > 0 && tokens[mark].Start < tokens[mark - 1].End)
                     nested = true;
             }
+            _decodedBuf = decodedBuf;
+            _mapBuf = mapBuf;
             if (nested) tokens.Sort(ByStart);
             return tokens;
         }

@@ -7,7 +7,7 @@ using NestLight.EmbeddedLanguages;
 
 namespace NestLight.Highlighting
 {
-    public enum HostLanguage { JavaScript, CSharp, Python, Cpp }
+    public enum HostLanguage { JavaScript, CSharp, Python, Cpp, Rust, Go, Java }
 
     /// <summary>
     /// The composition root: the only place that knows every concrete class and wires them together.
@@ -50,6 +50,9 @@ namespace NestLight.Highlighting
                 case HostLanguage.CSharp: return new CSharpHostScanner(new AcceptedEmbeddedLanguages(languages, LeftToVisualStudio, guesser));
                 case HostLanguage.Python: return new PythonHostScanner(new AcceptedEmbeddedLanguages(languages, null, guesser));
                 case HostLanguage.Cpp: return new CppHostScanner(new AcceptedEmbeddedLanguages(languages, null, guesser));
+                case HostLanguage.Rust: return new RustHostScanner(new AcceptedEmbeddedLanguages(languages, null, guesser));
+                case HostLanguage.Go: return new GoHostScanner(new AcceptedEmbeddedLanguages(languages, null, guesser));
+                case HostLanguage.Java: return new JavaHostScanner(new AcceptedEmbeddedLanguages(languages, null, guesser));
                 default: throw new ArgumentOutOfRangeException("host");
             }
         }

@@ -15,6 +15,9 @@ Nestlight recognizes code embedded in string literals from a tag or a marker com
 | C# | regular, verbatim (`@"..."`), raw (`"""..."""`) and their interpolated forms (`$`, `$$`) | `{expr}`, or `{{expr}}` with `$$` (the brace count equals the `$` count) | `/* */`, `//` |
 | Python | single, double and triple-quoted strings, including f-strings and t-strings | `{expr}` in f-strings and t-strings | `#` |
 | C++ | raw string literals (`R"delim(...)delim"`) | none | `/* */`, `//` |
+| Rust | raw strings (`r"..."`, `r#"..."#`), regular strings | none | `/* */`, `//` |
+| Go | backtick strings (`` `...` ``), regular strings | none | `/* */`, `//` |
+| Java | text blocks (`"""..."""`), regular strings | none | `/* */`, `//` |
 
 ## Marking a string
 
@@ -43,6 +46,23 @@ page = f"""<li class="item">{name}</li>"""
 ```cpp
 // language=html
 auto page = R"(<li class="item">name</li>)";
+```
+
+```rust
+// language=html
+let page = r#"<li class="item">name</li>"#;
+```
+
+```go
+// language=html
+page := `<li class="item">name</li>`
+```
+
+```java
+// language=html
+String page = """
+    <li class="item">name</li>
+    """;
 ```
 
 ## Automatic detection
