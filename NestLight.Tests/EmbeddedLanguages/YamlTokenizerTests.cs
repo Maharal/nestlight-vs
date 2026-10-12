@@ -238,5 +238,45 @@ namespace NestLight.Tests
             Assert.Empty(Y(""));
             Assert.Empty(Y("\n\n  \n"));
         }
+
+        // ---- indentation stripping (host code indentation) ---------------------------------------------------
+
+        [Fact]
+        public void Indented_key_value_same_as_unindented()
+        {
+            Assert.Equal(Y("name: John Smith"), Y("\n    name: John Smith"));
+        }
+
+        [Fact]
+        public void Indented_document_markers_are_recognized()
+        {
+            Assert.Equal(
+                new[] { "yaml.punctuation|---", "yaml.key|a", "yaml.punctuation|:", "yaml.scalar|1", "yaml.punctuation|..." },
+                Y("\n    ---\n    a: 1\n    ..."));
+        }
+
+        [Fact]
+        public void Indented_block_scalar()
+        {
+            Assert.Equal(
+                new[] { "yaml.key|text", "yaml.punctuation|:", "yaml.punctuation||", "yaml.string|hello", "yaml.key|next", "yaml.punctuation|:", "yaml.scalar|1" },
+                Y("\n    text: |\n      hello\n    next: 1"));
+        }
+
+        [Fact]
+        public void Indented_nested_mappings()
+        {
+            Assert.Equal(
+                new[] { "yaml.key|a", "yaml.punctuation|:", "yaml.key|b", "yaml.punctuation|:", "yaml.scalar|1", "yaml.key|c", "yaml.punctuation|:", "yaml.scalar|2" },
+                Y("\n    a:\n      b: 1\n    c: 2"));
+        }
+
+        [Fact]
+        public void Indented_sequence()
+        {
+            Assert.Equal(
+                new[] { "yaml.punctuation|-", "yaml.string|a", "yaml.punctuation|-", "yaml.scalar|2" },
+                Y("\n    - a\n    - 2"));
+        }
     }
 }

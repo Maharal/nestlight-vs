@@ -22,6 +22,7 @@ namespace NestLight.EmbeddedLanguages
 
         public void Tokenize(char[] m, int from, int to, TokenSink emit)
         {
+            int baseIndent = CommonIndent(m, from, to);
             int blockParent = -1; // indent of the line that opened a block scalar; -1 when none is open
 
             int line = from;
@@ -29,7 +30,7 @@ namespace NestLight.EmbeddedLanguages
             {
                 int end = TextUtil.LineEnd(m, line, to);
                 int p = TextUtil.SkipBlanks(m, line, end);
-                int indent = p - line;
+                int indent = Math.Max(0, (p - line) - baseIndent);
                 int next = end;
                 while (next < to && (m[next] == '\n' || m[next] == '\r')) next++;
 
@@ -242,6 +243,27 @@ namespace NestLight.EmbeddedLanguages
             while (q < end && (m[q] == '+' || m[q] == '-' || char.IsDigit(m[q]))) q++;
             q = TextUtil.SkipBlanks(m, q, end);
             return q == end || m[q] == '#';
+        }
+
+        /// <summary>
+        /// The characters of indentation that every non-blank line shares, apart from the first one (it starts where the
+        /// string content does, so its whitespace says nothing about the host code's layout).
+        /// </summary>
+        private static int CommonIndent(char[] m, int from, int to)
+        {
+            int common = int.MaxValue;
+            int line = TextUtil.LineEnd(m, from, to);
+            while (line < to && (m[line] == '\n' || m[line] == '\r')) line++;
+            while (line < to)
+            {
+                int end = TextUtil.LineEnd(m, line, to);
+                int p = TextUtil.SkipBlanks(m, line, end);
+                int indent = p - line;
+                if (p < end && indent < common) common = indent;
+                line = end;
+                while (line < to && (m[line] == '\n' || m[line] == '\r')) line++;
+            }
+            return common == int.MaxValue ? 0 : common;
         }
 
         private static int TrimEnd(char[] m, int start, int end)
