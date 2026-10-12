@@ -1,9 +1,11 @@
 # Nestlight for Visual Studio
 
-> Syntax highlighting for languages embedded in strings.
+> **Vibe coding experiment.** This project was built with AI assistance (Claude) as an exercise in vibe coding. The code, the tests and this documentation were written collaboratively between a human and an AI.
+
+> Syntax highlighting, completion and diagnostics for code embedded in strings — SQL in C#, HTML in JavaScript, CSS in Python, and more.
 > For **Visual Studio 2022 / 2026**. Not for VS Code.
 
-Nestlight recognizes code embedded in string literals from a tag or a marker comment, colors it as its own language, and leaves interpolated expressions to the host code. It colors the embedded code and completes it as you type; it never changes your code on its own.
+Nestlight recognizes code embedded in string literals from a tag or a marker comment, colors it as its own language, and leaves interpolated expressions to the host code. It colors the embedded code, completes it as you type, shows diagnostics for structural errors, and supports go-to-definition and rename for CSS classes and ids — all without changing your code.
 
 <!-- TODO: add a screenshot, e.g. docs/screenshot.png -->
 
