@@ -71,5 +71,8 @@ namespace NestLight.Common
     internal interface IHighlighter
     {
         IReadOnlyList<Token> Highlight(string text);
+
+        /// <summary>The scanner that finds embedded strings, or null when the highlighter does not expose one.</summary>
+        IHostScanner Scanner { get; }
     }
 }
