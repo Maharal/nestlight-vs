@@ -10,45 +10,22 @@ namespace NestLight.Hosts
     /// of f-strings and t-strings; <c>{{</c> and <c>}}</c> are escaped braces.
     /// Implicit concatenation is not joined: each literal stands alone.
     /// </summary>
-    internal sealed class PythonHostScanner : IResumableHostScanner
+    internal sealed class PythonHostScanner : HostScannerBase
     {
         private static readonly HashSet<string> Prefixes = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
         {
             "r", "u", "b", "f", "t", "br", "rb", "fr", "rf", "tr", "rt"
         };
 
-        private readonly AcceptedEmbeddedLanguages _languages;
-        private readonly int _safePointGap;
-
         /// <param name="safePointGap">The distance between the safe points a scan keeps to resume from (see <see cref="SafePoints"/>).</param>
         public PythonHostScanner(AcceptedEmbeddedLanguages languages, int safePointGap = SafePoints.DefaultGap)
+            : base(languages, safePointGap)
         {
-            if (languages == null) throw new ArgumentNullException("languages");
-            _languages = languages;
-            _safePointGap = safePointGap;
         }
 
-        public IReadOnlyList<EmbeddedString> Scan(string text)
+        protected override void ScanCode(string text, List<EmbeddedString> result, SafePoints safe, int start)
         {
-            var result = new List<EmbeddedString>();
-            new Run(text, _languages, result).ScanCode();
-            return result;
-        }
-
-        public HostScan ScanAll(string text)
-        {
-            var result = new List<EmbeddedString>();
-            var safe = new SafePoints(_safePointGap);
-            new Run(text, _languages, result, safe, 0).ScanCode();
-            return new HostScan(result, safe.ToArray());
-        }
-
-        public HostScan Resume(string text, int from, int minStop, Func<int, bool> knownSafe)
-        {
-            var result = new List<EmbeddedString>();
-            var safe = new SafePoints(minStop, knownSafe, _safePointGap);
-            new Run(text, _languages, result, safe, from).ScanCode();
-            return new HostScan(result, safe.ToArray(), safe.StoppedAt);
+            new Run(text, Languages, result, safe, start).ScanCode();
         }
 
         private sealed class Run

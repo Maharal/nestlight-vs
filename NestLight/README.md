@@ -65,7 +65,7 @@ public const string FooComment = "template.foo.comment";
 
 These names are the contract between the tokenizer and the editor. A test (`VisualStudioContractTests`) fails if any name is missing a type definition or a default format in `VisualStudio/`.
 
-### 3. Classification types and colors — `VisualStudio/EmbeddedLanguageClassificationDefinitions.cs`
+### 3. Classification types and colors — `VisualStudio/<Lang>ClassificationDefinitions.cs` (one file per language)
 
 For each name from step 2, add **two** things:
 
@@ -289,7 +289,7 @@ Update the "Hosts" table in the root `README.md` (string forms, interpolation, m
 | 1 | `EmbeddedLanguages/<Lang>/<Lang>Tokenizer.cs` | Implement `IEmbeddedLanguageTokenizer` |
 | 2 | `Highlighting/NestLightComposition.cs` | Register in `CreateEmbeddedLanguages()` |
 | 3 | `Common/ClassificationNames.cs` | Add `template.<lang>.<role>` constants |
-| 4 | `VisualStudio/EmbeddedLanguageClassificationDefinitions.cs` | Add type + format definitions |
+| 4 | `VisualStudio/<Lang>ClassificationDefinitions.cs` | New file with the type + format definitions |
 | 5 | `Completion/Languages/<Lang>Completion.cs` | Derive from `CompletionLanguage` |
 | 6 | `Completion/Languages/CompletionLanguages.cs` | Register in `CreateStandard()` |
 | 7 | `VisualStudio/NestLightQuickInfo.cs` | Add descriptions in `DescriptionOf()` |

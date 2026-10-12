@@ -8,45 +8,25 @@ namespace NestLight.Hosts
     /// C++: raw string literals <c>R"delim(...)delim"</c> (with the <c>u8R</c>, <c>uR</c>, <c>UR</c> and <c>LR</c> prefixes),
     /// marked by a comment before the string. Raw strings have no interpolation and no escapes.
     /// </summary>
-    internal sealed class CppHostScanner : IResumableHostScanner
+    internal sealed class CppHostScanner : HostScannerBase
     {
         private static readonly HashSet<string> RawPrefixes = new HashSet<string> { "R", "u8R", "uR", "UR", "LR" };
         private const int MaxDelimiterLength = 16;
 
-        private readonly AcceptedEmbeddedLanguages _languages;
-        private readonly int _safePointGap;
-
         /// <param name="safePointGap">The distance between the safe points a scan keeps to resume from (see <see cref="SafePoints"/>).</param>
         public CppHostScanner(AcceptedEmbeddedLanguages languages, int safePointGap = SafePoints.DefaultGap)
+            : base(languages, safePointGap)
         {
-            if (languages == null) throw new ArgumentNullException("languages");
-            _languages = languages;
-            _safePointGap = safePointGap;
         }
 
-        public IReadOnlyList<EmbeddedString> Scan(string text)
+        protected override bool MayHoldStrings(string text)
         {
-            var result = new List<EmbeddedString>();
-            if (text.IndexOf("R\"", StringComparison.Ordinal) < 0) return result;
-            new Run(text, _languages, result).ScanCode();
-            return result;
+            return !(text.IndexOf("R\"", StringComparison.Ordinal) < 0);
         }
 
-        public HostScan ScanAll(string text)
+        protected override void ScanCode(string text, List<EmbeddedString> result, SafePoints safe, int start)
         {
-            var result = new List<EmbeddedString>();
-            if (text.IndexOf("R\"", StringComparison.Ordinal) < 0) return new HostScan(result, new int[0]);
-            var safe = new SafePoints(_safePointGap);
-            new Run(text, _languages, result, safe, 0).ScanCode();
-            return new HostScan(result, safe.ToArray());
-        }
-
-        public HostScan Resume(string text, int from, int minStop, Func<int, bool> knownSafe)
-        {
-            var result = new List<EmbeddedString>();
-            var safe = new SafePoints(minStop, knownSafe, _safePointGap);
-            new Run(text, _languages, result, safe, from).ScanCode();
-            return new HostScan(result, safe.ToArray(), safe.StoppedAt);
+            new Run(text, Languages, result, safe, start).ScanCode();
         }
 
         private sealed class Run
@@ -73,20 +53,9 @@ namespace NestLight.Hosts
                 while (_i < _t.Length)
                 {
                     char c = _t[_i];
-                    if (c == '/' && Next(1) == '/')
-                    {
-                        int e = _t.IndexOf('\n', _i);
-                        int end = e < 0 ? _t.Length : e;
-                        _markers.Comment(_t, _i + 2, end, end);
-                        _i = end;
-                    }
-                    else if (c == '/' && Next(1) == '*')
-                    {
-                        int e = _t.IndexOf("*/", _i + 2, StringComparison.Ordinal);
-                        if (e < 0) { _markers.Comment(_t, 0, 0, _t.Length); _i = _t.Length; }
-                        else { _markers.Comment(_t, _i + 2, e, e + 2); _i = e + 2; }
-                    }
-                    else if (c == '"')
+                    if (CStyleComments.TrySkip(_t, ref _i, _markers)) continue;
+
+                    if (c == '"')
                     {
                         _markers.Take(_t, _i);
                         SkipQuoted('"');
