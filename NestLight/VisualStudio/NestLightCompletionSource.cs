@@ -53,6 +53,30 @@ namespace NestLight.VisualStudio
         public CppCompletionSourceProvider() : base(HostLanguage.Cpp) { }
     }
 
+    [Export(typeof(IAsyncCompletionSourceProvider))]
+    [Name("NestLight completion (Rust)")]
+    [ContentType("Rust")]
+    internal sealed class RustCompletionSourceProvider : NestLightCompletionSourceProvider
+    {
+        public RustCompletionSourceProvider() : base(HostLanguage.Rust) { }
+    }
+
+    [Export(typeof(IAsyncCompletionSourceProvider))]
+    [Name("NestLight completion (Go)")]
+    [ContentType("Go")]
+    internal sealed class GoCompletionSourceProvider : NestLightCompletionSourceProvider
+    {
+        public GoCompletionSourceProvider() : base(HostLanguage.Go) { }
+    }
+
+    [Export(typeof(IAsyncCompletionSourceProvider))]
+    [Name("NestLight completion (Java)")]
+    [ContentType("Java")]
+    internal sealed class JavaCompletionSourceProvider : NestLightCompletionSourceProvider
+    {
+        public JavaCompletionSourceProvider() : base(HostLanguage.Java) { }
+    }
+
     internal abstract class NestLightCompletionSourceProvider : IAsyncCompletionSourceProvider
     {
         private readonly HostLanguage _host;

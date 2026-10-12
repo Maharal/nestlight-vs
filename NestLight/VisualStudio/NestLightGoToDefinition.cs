@@ -12,6 +12,7 @@ namespace NestLight.VisualStudio
     [Export(typeof(ITextViewCreationListener))]
     [ContentType("TypeScript")][ContentType("JavaScript")]
     [ContentType("CSharp")][ContentType("Python")][ContentType("C/C++")]
+    [ContentType("Rust")][ContentType("Go")][ContentType("Java")]
     [TextViewRole(PredefinedTextViewRoles.Document)]
     internal sealed class NestLightGoToDefinitionListener : ITextViewCreationListener
     {

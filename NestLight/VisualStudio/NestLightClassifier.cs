@@ -41,6 +41,27 @@ namespace NestLight.VisualStudio
         public CppClassifierProvider() : base(HostLanguage.Cpp) { }
     }
 
+    [Export(typeof(IClassifierProvider))]
+    [ContentType("Rust")]
+    internal sealed class RustClassifierProvider : NestLightClassifierProvider
+    {
+        public RustClassifierProvider() : base(HostLanguage.Rust) { }
+    }
+
+    [Export(typeof(IClassifierProvider))]
+    [ContentType("Go")]
+    internal sealed class GoClassifierProvider : NestLightClassifierProvider
+    {
+        public GoClassifierProvider() : base(HostLanguage.Go) { }
+    }
+
+    [Export(typeof(IClassifierProvider))]
+    [ContentType("Java")]
+    internal sealed class JavaClassifierProvider : NestLightClassifierProvider
+    {
+        public JavaClassifierProvider() : base(HostLanguage.Java) { }
+    }
+
     internal abstract class NestLightClassifierProvider : IClassifierProvider
     {
         private readonly HostLanguage _host;

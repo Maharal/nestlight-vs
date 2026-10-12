@@ -23,7 +23,10 @@ namespace NestLight.Tests
                 case HostLanguage.JavaScript: return new JavaScriptHostScanner(new AcceptedEmbeddedLanguages(registry), gap);
                 case HostLanguage.CSharp: return new CSharpHostScanner(new AcceptedEmbeddedLanguages(registry, new[] { "json", "regex", "regexp" }), gap);
                 case HostLanguage.Python: return new PythonHostScanner(new AcceptedEmbeddedLanguages(registry), gap);
-                default: return new CppHostScanner(new AcceptedEmbeddedLanguages(registry), gap);
+                case HostLanguage.Cpp: return new CppHostScanner(new AcceptedEmbeddedLanguages(registry), gap);
+                case HostLanguage.Rust: return new RustHostScanner(new AcceptedEmbeddedLanguages(registry), gap);
+                case HostLanguage.Go: return new GoHostScanner(new AcceptedEmbeddedLanguages(registry), gap);
+                default: return new JavaHostScanner(new AcceptedEmbeddedLanguages(registry), gap);
             }
         }
 
@@ -43,7 +46,9 @@ namespace NestLight.Tests
         /// </summary>
         private static void AssertSameScan(HostLanguage host, string before, string after, HostScan expected, HostScan updated)
         {
-            bool unread = host == HostLanguage.JavaScript ? after.IndexOf('`') < 0 : host == HostLanguage.Cpp && after.IndexOf("R\"", StringComparison.Ordinal) < 0;
+            bool unread = host == HostLanguage.JavaScript ? after.IndexOf('`') < 0
+                : host == HostLanguage.Cpp ? after.IndexOf("R\"", StringComparison.Ordinal) < 0
+                : false;
             string e = Dump(expected, !unread), u = Dump(updated, !unread);
             if (e != u)
                 Assert.True(false, host + "\nbefore: " + Show(before) + "\nafter:  " + Show(after) + "\nexpected:\n" + e + "\nupdated:\n" + u);
@@ -73,6 +78,12 @@ namespace NestLight.Tests
                 "\"", "\"\"\"", "'''", "'", "f\"", "rf'", "f\"\"\"", "{x}", "{{", "}}", "{x!r:>{w}}", "#", "# language=sql\n", "# language=html\n", "q = ", "\\\n", "b\"x\"", "f'{a['k']}'", "# not a marker\n", "print(" } },
             { HostLanguage.Cpp, new[] {
                 "R\"(", ")\"", "R\"x(", ")x\"", "u8R\"(", "LR\"(", "\"", "'", "/*", "*/", "//", "// language=sql\n", "/* html */ ", "auto q = ", "1'000", "\"R\\\"(\"", "// language=css\n", "R\"(select 1)\";" } },
+            { HostLanguage.Rust, new[] {
+                "r\"", "\"", "r#\"", "\"#", "r##\"", "\"##", "br\"", "'", "/*", "*/", "//", "// language=sql\n", "/* html */ ", "let q = ", "'a", "\\\"", "// language=css\n", "r\"select 1\";" } },
+            { HostLanguage.Go, new[] {
+                "`", "`", "\"", "'", "/*", "*/", "//", "// language=sql\n", "/* html */ ", "var q = ", "\\\"", "// language=css\n", "`select 1`;" } },
+            { HostLanguage.Java, new[] {
+                "\"\"\"", "\n\"\"\"", "\"", "'", "/*", "*/", "//", "// language=sql\n", "/* html */ ", "String q = ", "\\\"", "// language=css\n", "\"\"\"\nselect 1\n\"\"\";" } },
         };
 
         private static string Random(Random random, string[] pieces, int count)
@@ -167,7 +178,10 @@ namespace NestLight.Tests
                 case HostLanguage.JavaScript: open = "const first = 1;\nconst q = sql`"; close = "`;\nconst last = 2;\n"; break;
                 case HostLanguage.CSharp: open = "int first = 1;\n// language=sql\nvar q = \""; close = "\";\nint last = 2;\n"; break;
                 case HostLanguage.Python: open = "first = 1\n# language=sql\nq = \""; close = "\"\nlast = 2\n"; break;
-                default: open = "int first = 1;\n// language=sql\nauto q = R\"("; close = ")\";\nint last = 2;\n"; break;
+                case HostLanguage.Cpp: open = "int first = 1;\n// language=sql\nauto q = R\"("; close = ")\";\nint last = 2;\n"; break;
+                case HostLanguage.Rust: open = "let first = 1;\n// language=sql\nlet q = r\""; close = "\";\nlet last = 2;\n"; break;
+                case HostLanguage.Go: open = "var first = 1\n// language=sql\nvar q = `"; close = "`\nvar last = 2\n"; break;
+                default: open = "int first = 1;\n// language=sql\nString q = \""; close = "\";\nint last = 2;\n"; break;
             }
             string padding = string.Concat(Enumerable.Repeat("int pad = 1;\n", 200));
             IResumableHostScanner scanner = Scanner(host, gap);
@@ -286,11 +300,23 @@ namespace NestLight.Tests
         [InlineData(HostLanguage.CSharp)]
         [InlineData(HostLanguage.Python)]
         [InlineData(HostLanguage.Cpp)]
+        [InlineData(HostLanguage.Rust)]
+        [InlineData(HostLanguage.Go)]
+        [InlineData(HostLanguage.Java)]
         public void The_safe_points_are_far_apart_so_that_the_list_of_a_large_file_is_small(HostLanguage host)
         {
             // thousands of lines, so the list would have thousands of numbers if it had one for each line
-            string marked = host == HostLanguage.JavaScript ? "sql`select 1`;\n" : host == HostLanguage.CSharp ? "// language=sql\nvar q = \"select 1\";\n"
-                : host == HostLanguage.Python ? "# language=sql\nq = \"select 1\"\n" : "// language=sql\nauto q = R\"(select 1)\";\n";
+            string marked;
+            switch (host)
+            {
+                case HostLanguage.JavaScript: marked = "sql`select 1`;\n"; break;
+                case HostLanguage.CSharp: marked = "// language=sql\nvar q = \"select 1\";\n"; break;
+                case HostLanguage.Python: marked = "# language=sql\nq = \"select 1\"\n"; break;
+                case HostLanguage.Cpp: marked = "// language=sql\nauto q = R\"(select 1)\";\n"; break;
+                case HostLanguage.Rust: marked = "// language=sql\nlet q = r\"select 1\";\n"; break;
+                case HostLanguage.Go: marked = "// language=sql\nvar q = `select 1`\n"; break;
+                default: marked = "// language=sql\nString q = \"select 1\";\n"; break;
+            }
             string text = string.Concat(Enumerable.Repeat("x = 1\nint pad = 1;\n", 12000)) + marked; // the string makes the host read the text at all
             IResumableHostScanner scanner = Scanner(host, SafePoints.DefaultGap);
             int[] safe = scanner.ScanAll(text).SafePoints;

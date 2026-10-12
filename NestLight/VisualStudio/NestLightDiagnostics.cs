@@ -43,6 +43,30 @@ namespace NestLight.VisualStudio
         public CppDiagnosticsProvider() : base(HostLanguage.Cpp) { }
     }
 
+    [Export(typeof(ITaggerProvider))]
+    [TagType(typeof(IErrorTag))]
+    [ContentType("Rust")]
+    internal sealed class RustDiagnosticsProvider : NestLightDiagnosticsProvider
+    {
+        public RustDiagnosticsProvider() : base(HostLanguage.Rust) { }
+    }
+
+    [Export(typeof(ITaggerProvider))]
+    [TagType(typeof(IErrorTag))]
+    [ContentType("Go")]
+    internal sealed class GoDiagnosticsProvider : NestLightDiagnosticsProvider
+    {
+        public GoDiagnosticsProvider() : base(HostLanguage.Go) { }
+    }
+
+    [Export(typeof(ITaggerProvider))]
+    [TagType(typeof(IErrorTag))]
+    [ContentType("Java")]
+    internal sealed class JavaDiagnosticsProvider : NestLightDiagnosticsProvider
+    {
+        public JavaDiagnosticsProvider() : base(HostLanguage.Java) { }
+    }
+
     internal abstract class NestLightDiagnosticsProvider : ITaggerProvider
     {
         private readonly HostLanguage _host;

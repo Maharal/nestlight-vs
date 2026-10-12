@@ -42,6 +42,30 @@ namespace NestLight.VisualStudio
         public CppQuickInfoSourceProvider() : base(HostLanguage.Cpp) { }
     }
 
+    [Export(typeof(IAsyncQuickInfoSourceProvider))]
+    [Name("NestLight quick info (Rust)")]
+    [ContentType("Rust")]
+    internal sealed class RustQuickInfoSourceProvider : NestLightQuickInfoSourceProvider
+    {
+        public RustQuickInfoSourceProvider() : base(HostLanguage.Rust) { }
+    }
+
+    [Export(typeof(IAsyncQuickInfoSourceProvider))]
+    [Name("NestLight quick info (Go)")]
+    [ContentType("Go")]
+    internal sealed class GoQuickInfoSourceProvider : NestLightQuickInfoSourceProvider
+    {
+        public GoQuickInfoSourceProvider() : base(HostLanguage.Go) { }
+    }
+
+    [Export(typeof(IAsyncQuickInfoSourceProvider))]
+    [Name("NestLight quick info (Java)")]
+    [ContentType("Java")]
+    internal sealed class JavaQuickInfoSourceProvider : NestLightQuickInfoSourceProvider
+    {
+        public JavaQuickInfoSourceProvider() : base(HostLanguage.Java) { }
+    }
+
     internal abstract class NestLightQuickInfoSourceProvider : IAsyncQuickInfoSourceProvider
     {
         private readonly HostLanguage _host;
