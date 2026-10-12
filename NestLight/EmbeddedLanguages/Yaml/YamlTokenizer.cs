@@ -252,8 +252,14 @@ namespace NestLight.EmbeddedLanguages
         private static int CommonIndent(char[] m, int from, int to)
         {
             int common = int.MaxValue;
-            int line = TextUtil.LineEnd(m, from, to);
-            while (line < to && (m[line] == '\n' || m[line] == '\r')) line++;
+            int firstEnd = TextUtil.LineEnd(m, from, to);
+            int firstP = TextUtil.SkipBlanks(m, from, firstEnd);
+            int line = from;
+            if (firstP >= firstEnd)
+            {
+                line = firstEnd;
+                while (line < to && (m[line] == '\n' || m[line] == '\r')) line++;
+            }
             while (line < to)
             {
                 int end = TextUtil.LineEnd(m, line, to);
