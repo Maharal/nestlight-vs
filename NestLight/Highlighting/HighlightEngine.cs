@@ -153,18 +153,39 @@ namespace NestLight.Highlighting
                     if (nested.OuterStart >= close) break;
                     if (ReferenceEquals(nested, owner)) continue;
                     if (nested.OuterStart > cursor)
-                    {
-                        output.Add(new Token(cursor, nested.OuterStart - cursor, ClassificationNames.Expression));
-                        if (text != null) InterpolationHighlighter.Highlight(text, cursor, nested.OuterStart, output);
-                    }
+                        EmitExpressionSpan(text, cursor, nested.OuterStart, output);
                     cursor = Math.Max(cursor, Math.Min(nested.OuterEnd, close));
                 }
                 if (cursor < close)
-                {
-                    output.Add(new Token(cursor, close - cursor, ClassificationNames.Expression));
-                    if (text != null) InterpolationHighlighter.Highlight(text, cursor, close, output);
-                }
+                    EmitExpressionSpan(text, cursor, close, output);
             }
+        }
+
+        private static void EmitExpressionSpan(string text, int start, int end, List<Token> output)
+        {
+            if (text == null)
+            {
+                output.Add(new Token(start, end - start, ClassificationNames.Expression));
+                return;
+            }
+            var highlights = new List<Token>();
+            InterpolationHighlighter.Highlight(text, start, end, highlights);
+            if (highlights.Count == 0)
+            {
+                output.Add(new Token(start, end - start, ClassificationNames.Expression));
+                return;
+            }
+            highlights.Sort((a, b) => a.Start.CompareTo(b.Start));
+            int cursor = start;
+            foreach (Token h in highlights)
+            {
+                if (h.Start > cursor)
+                    output.Add(new Token(cursor, h.Start - cursor, ClassificationNames.Expression));
+                output.Add(h);
+                cursor = h.End;
+            }
+            if (cursor < end)
+                output.Add(new Token(cursor, end - cursor, ClassificationNames.Expression));
         }
 
         /// <summary>Binary search over strings ordered by OuterStart.</summary>

@@ -35,13 +35,15 @@ namespace NestLight.Common
                 {
                     if (text[i + 1] == '/')
                     {
-                        int nl = text.IndexOf('\n', i + 2, end - i - 2);
+                        int remaining = end - i - 2;
+                        int nl = remaining > 0 ? text.IndexOf('\n', i + 2, remaining) : -1;
                         i = nl < 0 ? end : nl + 1;
                         continue;
                     }
                     if (text[i + 1] == '*')
                     {
-                        int close = text.IndexOf("*/", i + 2, end - i - 2, StringComparison.Ordinal);
+                        int remaining = end - i - 2;
+                        int close = remaining > 0 ? text.IndexOf("*/", i + 2, remaining, StringComparison.Ordinal) : -1;
                         i = close < 0 ? end : close + 2;
                         continue;
                     }
@@ -52,10 +54,11 @@ namespace NestLight.Common
                     int strEnd = i + 1;
                     while (strEnd < end)
                     {
-                        if (text[strEnd] == '\\') { strEnd += 2; continue; }
+                        if (text[strEnd] == '\\') { strEnd = Math.Min(strEnd + 2, end); continue; }
                         if (text[strEnd] == c) { strEnd++; break; }
                         strEnd++;
                     }
+                    if (strEnd > end) strEnd = end;
                     output.Add(new Token(i, strEnd - i, ClassificationNames.ExprString));
                     i = strEnd;
                     continue;
