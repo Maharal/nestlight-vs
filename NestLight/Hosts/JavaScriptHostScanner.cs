@@ -9,42 +9,22 @@ namespace NestLight.Hosts
     /// (<c>html`...`</c>, <c>ui.html`...`</c>) or by a marker comment (<c>/* css */</c>, <c>// language=sql</c>).
     /// Skips comments, ordinary strings and regular expression literals. Templates nested in a <c>${}</c> are found at every level.
     /// </summary>
-    internal sealed class JavaScriptHostScanner : IResumableHostScanner
+    internal sealed class JavaScriptHostScanner : HostScannerBase
     {
-        private readonly AcceptedEmbeddedLanguages _languages;
-        private readonly int _safePointGap;
-
         /// <param name="safePointGap">The distance between the safe points a scan keeps to resume from (see <see cref="SafePoints"/>).</param>
         public JavaScriptHostScanner(AcceptedEmbeddedLanguages languages, int safePointGap = SafePoints.DefaultGap)
+            : base(languages, safePointGap)
         {
-            if (languages == null) throw new ArgumentNullException("languages");
-            _languages = languages;
-            _safePointGap = safePointGap;
         }
 
-        public IReadOnlyList<EmbeddedString> Scan(string text)
+        protected override bool MayHoldStrings(string text)
         {
-            var result = new List<EmbeddedString>();
-            if (text.IndexOf('`') < 0) return result;
-            new Run(text, _languages, result).ScanCode(false);
-            return result;
+            return !(text.IndexOf('`') < 0);
         }
 
-        public HostScan ScanAll(string text)
+        protected override void ScanCode(string text, List<EmbeddedString> result, SafePoints safe, int start)
         {
-            var result = new List<EmbeddedString>();
-            if (text.IndexOf('`') < 0) return new HostScan(result, new int[0]);
-            var safe = new SafePoints(_safePointGap);
-            new Run(text, _languages, result, safe, 0).ScanCode(false);
-            return new HostScan(result, safe.ToArray());
-        }
-
-        public HostScan Resume(string text, int from, int minStop, Func<int, bool> knownSafe)
-        {
-            var result = new List<EmbeddedString>();
-            var safe = new SafePoints(minStop, knownSafe, _safePointGap);
-            new Run(text, _languages, result, safe, from).ScanCode(false);
-            return new HostScan(result, safe.ToArray(), safe.StoppedAt);
+            new Run(text, Languages, result, safe, start).ScanCode(false);
         }
 
         private sealed class Run
