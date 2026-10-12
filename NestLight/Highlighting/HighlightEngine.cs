@@ -23,6 +23,8 @@ namespace NestLight.Highlighting
             _languages = languages;
         }
 
+        public IHostScanner Scanner { get { return _scanner; } }
+
         public IReadOnlyList<Token> Highlight(string text)
         {
             IReadOnlyList<EmbeddedString> strings = _scanner.Scan(text);

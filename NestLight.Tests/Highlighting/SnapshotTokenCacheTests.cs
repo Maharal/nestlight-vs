@@ -21,6 +21,7 @@ namespace NestLight.Tests
             public int Calls;
             public Func<string, IReadOnlyList<Token>> Behavior = text => new Token[0];
             public IReadOnlyList<Token> Highlight(string text) { Calls++; return Behavior(text); }
+            public IHostScanner Scanner { get { return null; } }
         }
 
         private static Token[] Spread(string text)
