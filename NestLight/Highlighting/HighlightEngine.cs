@@ -39,7 +39,7 @@ namespace NestLight.Highlighting
                 IEmbeddedLanguageTokenizer tokenizer = _languages.Find(s.EmbeddedLanguageId);
                 if (tokenizer == null) continue;
                 int mark = tokens.Count;
-                EmitInterpolations(s, strings, tokens, text);
+                EmitInterpolations(s, strings, tokens);
                 int maxLen = Math.Max(0, Math.Min(s.End, text.Length) - s.Start);
                 if (decodedBuf == null || decodedBuf.Length < maxLen)
                     decodedBuf = new char[Math.Max(maxLen, 256)];
@@ -137,7 +137,7 @@ namespace NestLight.Highlighting
         /// <summary>
         /// Delimiters and neutral expression text. Strings nested in the expression are left out: they color themselves.
         /// </summary>
-        private static void EmitInterpolations(EmbeddedString owner, IReadOnlyList<EmbeddedString> all, List<Token> output, string text)
+        private static void EmitInterpolations(EmbeddedString owner, IReadOnlyList<EmbeddedString> all, List<Token> output)
         {
             foreach (Interpolation x in owner.Interpolations)
             {
@@ -153,39 +153,12 @@ namespace NestLight.Highlighting
                     if (nested.OuterStart >= close) break;
                     if (ReferenceEquals(nested, owner)) continue;
                     if (nested.OuterStart > cursor)
-                        EmitExpressionSpan(text, cursor, nested.OuterStart, output);
+                        output.Add(new Token(cursor, nested.OuterStart - cursor, ClassificationNames.Expression));
                     cursor = Math.Max(cursor, Math.Min(nested.OuterEnd, close));
                 }
                 if (cursor < close)
-                    EmitExpressionSpan(text, cursor, close, output);
+                    output.Add(new Token(cursor, close - cursor, ClassificationNames.Expression));
             }
-        }
-
-        private static void EmitExpressionSpan(string text, int start, int end, List<Token> output)
-        {
-            if (text == null)
-            {
-                output.Add(new Token(start, end - start, ClassificationNames.Expression));
-                return;
-            }
-            var highlights = new List<Token>();
-            InterpolationHighlighter.Highlight(text, start, end, highlights);
-            if (highlights.Count == 0)
-            {
-                output.Add(new Token(start, end - start, ClassificationNames.Expression));
-                return;
-            }
-            highlights.Sort((a, b) => a.Start.CompareTo(b.Start));
-            int cursor = start;
-            foreach (Token h in highlights)
-            {
-                if (h.Start > cursor)
-                    output.Add(new Token(cursor, h.Start - cursor, ClassificationNames.Expression));
-                output.Add(h);
-                cursor = h.End;
-            }
-            if (cursor < end)
-                output.Add(new Token(cursor, end - cursor, ClassificationNames.Expression));
         }
 
         /// <summary>Binary search over strings ordered by OuterStart.</summary>

@@ -147,11 +147,25 @@ namespace NestLight.VisualStudio
         {
             var result = new List<ClassificationSpan>();
             ITextSnapshot snapshot = span.Snapshot;
+            string text = null;
             foreach (Token token in _cache.TokensIn(snapshot, span.Start, span.End))
             {
                 if (token.End > snapshot.Length) continue;
                 IClassificationType type = TypeOf(token.Type);
                 if (type != null) result.Add(new ClassificationSpan(new SnapshotSpan(snapshot, token.Start, token.Length), type));
+
+                if (token.Type == ClassificationNames.Expression && token.Length > 0)
+                {
+                    if (text == null) text = snapshot.GetText();
+                    var highlights = new List<Token>();
+                    InterpolationHighlighter.Highlight(text, token.Start, token.End, highlights);
+                    foreach (Token h in highlights)
+                    {
+                        if (h.End > snapshot.Length) continue;
+                        IClassificationType hType = TypeOf(h.Type);
+                        if (hType != null) result.Add(new ClassificationSpan(new SnapshotSpan(snapshot, h.Start, h.Length), hType));
+                    }
+                }
             }
             return result;
         }
