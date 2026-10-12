@@ -29,10 +29,40 @@ namespace NestLight.Common
         {
             if (s.EmbeddedLanguageId == null && _guesser != null && s.End > s.Start)
             {
-                string guessed = _guesser.Guess(text, s.Start, Math.Min(s.End, text.Length));
+                string guessed;
+                int end = Math.Min(s.End, text.Length);
+                if (s.Escapes.Count > 0)
+                {
+                    string decoded = DecodeForDetection(text, s.Start, end, s.Escapes);
+                    guessed = _guesser.Guess(decoded, 0, decoded.Length);
+                }
+                else
+                {
+                    guessed = _guesser.Guess(text, s.Start, end);
+                }
                 if (Accepts(guessed)) s.EmbeddedLanguageId = guessed;
             }
             return s.EmbeddedLanguageId != null;
+        }
+
+        private static string DecodeForDetection(string text, int start, int end, List<EscapeSequence> escapes)
+        {
+            var buf = new char[end - start];
+            int n = 0, esc = 0, p = start;
+            while (p < end)
+            {
+                while (esc < escapes.Count && escapes[esc].Start < p) esc++;
+                if (esc < escapes.Count && escapes[esc].Start == p && p + escapes[esc].Length <= end)
+                {
+                    buf[n++] = escapes[esc].Value;
+                    p += escapes[esc].Length;
+                }
+                else
+                {
+                    buf[n++] = text[p++];
+                }
+            }
+            return new string(buf, 0, n);
         }
 
         public bool Accepts(string id)

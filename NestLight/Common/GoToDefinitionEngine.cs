@@ -7,13 +7,27 @@ namespace NestLight.Common
     {
         public readonly int Start;
         public readonly int Length;
+        public readonly int FileIndex;
 
-        public DefinitionResult(int start, int length) { Start = start; Length = length; }
+        public DefinitionResult(int start, int length, int fileIndex = -1) { Start = start; Length = length; FileIndex = fileIndex; }
+    }
+
+    internal struct ExternalFile
+    {
+        public readonly IReadOnlyList<Token> Tokens;
+        public readonly string Text;
+
+        public ExternalFile(IReadOnlyList<Token> tokens, string text) { Tokens = tokens; Text = text; }
     }
 
     internal static class GoToDefinitionEngine
     {
         public static DefinitionResult? FindDefinition(IReadOnlyList<Token> tokens, string text, int position)
+        {
+            return FindDefinition(tokens, text, position, null);
+        }
+
+        public static DefinitionResult? FindDefinition(IReadOnlyList<Token> tokens, string text, int position, IReadOnlyList<ExternalFile> externalFiles)
         {
             Token current = TokenLookup.AtPosition(tokens, position);
             if (current == null) return null;
@@ -74,6 +88,17 @@ namespace NestLight.Common
             Token definition = TokenLookup.FindDefinition(tokens, target, current, targetType, text);
             if (definition != null)
                 return new DefinitionResult(definition.Start, definition.Length);
+
+            if (externalFiles != null)
+            {
+                for (int f = 0; f < externalFiles.Count; f++)
+                {
+                    var ext = externalFiles[f];
+                    Token extDef = TokenLookup.FindDefinition(ext.Tokens, target, null, targetType, ext.Text);
+                    if (extDef != null)
+                        return new DefinitionResult(extDef.Start, extDef.Length, f);
+                }
+            }
 
             return null;
         }

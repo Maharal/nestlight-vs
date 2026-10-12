@@ -227,7 +227,125 @@ namespace NestLight.Tests
         [Fact]
         public void Unknown_language_produces_no_diagnostics()
         {
-            Assert.Empty(DiagnosticChecker.Check("sql", "SELECT *", 0, 8));
+            Assert.Empty(DiagnosticChecker.Check("toml", "[package]", 0, 9));
+        }
+
+        // ---- SQL dispatch ----
+
+        [Theory]
+        [InlineData("sql")]
+        [InlineData("SQL")]
+        public void Check_dispatches_sql(string id)
+        {
+            string text = "SELECT * FROM t";
+            Assert.Empty(DiagnosticChecker.Check(id, text, 0, text.Length));
+        }
+
+        // ---- CSS dispatch ----
+
+        [Theory]
+        [InlineData("css")]
+        [InlineData("CSS")]
+        public void Check_dispatches_css(string id)
+        {
+            string text = ".x { color: red; }";
+            Assert.Empty(DiagnosticChecker.Check(id, text, 0, text.Length));
+        }
+
+        // ---- YAML ----
+
+        [Fact]
+        public void Valid_yaml_produces_no_diagnostics()
+        {
+            string text = "name: test\nversion: 1";
+            Assert.Empty(DiagnosticChecker.CheckYaml(text, 0, text.Length));
+        }
+
+        [Fact]
+        public void Mixed_tabs_and_spaces_in_yaml_is_reported()
+        {
+            string text = "root:\n \tindented: true";
+            var diags = DiagnosticChecker.CheckYaml(text, 0, text.Length).ToList();
+            Assert.Single(diags);
+            Assert.Contains("Mixed tabs and spaces", diags[0].Message);
+        }
+
+        [Fact]
+        public void Duplicate_yaml_key_is_reported()
+        {
+            string text = "name: first\nname: second";
+            var diags = DiagnosticChecker.CheckYaml(text, 0, text.Length).ToList();
+            Assert.Single(diags);
+            Assert.Contains("Duplicate YAML key", diags[0].Message);
+        }
+
+        [Fact]
+        public void Yaml_comments_are_not_duplicate_keys()
+        {
+            string text = "name: first\n# name: second";
+            Assert.Empty(DiagnosticChecker.CheckYaml(text, 0, text.Length));
+        }
+
+        [Theory]
+        [InlineData("yaml")]
+        [InlineData("yml")]
+        [InlineData("YAML")]
+        public void Check_dispatches_yaml(string id)
+        {
+            string text = "key: value";
+            Assert.Empty(DiagnosticChecker.Check(id, text, 0, text.Length));
+        }
+
+        // ---- GraphQL ----
+
+        [Fact]
+        public void Valid_graphql_produces_no_diagnostics()
+        {
+            string text = "query { user { name } }";
+            Assert.Empty(DiagnosticChecker.CheckGraphQl(text, 0, text.Length));
+        }
+
+        [Fact]
+        public void Unclosed_brace_in_graphql_is_reported()
+        {
+            string text = "query { user { name }";
+            var diags = DiagnosticChecker.CheckGraphQl(text, 0, text.Length).ToList();
+            Assert.Single(diags);
+            Assert.Contains("Unclosed '{'", diags[0].Message);
+        }
+
+        [Fact]
+        public void Unexpected_closing_brace_in_graphql_is_reported()
+        {
+            string text = "}";
+            var diags = DiagnosticChecker.CheckGraphQl(text, 0, text.Length).ToList();
+            Assert.Single(diags);
+            Assert.Contains("Unexpected closing '}'", diags[0].Message);
+        }
+
+        [Fact]
+        public void Unterminated_graphql_string_is_reported()
+        {
+            string text = "{ field(arg: \"unclosed) }";
+            var diags = DiagnosticChecker.CheckGraphQl(text, 0, text.Length).ToList();
+            Assert.Contains(diags, d => d.Message.Contains("Unterminated GraphQL string"));
+        }
+
+        [Fact]
+        public void Graphql_comments_are_handled()
+        {
+            string text = "# comment\nquery { user { name } }";
+            Assert.Empty(DiagnosticChecker.CheckGraphQl(text, 0, text.Length));
+        }
+
+        [Theory]
+        [InlineData("graphql")]
+        [InlineData("gql")]
+        [InlineData("GRAPHQL")]
+        public void Check_dispatches_graphql(string id)
+        {
+            string text = "{ user { name } }";
+            Assert.Empty(DiagnosticChecker.Check(id, text, 0, text.Length));
         }
     }
 }

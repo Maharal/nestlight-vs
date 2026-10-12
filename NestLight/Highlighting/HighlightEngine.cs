@@ -152,11 +152,12 @@ namespace NestLight.Highlighting
                     EmbeddedString nested = all[k];
                     if (nested.OuterStart >= close) break;
                     if (ReferenceEquals(nested, owner)) continue;
-                    // starts inside the expression (even if still unclosed, while typing)
-                    if (nested.OuterStart > cursor) output.Add(new Token(cursor, nested.OuterStart - cursor, ClassificationNames.Expression));
+                    if (nested.OuterStart > cursor)
+                        output.Add(new Token(cursor, nested.OuterStart - cursor, ClassificationNames.Expression));
                     cursor = Math.Max(cursor, Math.Min(nested.OuterEnd, close));
                 }
-                if (cursor < close) output.Add(new Token(cursor, close - cursor, ClassificationNames.Expression));
+                if (cursor < close)
+                    output.Add(new Token(cursor, close - cursor, ClassificationNames.Expression));
             }
         }
 

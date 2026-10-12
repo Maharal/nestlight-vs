@@ -9,6 +9,9 @@ namespace NestLight.Common
         // Interpolations (shared by every host)
         public const string ExprDelimiter = "template.expression.delimiter";
         public const string Expression = "template.expression";
+        public const string ExprKeyword = "template.expression.keyword";
+        public const string ExprString = "template.expression.string";
+        public const string ExprNumber = "template.expression.number";
 
         // HTML
         public const string Tag = "template.html.tag";

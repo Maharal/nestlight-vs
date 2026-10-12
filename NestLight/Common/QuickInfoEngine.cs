@@ -7,13 +7,19 @@ namespace NestLight.Common
         public readonly int Start;
         public readonly int Length;
         public readonly string Description;
+        public readonly CssColor? Color;
 
-        public QuickInfoResult(int start, int length, string description) { Start = start; Length = length; Description = description; }
+        public QuickInfoResult(int start, int length, string description, CssColor? color = null) { Start = start; Length = length; Description = description; Color = color; }
     }
 
     internal static class QuickInfoEngine
     {
         public static QuickInfoResult? GetInfo(IReadOnlyList<Token> tokens, int position)
+        {
+            return GetInfo(tokens, position, null);
+        }
+
+        public static QuickInfoResult? GetInfo(IReadOnlyList<Token> tokens, int position, string text)
         {
             Token token = TokenLookup.AtPosition(tokens, position);
             if (token == null) return null;
@@ -21,7 +27,15 @@ namespace NestLight.Common
             string description = DescriptionOf(token.Type);
             if (description == null) return null;
 
-            return new QuickInfoResult(token.Start, token.Length, description);
+            CssColor? color = null;
+            if (text != null && token.Start + token.Length <= text.Length)
+            {
+                string tokenText = text.Substring(token.Start, token.Length);
+                if (token.Type == ClassificationNames.CssNumber || token.Type == ClassificationNames.CssValue)
+                    color = CssColorParser.TryParse(tokenText);
+            }
+
+            return new QuickInfoResult(token.Start, token.Length, description, color);
         }
 
         internal static string DescriptionOf(string classificationType)
@@ -105,6 +119,10 @@ namespace NestLight.Common
             if (classificationType == ClassificationNames.TomlLiteral) return "TOML literal (true / false)";
             if (classificationType == ClassificationNames.TomlDate) return "TOML date / time";
             if (classificationType == ClassificationNames.TomlComment) return "TOML comment";
+
+            if (classificationType == ClassificationNames.ExprKeyword) return "Expression keyword";
+            if (classificationType == ClassificationNames.ExprString) return "Expression string";
+            if (classificationType == ClassificationNames.ExprNumber) return "Expression number";
 
             return null;
         }
