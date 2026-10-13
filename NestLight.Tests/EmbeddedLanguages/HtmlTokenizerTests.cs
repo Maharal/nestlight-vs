@@ -318,5 +318,42 @@ namespace NestLight.Tests
             Assert.Equal(new[] { "a" }, T(html, ClassificationNames.CssProperty));
             Assert.Equal(new[] { "\"" }, T(html, ClassificationNames.AttributeValue));
         }
+
+        // --- Mutant-killing tests ---
+
+        [Fact]
+        public void Null_languages_throws()
+        {
+            // Kills: L24 string mutation on "languages"
+            Assert.Throws<System.ArgumentNullException>(() => new NestLight.EmbeddedLanguages.HtmlTokenizer(null));
+        }
+
+        [Fact]
+        public void Self_closing_slash_boundary()
+        {
+            // Kills: L96 p + 1 > n, m[p+1] != '>', p - 1 arithmetic
+            Assert.Equal(new[] { "<", "/>" }, T("<br/>", ClassificationNames.Delimiter));
+        }
+
+        [Fact]
+        public void Tag_body_attribute_scanning()
+        {
+            // Kills: L98 statement mutation
+            Assert.Equal(new[] { "b", "c" }, T("<a b c>", ClassificationNames.Attribute));
+        }
+
+        [Fact]
+        public void Unquoted_attribute_value_self_closing()
+        {
+            // Kills: L133 q + 1 > n, q + 1 <= n, q - 1 arithmetic, m[q+1] != '>'
+            Assert.Contains("5", T("<a b=5/>", ClassificationNames.AttributeValue));
+        }
+
+        [Fact]
+        public void Style_close_tag_boundary()
+        {
+            // Kills: L145 close <= 0
+            Assert.Equal(new[] { "b" }, T("<style>a { b: c }</style>", ClassificationNames.CssProperty));
+        }
     }
 }

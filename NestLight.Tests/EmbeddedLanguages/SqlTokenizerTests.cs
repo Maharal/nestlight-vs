@@ -165,5 +165,47 @@ namespace NestLight.Tests
             Assert.Empty(S(""));
             Assert.Empty(S("  \n\t "));
         }
+
+        // --- Mutant-killing tests ---
+
+        [Fact]
+        public void Block_comment_end_boundary()
+        {
+            // Kills: L50 e < 0 boundary (unterminated vs terminated)
+            Assert.Equal(new[] { "sql.comment|/* a */", "sql.number|1" }, S("/* a */ 1"));
+            Assert.Equal(new[] { "sql.comment|/* a" }, S("/* a"));
+        }
+
+        [Fact]
+        public void Colon_parameter_requires_non_cast_context()
+        {
+            // Kills: L78 c != ':', L78 i < from, L78 m[i-1] != ':', L78 i + 1 arithmetic
+            Assert.Equal(new[] { "sql.parameter|:name" }, S(":name"));
+            // :: is a cast, not a parameter
+            Assert.Equal(new[] { "sql.identifier|x", "sql.operator|::", "sql.keyword|int" }, S("x::int"));
+        }
+
+        [Fact]
+        public void Hex_number_prefix()
+        {
+            // Kills: L143 m[p] == '0' && p + 1 < to, L143 m[p+1] != 'X', L143 p - 1 arithmetic
+            Assert.Equal(new[] { "sql.number|0xFF" }, S("0xFF"));
+            Assert.Equal(new[] { "sql.number|0XFF" }, S("0XFF"));
+        }
+
+        [Fact]
+        public void Number_end_boundary()
+        {
+            // Kills: L156 q < to boundary
+            Assert.Equal(new[] { "sql.number|42" }, S("42"));
+            Assert.Equal(new[] { "sql.number|3.14" }, S("3.14"));
+        }
+
+        [Fact]
+        public void Dollar_parameter()
+        {
+            // Kills: dollar sign as parameter prefix
+            Assert.Equal(new[] { "sql.parameter|$1" }, S("$1"));
+        }
     }
 }

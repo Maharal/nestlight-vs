@@ -274,5 +274,131 @@ namespace NestLight.Tests
             Assert.NotNull(site);
             Assert.Contains("Changelog", engine.Suggest(code, site).Select(s => s.Text));
         }
+
+        // ---- CompletionLanguages.cs line 18: id string mutation ----
+
+        [Fact]
+        public void Registration_uses_non_empty_id_strings()
+        {
+            // Line 18/22: the id strings are used in throw message
+            var ex = Assert.Throws<InvalidOperationException>(() =>
+                new CompletionLanguages(new ICompletionLanguage[] { new JsonCompletion(), new JsonCompletion() }));
+            Assert.Contains("json", ex.Message); // the error message includes the duplicate id
+        }
+
+        // ---- CompletionLanguage.cs line 58: CompletionWords with extra words ----
+
+        [Fact]
+        public void CompletionWords_includes_extra_words_sorted()
+        {
+            // Line 57-59: _extraWords.Length > 0 adds extra words sorted
+            ICompletionLanguage glsl = Languages.Find("glsl");
+            Assert.Contains("main", glsl.CompletionWords);
+            // Extra words should be sorted case-insensitively with the keywords
+            var sorted = glsl.CompletionWords.OrderBy(w => w, StringComparer.OrdinalIgnoreCase).ToList();
+            Assert.Equal(sorted, glsl.CompletionWords);
+        }
+
+        // ---- CompletionLanguage.cs line 94: CompletionWordsByUse ----
+
+        [Fact]
+        public void CompletionWordsByUse_is_cached()
+        {
+            // Line 86-88: _completionWordsByUse is cached
+            ICompletionLanguage sql = Languages.Find("sql");
+            Assert.Same(sql.CompletionWordsByUse, sql.CompletionWordsByUse);
+        }
+
+        [Fact]
+        public void CompletionWordsByUse_has_same_elements_as_CompletionWords()
+        {
+            ICompletionLanguage sql = Languages.Find("sql");
+            var byUse = sql.CompletionWordsByUse.OrderBy(w => w).ToList();
+            var words = sql.CompletionWords.OrderBy(w => w).ToList();
+            Assert.Equal(words, byUse);
+        }
+
+        // ---- CompletionLanguage.cs line 108: UsePriority null coalescing ----
+
+        [Fact]
+        public void UseOrder_falls_back_to_empty_for_unknown_language()
+        {
+            // Line 108: _learned ?? UseOrder ?? new string[0]
+            var language = Languages.Find("klingon");
+            // Unknown language has no use order, CompletionWordsByUse should still work
+            Assert.NotNull(language.CompletionWordsByUse);
+        }
+
+        // ---- CompletionLanguage.cs line 122: LearnUseOrder clears cached ----
+
+        [Fact]
+        public void OrderByUse_returns_words_in_given_order()
+        {
+            // Line 92-104: OrderByUse with non-empty priority
+            ICompletionLanguage sql = Languages.Find("sql");
+            var ordered = sql.OrderByUse(new List<string> { "select", "from", "where" });
+            Assert.NotNull(ordered);
+            Assert.True(ordered.Count >= 3);
+        }
+
+        [Fact]
+        public void OrderByUse_with_no_priority_returns_same_list()
+        {
+            // Line 98: prior.Count == 0 returns words
+            var language = Languages.Find("klingon");
+            var input = new List<string> { "a", "b", "c" };
+            var result = language.OrderByUse(input);
+            Assert.Same(input, result);
+        }
+
+        // ---- CompletionLanguage.cs line 169: PositionAt floor calculation ----
+
+        [Fact]
+        public void PositionAt_uses_ownerStart_for_floor()
+        {
+            // Line 169: Math.Max(site.OwnerStart >= 0 ? site.OwnerStart : 0, site.Start - Reach)
+            // With positive ownerStart
+            var site = new CompletionSite("sql", 10, 10, 10, 5, 20);
+            Assert.Null(Languages.Find("sql").PositionAt("select * from ", site));
+        }
+
+        [Fact]
+        public void PositionAt_uses_zero_when_ownerStart_negative()
+        {
+            // Line 169: site.OwnerStart < 0 -> 0
+            var site = new CompletionSite("sql", 10, 10, 10, -1, 20);
+            // With ownerStart -1, floor calculation uses 0 instead
+            var result = Languages.Find("sql").PositionAt("select * from ", site);
+            // The result depends on what the grammar finds; just check it doesn't crash
+            Assert.True(result == null || result.Name != null);
+        }
+
+        // ---- CompletionLanguage.cs line 174: ReadPosition default returns null ----
+
+        [Fact]
+        public void ReadPosition_default_returns_null()
+        {
+            // Line 174: base class ReadPosition returns null
+            var language = Languages.Find("regex");
+            Assert.Null(language.PositionAt("^abc", new CompletionSite("regex", 0, 1, 1, 0, 4)));
+        }
+
+        // ---- FindCompletionWord (line 153-158) ----
+
+        [Fact]
+        public void FindCompletionWord_returns_extra_word_when_not_keyword()
+        {
+            // Line 155-157: colored keyword first, then extra words
+            ICompletionLanguage glsl = Languages.Find("glsl");
+            Assert.Equal("main", glsl.FindCompletionWord("main"));
+            Assert.Equal("main", glsl.FindCompletionWord("MAIN"));
+        }
+
+        [Fact]
+        public void FindCompletionWord_returns_null_for_unknown()
+        {
+            ICompletionLanguage glsl = Languages.Find("glsl");
+            Assert.Null(glsl.FindCompletionWord("notaword"));
+        }
     }
 }

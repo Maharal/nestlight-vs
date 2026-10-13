@@ -117,6 +117,42 @@ namespace NestLight.Tests
             Assert.False(result.Value.Color.HasValue);
         }
 
+        // Mutation L31: token.Start + token.Length < text.Length (should be <=)
+        // Mutation L31: token.Start - token.Length (should be +)
+        [Fact]
+        public void Color_parsed_when_token_spans_exact_text_length()
+        {
+            // Token covers the entire text: Start=0, Length=7, text.Length=7
+            // token.Start + token.Length == text.Length => boundary case for <=
+            string text = "#ff0000";
+            var tokens = new List<Token> { new Token(0, 7, ClassificationNames.CssNumber) };
+            QuickInfoResult? result = QuickInfoEngine.GetInfo(tokens, 3, text);
+
+            Assert.True(result.HasValue);
+            Assert.True(result.Value.Color.HasValue);
+            Assert.Equal(255, result.Value.Color.Value.R);
+        }
+
+        // Mutation L68: string "" instead of "CSS value"
+        [Fact]
+        public void CssValue_description_is_not_empty()
+        {
+            var result = QuickInfoEngine.DescriptionOf(ClassificationNames.CssValue);
+            Assert.NotNull(result);
+            Assert.NotEmpty(result);
+            Assert.Equal("CSS value", result);
+        }
+
+        // Mutation L70: string "" instead of "CSS number"
+        [Fact]
+        public void CssNumber_description_is_not_empty()
+        {
+            var result = QuickInfoEngine.DescriptionOf(ClassificationNames.CssNumber);
+            Assert.NotNull(result);
+            Assert.NotEmpty(result);
+            Assert.Equal("CSS number", result);
+        }
+
         [Fact]
         public void Color_parser_handles_short_hex()
         {

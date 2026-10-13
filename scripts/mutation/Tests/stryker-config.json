@@ -3,6 +3,7 @@
     "project": "Core.csproj",
     "reporters": [ "html", "json", "cleartext" ],
     "concurrency": 16,
+    "target-framework": "net10.0",
     "thresholds": { "high": 90, "low": 70, "break": 0 }
   }
 }

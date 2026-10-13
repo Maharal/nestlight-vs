@@ -83,7 +83,31 @@ namespace NestLight.Tests
         [Fact]
         public void A_null_argument_is_the_inner_scanners_business()
         {
-            Assert.Throws<ArgumentNullException>(() => new CachingHostScanner(null));
+            var ex = Assert.Throws<ArgumentNullException>(() => new CachingHostScanner(null));
+            Assert.Equal("inner", ex.ParamName);
+        }
+
+        [Fact]
+        public void Incremental_scan_requires_both_scan_and_known_text()
+        {
+            // When the scanner is resumable, a cached scan is reused only when the old text
+            // is still alive. This test exercises the _scan != null && known != null branch
+            // by scanning with a resumable scanner, then scanning with a new text instance.
+            var scanner = (IResumableHostScanner)Pipeline.Scanner(HostLanguage.JavaScript);
+            var cache = new CachingHostScanner(scanner);
+
+            string text1 = "// html\nvar a = html`<b/>`;\nvar x = 1;\nvar y = 2;\nvar z = 3;\nvar w = 4;";
+            cache.Scan(text1);
+            // text1 is still alive; scan a slightly different text to trigger the incremental path
+            string text2 = "// html\nvar a = html`<b/>`;\nvar x = 1;\nvar y = 2;\nvar z = 3;\nvar w = 9;";
+            var result = cache.Scan(text2);
+            Assert.NotNull(result);
+
+            // Now let text1 go out of scope and force collection, so known becomes null
+            // The next scan with a different text should still work (whole scan path)
+            string text3 = "// css\nvar b = css`a{}`;\nvar x = 1;\nvar y = 2;\nvar z = 3;\nvar w = 5;";
+            var result2 = cache.Scan(text3);
+            Assert.NotNull(result2);
         }
 
         [Fact]

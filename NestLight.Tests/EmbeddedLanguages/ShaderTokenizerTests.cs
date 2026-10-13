@@ -218,5 +218,47 @@ namespace NestLight.Tests
             Assert.Empty(Glsl(""));
             Assert.Empty(Wgsl("   "));
         }
+
+        // --- Mutant-killing tests ---
+
+        [Fact]
+        public void Block_comment_end_boundary()
+        {
+            // Kills: L46 string mutation "/*", L48 i - 2 arithmetic, L49 e <= 0
+            Assert.Equal(new[] { "shader.comment|/* a */", "shader.keyword|if" }, Glsl("/* a */ if"));
+        }
+
+        [Fact]
+        public void Preprocessor_only_at_line_start()
+        {
+            // Kills: L89 m[k] == '\n', L90 m[k] == '\t', L90 boolean true
+            Assert.Equal(new[] { "shader.keyword|#version" }, Glsl("#version"));
+            // not after non-blanks
+            Assert.Empty(Glsl("a # b"));
+            // after tab on same line is ok
+            Assert.Equal(new[] { "shader.keyword|#define" }, Glsl("\t#define"));
+        }
+
+        [Fact]
+        public void Hex_number()
+        {
+            // Kills: L97 p + 1 < to, p - 1 arithmetic
+            Assert.Equal(new[] { "shader.number|0x1F" }, Glsl("0x1F"));
+            Assert.Equal(new[] { "shader.number|0X1F" }, Glsl("0X1F"));
+        }
+
+        [Fact]
+        public void Number_end_boundary()
+        {
+            // Kills: L111 q < to boundary
+            Assert.Equal(new[] { "shader.number|42" }, Glsl("42"));
+        }
+
+        [Fact]
+        public void Wgsl_attribute_requires_letter_after_at()
+        {
+            // Kills: L53 c == '@' && i + 1 < to
+            Assert.Equal(new[] { "shader.keyword|@vertex" }, Wgsl("@vertex"));
+        }
     }
 }

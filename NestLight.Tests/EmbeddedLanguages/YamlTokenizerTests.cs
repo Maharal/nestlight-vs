@@ -278,5 +278,189 @@ namespace NestLight.Tests
                 new[] { "yaml.punctuation|-", "yaml.string|a", "yaml.punctuation|-", "yaml.scalar|2" },
                 Y("\n    - a\n    - 2"));
         }
+
+        // --- Mutant-killing tests ---
+
+        [Fact]
+        public void Block_parent_reset()
+        {
+            // Kills: L47 blockParent = -1
+            // When indentation goes back, block scalar mode ends
+            Assert.Equal(new[]
+            {
+                "yaml.key|t", "yaml.punctuation|:", "yaml.punctuation||",
+                "yaml.string|hello",
+                "yaml.key|k", "yaml.punctuation|:", "yaml.scalar|1"
+            }, Y("t: |\n  hello\nk: 1"));
+        }
+
+        [Fact]
+        public void Document_marker_boundary()
+        {
+            // Kills: L55 boundary checks on p + 3 == end and m[p+3] == ' '
+            Assert.Equal(new[] { "yaml.punctuation|---" }, Y("---"));
+            Assert.Equal(new[] { "yaml.punctuation|..." }, Y("..."));
+            // --- followed by space + value
+            Assert.Equal(new[] { "yaml.punctuation|---", "yaml.key|k", "yaml.punctuation|:", "yaml.scalar|1" },
+                Y("--- k: 1"));
+        }
+
+        [Fact]
+        public void Document_marker_with_tab()
+        {
+            // Kills: L55 m[p+3] != '\t' mutation
+            Assert.Equal(new[] { "yaml.punctuation|---" }, Y("---\t"));
+        }
+
+        [Fact]
+        public void Value_after_document_marker()
+        {
+            // Kills: L59 p < end && blockParent < 0 boundary
+            Assert.Equal(new[] { "yaml.punctuation|---", "yaml.key|a", "yaml.punctuation|:", "yaml.scalar|1" },
+                Y("--- a: 1"));
+        }
+
+        [Fact]
+        public void Sequence_dash_at_end_of_line()
+        {
+            // Kills: L108 p + 1 == end boundary on "?" standalone
+            Assert.Equal(new[] { "yaml.punctuation|?", "yaml.key|k", "yaml.punctuation|:", "yaml.scalar|1" },
+                Y("?\n  k: 1"));
+        }
+
+        [Fact]
+        public void Question_mark_followed_by_space()
+        {
+            // Kills: L108 p + 1 == end || m[p + 1] == ' '
+            Assert.Equal(new[] { "yaml.punctuation|?", "yaml.key|a", "yaml.punctuation|:", "yaml.scalar|1" },
+                Y("? a: 1"));
+        }
+
+        [Fact]
+        public void Emit_and_increment_for_question_mark()
+        {
+            // Kills: L110 statement mutation, L112 statement mutation
+            var result = Y("? key: val");
+            Assert.Contains("yaml.punctuation|?", result);
+            Assert.Contains("yaml.key|key", result);
+        }
+
+        [Fact]
+        public void Quoted_key_detection()
+        {
+            // Kills: L121 after + 1 != end boundary
+            Assert.Equal(new[] { "yaml.key|\"k\"", "yaml.punctuation|:", "yaml.scalar|1" }, Y("\"k\": 1"));
+        }
+
+        [Fact]
+        public void Quoted_key_vs_quoted_value()
+        {
+            // Kills: L123 conditional true/false mutations (isKey ? after : close)
+            Assert.Equal(new[] { "yaml.key|\"k\"", "yaml.punctuation|:", "yaml.string|\"v\"" }, Y("\"k\": \"v\""));
+        }
+
+        [Fact]
+        public void Comment_preceded_by_tab()
+        {
+            // Kills: L155 m[p - 1] != '\t'
+            Assert.Equal(new[] { "yaml.key|a", "yaml.punctuation|:", "yaml.scalar|1", "yaml.comment|# c" },
+                Y("a: 1\t# c"));
+        }
+
+        [Fact]
+        public void Sequence_dash_boundary_end_of_line()
+        {
+            // Kills: L166 p + 1 == end (dash at end)
+            Assert.Equal(new[] { "yaml.punctuation|-" }, Y("-"));
+        }
+
+        [Fact]
+        public void Flow_anchor_stop_chars()
+        {
+            // Kills: L175 boundary checks, char.IsWhiteSpace, ",]}".IndexOf
+            Assert.Equal(new[]
+            {
+                "yaml.key|k", "yaml.punctuation|:", "yaml.punctuation|[",
+                "yaml.anchor|&x", "yaml.scalar|1", "yaml.punctuation|,",
+                "yaml.anchor|*x", "yaml.punctuation|]"
+            }, Y("k: [&x 1, *x]"));
+        }
+
+        [Fact]
+        public void Flow_emit_and_continue()
+        {
+            // Kills: L176 statement mutation, L178 statement mutation
+            Assert.Contains("yaml.anchor|&a", Y("k: [&a 1]"));
+        }
+
+        [Fact]
+        public void Plain_end_stop_at_colon_space()
+        {
+            // Kills: L190 stop + 1 != end, L191 stop < p boundary
+            Assert.Equal(new[] { "yaml.key|a b", "yaml.punctuation|:", "yaml.scalar|1" }, Y("a b: 1"));
+        }
+
+        [Fact]
+        public void Plain_end_trailing_whitespace_trimmed()
+        {
+            // Kills: L191 m[stop - 1] == ' ' || m[stop - 1] == '\t'
+            Assert.Equal(new[] { "yaml.key|k", "yaml.punctuation|:", "yaml.scalar|1" }, Y("k  : 1"));
+        }
+
+        [Fact]
+        public void Flow_key_detection()
+        {
+            // Kills: L198 after + 1 != end boundary
+            Assert.Equal(new[]
+            {
+                "yaml.key|k", "yaml.punctuation|:", "yaml.punctuation|{",
+                "yaml.key|a", "yaml.punctuation|:", "yaml.scalar|1",
+                "yaml.punctuation|}"
+            }, Y("k: {a: 1}"));
+        }
+
+        [Fact]
+        public void Flow_colon_as_separator()
+        {
+            // Kills: L229 statement mutation
+            Assert.Contains("yaml.punctuation|:", Y("k: {a: 1}"));
+        }
+
+        [Fact]
+        public void Flow_comment_in_collection()
+        {
+            // Kills: L245 m[q] != '#'
+            Assert.Contains("yaml.comment|# c", Y("k: [1 # c\n]"));
+        }
+
+        [Fact]
+        public void TrimEnd_strips_spaces_and_tabs()
+        {
+            // Kills: L261 line boundary, m[line] == '\n' and '\r' mutations
+            Assert.Equal(new[] { "yaml.key|a", "yaml.punctuation|:", "yaml.scalar|1" }, Y("a: 1   "));
+        }
+
+        [Fact]
+        public void Scalar_detection_special_values()
+        {
+            // Kills: L290 ".inf" and ".nan" string mutations
+            Assert.Equal(new[] { "yaml.key|k", "yaml.punctuation|:", "yaml.scalar|.inf" }, Y("k: .inf"));
+            Assert.Equal(new[] { "yaml.key|k", "yaml.punctuation|:", "yaml.scalar|-.inf" }, Y("k: -.inf"));
+            Assert.Equal(new[] { "yaml.key|k", "yaml.punctuation|:", "yaml.scalar|.nan" }, Y("k: .nan"));
+        }
+
+        [Fact]
+        public void Quoted_end_double_quote_escape()
+        {
+            // Kills: L232 q + 1 < end boundary for quoted strings
+            Assert.Equal(new[] { "yaml.key|k", "yaml.punctuation|:", "yaml.string|\"a\\\"b\"" }, Y("k: \"a\\\"b\""));
+        }
+
+        [Fact]
+        public void Single_quote_escape_by_doubling()
+        {
+            // Kills: L232 '' escape for single quotes
+            Assert.Equal(new[] { "yaml.key|k", "yaml.punctuation|:", "yaml.string|'it''s'" }, Y("k: 'it''s'"));
+        }
     }
 }

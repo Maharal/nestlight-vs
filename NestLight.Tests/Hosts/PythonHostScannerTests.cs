@@ -257,5 +257,52 @@ namespace NestLight.Tests
                 Assert.True(scan.Strings[i].OuterStart >= scan.Strings[i - 1].OuterStart,
                     "ScanAll out of order at " + i);
         }
+
+        // ---- mutation-killing tests: parens/brackets tracking in f-string fields --------------------
+
+        [Fact]
+        public void Parentheses_inside_field_do_not_close_it()
+        {
+            // Lines 187-188: parens++ on '(' and the parens > 0 check on ')'.
+            // If parens++ is removed or changed to parens--, the closing paren would end the field early.
+            string code = "# html\nx = f'<b>{fn(a, b)}</b>'";
+            Assert.Equal(new[] { "{fn(a, b)}" }, Holes(code, Scan(code).Single()));
+        }
+
+        [Fact]
+        public void Nested_parens_are_counted()
+        {
+            // Deeper nesting to ensure parens counting is correct
+            string code = "# html\nx = f'<b>{fn(g(1), h(2))}</b>'";
+            Assert.Equal(new[] { "{fn(g(1), h(2))}" }, Holes(code, Scan(code).Single()));
+        }
+
+        [Fact]
+        public void Brackets_inside_field_do_not_close_it()
+        {
+            // Similar to parens but with []
+            string code = "# html\nx = f'<b>{a[0]}</b>'";
+            Assert.Equal(new[] { "{a[0]}" }, Holes(code, Scan(code).Single()));
+        }
+
+        [Fact]
+        public void Colon_inside_parens_does_not_start_format_spec()
+        {
+            // Line 189: the colon only starts a format spec when braces == 0 && parens == 0
+            // If the parens == 0 check is mutated to parens != 0, the colon inside parens would start a spec
+            string code = "# html\nx = f'<b>{d[1:2]}</b>'";
+            var s = Scan(code).Single();
+            Assert.Equal(new[] { "{d[1:2]}" }, Holes(code, s));
+        }
+
+        [Fact]
+        public void Extra_close_paren_at_zero_does_not_decrement_below_zero()
+        {
+            // When parens is already 0 and ')' appears, it should still advance _i
+            // (the if guards parens-- with parens > 0)
+            string code = "# html\nx = f'<b>{a)}</b>'";
+            var s = Scan(code).Single();
+            Assert.Single(s.Interpolations);
+        }
     }
 }

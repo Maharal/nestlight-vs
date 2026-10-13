@@ -44,8 +44,10 @@ namespace NestLight.Tests
         [Fact]
         public void The_same_id_twice_is_a_configuration_error()
         {
-            Assert.Throws<InvalidOperationException>(() =>
+            var ex = Assert.Throws<InvalidOperationException>(() =>
                 new EmbeddedLanguageRegistry(_ => new IEmbeddedLanguageTokenizer[] { new Stub("a"), new Stub("A") }));
+            Assert.Contains("Language id registered twice: ", ex.Message);
+            Assert.Contains("a", ex.Message);
         }
 
         [Fact]
@@ -59,7 +61,8 @@ namespace NestLight.Tests
         [Fact]
         public void A_factory_is_required()
         {
-            Assert.Throws<ArgumentNullException>(() => new EmbeddedLanguageRegistry(null));
+            var ex = Assert.Throws<ArgumentNullException>(() => new EmbeddedLanguageRegistry(null));
+            Assert.Equal("tokenizers", ex.ParamName);
         }
     }
 
@@ -119,14 +122,25 @@ namespace NestLight.Tests
         [Fact]
         public void Components_reject_missing_dependencies()
         {
-            Assert.Throws<ArgumentNullException>(() => new HighlightEngine(null, Pipeline.Languages));
-            Assert.Throws<ArgumentNullException>(() => new HighlightEngine(Pipeline.Scanner(HostLanguage.JavaScript), null));
-            Assert.Throws<ArgumentNullException>(() => new NestLight.Hosts.JavaScriptHostScanner(null));
-            Assert.Throws<ArgumentNullException>(() => new NestLight.Hosts.CSharpHostScanner(null));
-            Assert.Throws<ArgumentNullException>(() => new NestLight.Hosts.PythonHostScanner(null));
-            Assert.Throws<ArgumentNullException>(() => new NestLight.Hosts.CppHostScanner(null));
+            Assert.Equal("scanner", Assert.Throws<ArgumentNullException>(() => new HighlightEngine(null, Pipeline.Languages)).ParamName);
+            Assert.Equal("languages", Assert.Throws<ArgumentNullException>(() => new HighlightEngine(Pipeline.Scanner(HostLanguage.JavaScript), null)).ParamName);
+            Assert.Equal("languages", Assert.Throws<ArgumentNullException>(() => new NestLight.Hosts.JavaScriptHostScanner(null)).ParamName);
+            Assert.Equal("languages", Assert.Throws<ArgumentNullException>(() => new NestLight.Hosts.CSharpHostScanner(null)).ParamName);
+            Assert.Equal("languages", Assert.Throws<ArgumentNullException>(() => new NestLight.Hosts.PythonHostScanner(null)).ParamName);
+            Assert.Equal("languages", Assert.Throws<ArgumentNullException>(() => new NestLight.Hosts.CppHostScanner(null)).ParamName);
+            Assert.Equal("languages", Assert.Throws<ArgumentNullException>(() => new NestLight.Hosts.RustHostScanner(null)).ParamName);
+            Assert.Equal("languages", Assert.Throws<ArgumentNullException>(() => new NestLight.Hosts.GoHostScanner(null)).ParamName);
+            Assert.Equal("languages", Assert.Throws<ArgumentNullException>(() => new NestLight.Hosts.JavaHostScanner(null)).ParamName);
             Assert.Throws<ArgumentNullException>(() => new NestLight.EmbeddedLanguages.HtmlTokenizer(null));
             Assert.Throws<ArgumentNullException>(() => new AcceptedEmbeddedLanguages(null));
+        }
+
+        [Fact]
+        public void Unknown_host_reports_parameter_name()
+        {
+            var ex = Assert.Throws<ArgumentOutOfRangeException>(() =>
+                NestLightComposition.CreateScanner((HostLanguage)99, Pipeline.Languages));
+            Assert.Equal("host", ex.ParamName);
         }
     }
 

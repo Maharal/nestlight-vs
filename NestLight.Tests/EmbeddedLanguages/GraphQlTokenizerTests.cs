@@ -201,5 +201,86 @@ namespace NestLight.Tests
             foreach (string code in new[] { "query", "query (", "{ f(", "type", "union U =", "\"abc", "\"\"\"abc", "$", "@", "...", "fragment F on" })
                 Assert.NotNull(G(code).ToArray());
         }
+
+        // --- Mutant-killing tests ---
+
+        [Fact]
+        public void Comment_line_end()
+        {
+            // Kills: L44 statement mutation (continue after comment)
+            Assert.Equal(new[] { "graphql.comment|# c", "graphql.field|a" }, G("# c\n{ a }"));
+        }
+
+        [Fact]
+        public void String_resets_flags()
+        {
+            // Kills: L51 afterVariable = false, L52 statement mutation
+            Assert.Equal(new[] { "graphql.field|f", "graphql.argument|a", "graphql.string|\"s\"" },
+                G("{ f(a: \"s\") }"));
+        }
+
+        [Fact]
+        public void Number_with_sign_and_exponent()
+        {
+            // Kills: L68 mutations on m[end] == '+' || '-', m[end-1] == 'e' || 'E'
+            Assert.Equal(new[] { "graphql.field|f", "graphql.argument|a", "graphql.number|1.5E+3" },
+                G("{ f(a: 1.5E+3) }"));
+            Assert.Equal(new[] { "graphql.field|f", "graphql.argument|a", "graphql.number|-2.5e-3" },
+                G("{ f(a: -2.5e-3) }"));
+        }
+
+        [Fact]
+        public void Number_ends_correctly()
+        {
+            // Kills: L72 afterVariable = afterSpread = false, L73 statement mutation
+            Assert.Equal(new[] { "graphql.field|f", "graphql.argument|a", "graphql.number|42" },
+                G("{ f(a: 42) }"));
+        }
+
+        [Fact]
+        public void Schema_keyword_enables_type_after_colon()
+        {
+            // Kills: L103 schema || braces == 0 condition
+            Assert.Equal(new[]
+            {
+                "graphql.keyword|type", "graphql.type|Q",
+                "graphql.field|x", "graphql.type|Int"
+            }, G("type Q { x: Int }"));
+        }
+
+        [Fact]
+        public void Spread_operator()
+        {
+            // Kills: L160 TextUtil.StartsWith "...", L160 string mutation "", L160 afterSpread = true
+            Assert.Equal(new[]
+            {
+                "graphql.field|a", "graphql.keyword|on", "graphql.type|User", "graphql.field|id"
+            }, G("{ a ... on User { id } }"));
+        }
+
+        [Fact]
+        public void NextSignificant_skips_whitespace_and_comments()
+        {
+            // Kills: L174 statement mutation, L175 statement mutation
+            Assert.Equal(new[]
+            {
+                "graphql.field|f", "graphql.argument|a", "graphql.comment|# c", "graphql.number|1"
+            }, G("{ f(a: # c\n1) }"));
+        }
+
+        [Fact]
+        public void String_end_boundary()
+        {
+            // Kills: L186 e < 0 boundary
+            Assert.Contains("graphql.string|\"hello\"", G("{ f(a: \"hello\") }"));
+        }
+
+        [Fact]
+        public void Negative_number_parsing()
+        {
+            // Kills: L64 c == '-' && i + 1 < to
+            Assert.Equal(new[] { "graphql.field|f", "graphql.argument|a", "graphql.number|-1" },
+                G("{ f(a: -1) }"));
+        }
     }
 }

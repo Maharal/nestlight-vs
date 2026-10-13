@@ -164,6 +164,40 @@ namespace NestLight.Tests
             Assert.Equal(tokens.OrderBy(t => t.Start).Select(t => t.Start).ToArray(), tokens.Select(t => t.Start).ToArray());
         }
 
+        [Fact]
+        public void Escape_at_the_end_of_the_string_advances_past_it()
+        {
+            // The escape is two characters (\n) decoded to one; the tokenizer gets "a\n" (two chars).
+            // If the decode subtracted instead of adding the escape length, it would loop or produce wrong text.
+            string text = "'a\\n'";
+            var s = Fake(1, text.Length - 1);
+            s.Escapes.Add(new EscapeSequence(2, 2, '\n'));
+            var tokenizer = new FakeTokenizer { Behavior = (t, from, to, emit) => emit(from, to, "t") };
+
+            var tokens = Run(text, s, tokenizer);
+
+            // The tokenizer should receive "a\n" (2 decoded characters), not get stuck
+            Assert.Equal(new[] { "a\n" }, tokenizer.Received.ToArray());
+            // And the source-mapped token should span the full content [1,4)
+            var t0 = tokens.Single(tok => tok.Type == "t");
+            Assert.Equal(1, t0.Start);
+            Assert.Equal(3, t0.Length);
+        }
+
+        [Fact]
+        public void Multiple_consecutive_escapes_are_all_decoded()
+        {
+            string text = "'\\n\\t'";
+            var s = Fake(1, text.Length - 1);
+            s.Escapes.Add(new EscapeSequence(1, 2, '\n'));
+            s.Escapes.Add(new EscapeSequence(3, 2, '\t'));
+            var tokenizer = new FakeTokenizer();
+
+            Run(text, s, tokenizer);
+
+            Assert.Equal(new[] { "\n\t" }, tokenizer.Received.ToArray());
+        }
+
         // ---- ordering invariant --------------------------------------------------------------------------
 
         [Fact]

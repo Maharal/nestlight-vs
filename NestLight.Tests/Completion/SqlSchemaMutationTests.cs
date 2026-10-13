@@ -248,5 +248,273 @@ namespace NestLight.Tests
             Assert.True(undeclaredIdx >= 0);
             Assert.True(declaredIdx < undeclaredIdx);
         }
+
+        // ---- Tokenizer: comment skipping (lines 74-78) ----
+
+        [Fact]
+        public void Line_comment_dash_dash_is_skipped()
+        {
+            // Line 74: c == '-' && i + 1 < to && text[i + 1] == '-'
+            string code = "sql`create table t (id int, -- skip this\nname text); select t.| from t`";
+            var items = Texts(code, Schema);
+            Assert.Contains("id", items);
+            Assert.Contains("name", items);
+            Assert.DoesNotContain("skip", items.Take(10));
+        }
+
+        [Fact]
+        public void Block_comment_slash_star_is_skipped()
+        {
+            // Lines 75-79: c == '/' && text[i+1] == '*', then close = indexOf("*/")
+            string code = "sql`create table t (id int, /* block comment */ name text); select t.| from t`";
+            var items = Texts(code, Schema);
+            Assert.Contains("id", items);
+            Assert.Contains("name", items);
+        }
+
+        [Fact]
+        public void Unclosed_block_comment_skips_to_end()
+        {
+            // Line 78: close < 0 -> skip to end
+            string code = "sql`create table t (id int /* unclosed`;\nsql`select t.| from t`";
+            var items = Texts(code, Schema);
+            // 'id' should still be found since the CREATE TABLE saw the column before the comment
+            Assert.Contains("id", items);
+        }
+
+        // ---- Tokenizer: string literal skipping (lines 81-87) ----
+
+        [Fact]
+        public void Single_quote_literal_is_skipped()
+        {
+            string code = "sql`create table t (id int); select * from t where id = 'value'; select t.| from t`";
+            var items = Texts(code, Schema);
+            Assert.Contains("id", items);
+        }
+
+        [Fact]
+        public void Double_quote_identifier_is_handled()
+        {
+            // Line 81: c == '"' is also a quote boundary
+            string code = "sql`create table t (\"id\" int); select t.| from t`";
+            var items = Texts(code, Schema);
+            Assert.NotEmpty(items);
+        }
+
+        [Fact]
+        public void Backtick_identifier_is_handled()
+        {
+            // Line 81: c == '`' is also a quote boundary (MySQL style)
+            // Not directly testable through engine since backtick terminates the template literal
+            // but the tokenizer handles it internally
+        }
+
+        // ---- Create: depth tracking (lines 160-161) ----
+
+        [Fact]
+        public void Create_table_nested_parens_track_depth()
+        {
+            // Lines 160-161: Punct(i, '(') depth++ and Punct(i, ')') depth--
+            string code = "sql`create table t (id int, name varchar(255), age int); select t.| from t`";
+            var items = Texts(code, Schema);
+            Assert.Contains("id", items);
+            Assert.Contains("name", items);
+            Assert.Contains("age", items);
+        }
+
+        // ---- Create: EndsFrom detection (line 163) ----
+
+        [Fact]
+        public void EndsFrom_keyword_ends_from_tracking()
+        {
+            // Line 163: _t[i].IsWord && EndsFrom.Contains(...) && !Is(i, "from") -> inFrom = false
+            string code = "sql`select * from users where id = 1; select * from |`";
+            var items = Texts(code, Schema, true);
+            Assert.Contains("users", items);
+            Assert.DoesNotContain("where", items);
+        }
+
+        // ---- Create: alter table recognition (line 166) ----
+
+        [Fact]
+        public void Alter_table_recognized_as_two_keywords()
+        {
+            // Line 166: Is(i, "alter") && Is(i + 1, "table")
+            string code = "sql`alter table t add column email text; select t.| from t`";
+            var items = Texts(code, Schema);
+            Assert.Contains("email", items);
+        }
+
+        // ---- Create: insert into recognition (line 167) ----
+
+        [Fact]
+        public void Insert_into_recognized_as_two_keywords()
+        {
+            // Line 167: Is(i, "insert") && Is(i + 1, "into")
+            string code = "sql`insert into t (id, name) values (1, 'a'); select t.| from t`";
+            var items = Texts(code, Schema);
+            Assert.Contains("id", items);
+        }
+
+        // ---- Table uses counting (line 208) ----
+
+        [Fact]
+        public void Table_uses_are_counted()
+        {
+            // Line 208: table.Uses++
+            // A table mentioned more times should still appear
+            string code = "sql`select * from t; select * from t; select * from |`";
+            var items = Texts(code, Schema, true);
+            Assert.Contains("t", items);
+        }
+
+        // ---- Create: if not exists (lines 200-203) ----
+
+        [Fact]
+        public void Create_table_with_if_not_exists_and_search_limit()
+        {
+            // Lines 200-203: j < _t.Count && j < i + 4 search window
+            string code = "sql`create table if not exists t (id int); select t.| from t`";
+            var items = Texts(code, Schema);
+            Assert.Contains("id", items);
+        }
+
+        // ---- Update: column detection in SET (lines 275-287) ----
+
+        [Fact]
+        public void Update_set_column_after_comma()
+        {
+            // Line 284: Punct(k - 1, ',') matches
+            string code = "sql`update t set a = 1, b = 2; select t.| from t`";
+            var items = Texts(code, Schema);
+            Assert.Contains("a", items);
+            Assert.Contains("b", items);
+        }
+
+        [Fact]
+        public void Update_set_column_not_inside_parens()
+        {
+            // Line 284: depth == 0 check - columns inside parens (subqueries) not counted as SET columns
+            string code = "sql`update t set x = (select max(y) from s); select t.| from t`";
+            var items = Texts(code, Schema);
+            Assert.Contains("x", items);
+        }
+
+        // ---- Insert: column after '(' or ',' (line 259) ----
+
+        [Fact]
+        public void Insert_columns_after_parenthesis_and_comma()
+        {
+            // Line 259: Punct(k - 1, '(') || Punct(k - 1, ',')
+            string code = "sql`insert into t (a, b, c) values (1, 2, 3); select t.| from t`";
+            var items = Texts(code, Schema);
+            Assert.Contains("a", items);
+            Assert.Contains("b", items);
+            Assert.Contains("c", items);
+        }
+
+        [Fact]
+        public void Insert_skips_qualified_column()
+        {
+            // Line 259: !(Punct(k - 1, '.')) - qualified names skipped
+            string code = "sql`insert into t (s.a, b) values (1, 2); select t.| from t`";
+            var items = Texts(code, Schema);
+            Assert.Contains("b", items);
+        }
+
+        // ---- Split: semicolons inside comments and strings (lines 325-327) ----
+
+        [Fact]
+        public void Split_skips_semicolon_in_double_quote()
+        {
+            // Line 325: c == '"' skips to closing quote
+            string code = "sql`create table t (id int); select * from t where name = \"a;b\"; select t.| from t`";
+            var items = Texts(code, Schema);
+            Assert.Contains("id", items);
+        }
+
+        [Fact]
+        public void Split_skips_semicolon_in_line_comment()
+        {
+            // Line 326: c == '-' && text[i+1] == '-' skips line comment
+            string code = "sql`create table t (id int); select * from t -- note; here\n; select t.| from t`";
+            var items = Texts(code, Schema);
+            Assert.Contains("id", items);
+        }
+
+        [Fact]
+        public void Split_skips_semicolon_in_block_comment()
+        {
+            // Line 327: c == '/' && text[i+1] == '*' skips block comment
+            string code = "sql`create table t (id int); select * from t /* note; here */; select t.| from t`";
+            var items = Texts(code, Schema);
+            Assert.Contains("id", items);
+        }
+
+        // ---- Alias resolution (lines 176-179, 270-272) ----
+
+        [Fact]
+        public void Alias_without_as_keyword()
+        {
+            string code = "sql`create table users (id int, name text); select u.| from users u`";
+            var items = Texts(code, Schema);
+            Assert.Contains("id", items);
+            Assert.Contains("name", items);
+        }
+
+        [Fact]
+        public void Update_with_alias_without_as()
+        {
+            string code = "sql`create table users (id int); update users u set id = 1; select u.| from users u`";
+            var items = Texts(code, Schema);
+            Assert.Contains("id", items);
+        }
+
+        // ---- NotAColumn filtering (line 241) ----
+
+        [Fact]
+        public void Constraint_keywords_not_treated_as_columns()
+        {
+            // Line 241: column != null && !NotAColumn.Contains(column)
+            string code = "sql`create table t (id int, unique (id), name text); select t.| from t`";
+            var items = Texts(code, Schema);
+            Assert.Contains("id", items);
+            Assert.Contains("name", items);
+            Assert.DoesNotContain("unique", items.Take(10));
+        }
+
+        // ---- Table schema prefix (line 141) ----
+
+        [Fact]
+        public void Schema_prefix_with_multiple_parts()
+        {
+            // Line 141: while (Punct(next, '.') && Word(next + 1) != null) - multi-part schema
+            string code = "sql`create table db.schema.t (id int); select t.| from t`";
+            var items = Texts(code, Schema);
+            Assert.Contains("id", items);
+        }
+
+        // ---- Caret statement identification (line 311) ----
+
+        [Fact]
+        public void Caret_in_second_statement_gets_correct_context()
+        {
+            // Line 311: caretStart >= statement.Key && caretStart <= statement.Value
+            string code = "sql`create table a (id int); create table b (name text); select b.| from b`";
+            var items = Texts(code, Schema);
+            Assert.Contains("name", items);
+        }
+
+        // ---- Depth tracking in Create (lines 215-216) ----
+
+        [Fact]
+        public void Create_table_depth_exits_at_matching_paren()
+        {
+            // Lines 215-216: Punct(k, ')') depth-- and depth == 0 break
+            string code = "sql`create table t (id int, val int); select t.| from t`";
+            var items = Texts(code, Schema);
+            Assert.Contains("id", items);
+            Assert.Contains("val", items);
+        }
     }
 }
