@@ -122,5 +122,47 @@ namespace NestLight.Tests
             string code = "// html\nauto a = R\"(1)\";\n// css\nauto b = R\"(2)\";";
             Assert.Equal(new[] { "1", "2" }, Scan(code).Select(s => Body(code, s)).ToArray());
         }
+
+        // ---- mutation-killing tests ----------------------------------------------------------------
+
+        [Fact]
+        public void Digit_separator_at_start_of_text_does_not_crash()
+        {
+            // The digit separator check is: _i > 0 && char.IsLetterOrDigit(_t[_i - 1])
+            // Mutating to _i < 0 would fail this: a quote at position 0 should be treated as a char literal
+            string code = "'x'; // html\nauto a = R\"(<b/>)\";";
+            Assert.Single(Scan(code));
+        }
+
+        [Theory]
+        [InlineData("u8")]
+        [InlineData("u")]
+        [InlineData("U")]
+        [InlineData("L")]
+        public void Prefix_string_consumes_the_marker(string prefix)
+        {
+            // These prefixed strings consume the marker via _markers.Take, so the marker does not
+            // carry to the next string. If the Take statement is removed, the next raw string would
+            // incorrectly get the marker's language.
+            string code = "// html\nauto a = " + prefix + "\"skip\"; auto b = R\"(x)\";";
+            // The prefixed string is not embedded (confirmed by existing test Ordinary_strings_are_never_embedded).
+            // The raw string should NOT be embedded either because the marker was consumed.
+            Assert.Empty(Scan(code));
+        }
+
+        [Theory]
+        [InlineData("u8")]
+        [InlineData("u")]
+        [InlineData("U")]
+        [InlineData("L")]
+        public void Prefix_string_skips_quoted_content(string prefix)
+        {
+            // If SkipQuoted is removed (statement mutation), the closing quote of the prefixed string
+            // would not be consumed, and the scanner would see it as an opening quote starting a new string.
+            // With SkipQuoted, the scanner properly advances past the entire prefixed string.
+            string code = prefix + "\"R\\\"(x)\\\"\"";
+            // This should not crash or produce spurious results
+            Assert.Empty(Scan(code));
+        }
     }
 }

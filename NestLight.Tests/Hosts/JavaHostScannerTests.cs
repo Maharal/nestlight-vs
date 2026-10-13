@@ -144,5 +144,36 @@ namespace NestLight.Tests
             string code = "// html\nString a = \"1\";\n// css\nString b = \"2\";";
             Assert.Equal(new[] { "1", "2" }, Scan(code).Select(s => Body(code, s)).ToArray());
         }
+
+        // ---- mutation-killing tests ----------------------------------------------------------------
+
+        [Fact]
+        public void Escape_at_end_of_string_advances_by_one_not_two()
+        {
+            // Line 100: _i += _i + 1 < _t.Length ? 2 : 1
+            // If mutated to always 2 (true ? 2 : 1), a backslash at the very end of the text
+            // would skip past the end. With the correct code, it advances by 1.
+            string code = "// html\nString a = \"<b>\\";
+            var s = Scan(code).Single();
+            Assert.Equal("<b>\\", Body(code, s));
+        }
+
+        [Fact]
+        public void Char_literal_with_escape_and_newline_before_close_stops_early()
+        {
+            // Line 151: nl >= 0 && nl < e -- if mutated to nl > e, the char skip would
+            // consume past the newline into the next line
+            string code = "char q = '\\x\n// html\nString a = \"<b/>\";";
+            Assert.Equal("<b/>", Body(code, Scan(code).Single()));
+        }
+
+        [Fact]
+        public void Char_literal_with_escape_followed_by_closing_quote()
+        {
+            // Line 151: e + 1 vs e - 1 -- after finding the closing quote,
+            // _i should advance past it (e + 1)
+            string code = "char q = '\\n'; // html\nString a = \"<b/>\";";
+            Assert.Equal("<b/>", Body(code, Scan(code).Single()));
+        }
     }
 }

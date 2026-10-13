@@ -219,6 +219,17 @@ namespace NestLight.Tests
             Assert.Empty(s.Escapes);
         }
 
+        // ---- Cpp specific mutation tests -------------------------------------------------------
+
+        [Fact]
+        public void Cpp_digit_separator_at_position_zero()
+        {
+            // CppHostScanner line 66: _i > 0 check for digit separator.
+            // If mutated to _i < 0, a quote at position 0 would never match.
+            string code = "'\"'; // html\nauto a = R\"(<b/>)\";";
+            Assert.Single(Scan(HostLanguage.Cpp, code));
+        }
+
         // ---- Java specific mutations -----------------------------------------------------------
 
         [Fact]

@@ -131,5 +131,53 @@ namespace NestLight.Tests
         {
             Assert.Equal(new[] { "xml.delimiter|<", "xml.tag|a", "xml.attribute|b", "xml.attribute.value|\"x>" }, X("<a b=\"x>"));
         }
+
+        // --- Mutant-killing tests ---
+
+        [Fact]
+        public void Self_closing_slash_boundary()
+        {
+            // Kills: L63 p + 1 <= to, p - 1 arithmetic, m[p+1] != '>'
+            Assert.Equal(new[] { "xml.delimiter|<", "xml.tag|a", "xml.delimiter|/>" }, X("<a/>"));
+        }
+
+        [Fact]
+        public void Attribute_scanning_self_close()
+        {
+            // Kills: L72 p + 1 > to, m[p+1] != '>', p - 1 arithmetic
+            Assert.Equal(new[]
+            {
+                "xml.delimiter|<", "xml.tag|a", "xml.attribute|b", "xml.attribute.value|\"c\"", "xml.delimiter|/>"
+            }, X("<a b=\"c\"/>"));
+        }
+
+        [Fact]
+        public void Attribute_scanning_increments()
+        {
+            // Kills: L74 statement mutation (p++), L78 q++ increment, L82 q++ increment
+            var tokens = X("<a b c=\"d\">");
+            Assert.Contains("xml.attribute|b", tokens);
+            Assert.Contains("xml.attribute|c", tokens);
+            Assert.Contains("xml.attribute.value|\"d\"", tokens);
+        }
+
+        [Fact]
+        public void Processing_instruction_closing()
+        {
+            // Kills: L95 m[q] == '/' || m[q] == '?', L95 boundary checks
+            Assert.Equal(new[]
+            {
+                "xml.delimiter|<?", "xml.tag|pi", "xml.delimiter|?>"
+            }, X("<?pi?>"));
+        }
+
+        [Fact]
+        public void Unquoted_attribute_in_tag_body()
+        {
+            // Kills: L95 boundary on q + 1 < to, q - 1 arithmetic, m[q+1] != '>'
+            var tokens = X("<a b=c/>");
+            Assert.Contains("xml.attribute|b", tokens);
+            Assert.Contains("xml.attribute.value|c", tokens);
+        }
     }
 }

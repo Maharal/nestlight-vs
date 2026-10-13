@@ -169,5 +169,52 @@ namespace NestLight.Tests
         {
             Assert.Equal(new[] { "regex.anchor|^", "regex.group|(", "regex.group|)", "regex.quantifier|+" }, R("^(${alt})+"));
         }
+
+        // --- Mutant-killing tests ---
+
+        [Fact]
+        public void Unicode_property_with_braces()
+        {
+            // Kills: L78 end < to, m[end] == '{' || '<', L81 end + 1 arithmetic, L82 e < to, L83 e < to && m[e] == close
+            Assert.Equal(new[] { "regex.escape|\\p{Lu}" }, R("\\p{Lu}"));
+            Assert.Equal(new[] { "regex.escape|\\P{Ll}" }, R("\\P{Ll}"));
+        }
+
+        [Fact]
+        public void Named_group_backreference()
+        {
+            // Kills: L78 m[end] == '<' for \k<name>
+            Assert.Equal(new[] { "regex.escape|\\k<ref>" }, R("\\k<ref>"));
+        }
+
+        [Fact]
+        public void Hex_escape_boundary()
+        {
+            // Kills: L97 p < to, n < max boundary, L97 statement mutation n--
+            Assert.Equal(new[] { "regex.escape|\\x41" }, R("\\x41"));
+            Assert.Equal(new[] { "regex.escape|\\u00e9" }, R("\\u00e9"));
+        }
+
+        [Fact]
+        public void Character_class_with_posix()
+        {
+            // Kills: L111 p + 2 arithmetic, L112 e > 0
+            Assert.Equal(new[] { "regex.class|[[:alpha:]]" }, R("[[:alpha:]]"));
+        }
+
+        [Fact]
+        public void Repeat_quantifier_end()
+        {
+            // Kills: L159 p < to, p == '}' boundary
+            Assert.Equal(new[] { "regex.quantifier|{3,5}" }, R("{3,5}"));
+        }
+
+        [Fact]
+        public void Lazy_and_possessive_quantifier()
+        {
+            // Kills: lazy/possessive suffix
+            Assert.Equal(new[] { "regex.quantifier|*?" }, R("*?"));
+            Assert.Equal(new[] { "regex.quantifier|++" }, R("++"));
+        }
     }
 }

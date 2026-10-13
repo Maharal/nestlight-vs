@@ -88,5 +88,17 @@ namespace NestLight.Tests
             Assert.Equal(3, TextUtil.IndexOfIgnoreCase(m, "abc", 1, 6));
             Assert.Equal(-1, TextUtil.IndexOfIgnoreCase(m, "abc", 0, 2));
         }
+
+        // Mutation: i - lowerCase.Length => i + lowerCase.Length (L45 arithmetic)
+        [Fact]
+        public void IndexOfIgnoreCase_finds_at_exact_boundary()
+        {
+            // "abc" at index 0, search from 0: the loop condition is i + lowerCase.Length <= end
+            // With end=3, the string "abc" fits exactly at i=0 but NOT at i=1
+            var m = "abc".ToCharArray();
+            Assert.Equal(0, TextUtil.IndexOfIgnoreCase(m, "abc", 0, 3));
+            // If mutated to i - lowerCase.Length <= end, it would find it even at positions past the boundary
+            Assert.Equal(-1, TextUtil.IndexOfIgnoreCase(m, "abc", 1, 3));
+        }
     }
 }

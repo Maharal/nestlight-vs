@@ -141,8 +141,10 @@ namespace NestLight.Tests
         [Fact]
         public void Dependencies_are_required()
         {
-            Assert.Throws<ArgumentNullException>(() => new SnapshotTokenCache<Snapshot>(null, s => s.Text));
-            Assert.Throws<ArgumentNullException>(() => new SnapshotTokenCache<Snapshot>(new CountingHighlighter(), null));
+            var ex1 = Assert.Throws<ArgumentNullException>(() => new SnapshotTokenCache<Snapshot>(null, s => s.Text));
+            Assert.Equal("highlighter", ex1.ParamName);
+            var ex2 = Assert.Throws<ArgumentNullException>(() => new SnapshotTokenCache<Snapshot>(new CountingHighlighter(), null));
+            Assert.Equal("getText", ex2.ParamName);
         }
 
         [Fact]

@@ -132,5 +132,53 @@ namespace NestLight.Tests
             string code = "// html\nvar a = `1`\n// css\nvar b = `2`";
             Assert.Equal(new[] { "1", "2" }, Scan(code).Select(s => Body(code, s)).ToArray());
         }
+
+        // ---- mutation-killing tests ----------------------------------------------------------------
+
+        [Fact]
+        public void Comment_skipping_continues_loop_without_falling_through()
+        {
+            // Line 48: if the continue after TrySkip is removed, after skipping a block comment
+            // the code falls through and _i++ skips the character right after the comment.
+            // Placing a backtick string right after a block comment tests this.
+            string code = "/* x *//* html */`<b/>`";
+            Assert.Equal("<b/>", Body(code, Scan(code).Single()));
+        }
+
+        [Fact]
+        public void Rune_with_backslash_escape_is_skipped_correctly()
+        {
+            // Line 144: Math.Min vs Math.Max, and lines 146-148: boundary conditions in SkipRune
+            // A rune like '\'' (escaped quote) should not consume the next quote character
+            string code = "var q = '\\''\n// html\nvar a = `<b/>`";
+            Assert.Equal("<b/>", Body(code, Scan(code).Single()));
+        }
+
+        [Fact]
+        public void Rune_with_escape_terminated_by_newline_does_not_overshoot()
+        {
+            // Tests the nl >= 0 && nl < e branch: if escaped rune has a newline before the closing quote,
+            // it should stop at _i + 1, not consume past the newline
+            string code = "var q = '\\x\n// html\nvar a = `<b/>`";
+            Assert.Equal("<b/>", Body(code, Scan(code).Single()));
+        }
+
+        [Fact]
+        public void Simple_rune_literal_is_skipped()
+        {
+            // Tests Next(2) == '\'' branch: a simple rune like 'x' should be skipped as 3 chars
+            // If mutated to Next(2) != '\'', it would not skip properly
+            string code = "var q = 'x'\n// html\nvar a = `<b/>`";
+            Assert.Equal("<b/>", Body(code, Scan(code).Single()));
+        }
+
+        [Fact]
+        public void Rune_with_newline_char_is_not_a_rune()
+        {
+            // Next(1) != '\n' check: if the character after the quote is a newline,
+            // it's not a valid rune and should just advance by 1
+            string code = "var q = '\n// html\nvar a = `<b/>`";
+            Assert.Equal("<b/>", Body(code, Scan(code).Single()));
+        }
     }
 }

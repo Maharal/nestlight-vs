@@ -91,5 +91,15 @@ namespace NestLight.Tests
                 "json.key|\"k\"", "json.punctuation|:", "json.string|\"v-", "json.string|\"", "json.punctuation|}"
             }, J("{${key}: ${value}, \"k\": \"v-${x}\"}"));
         }
+
+        // --- Mutant-killing tests ---
+
+        [Fact]
+        public void Exponent_number_at_end_of_input()
+        {
+            // Kills: L84 q <= to boundary (the number is at the end, so q == to when loop exits)
+            Assert.Equal(new[] { "json.number|1e10" }, J("1e10"));
+            Assert.Equal(new[] { "json.number|2E+3" }, J("2E+3"));
+        }
     }
 }

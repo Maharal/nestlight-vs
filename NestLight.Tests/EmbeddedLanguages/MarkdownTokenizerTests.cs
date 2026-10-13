@@ -443,5 +443,119 @@ namespace NestLight.Tests
             watch.Stop();
             Assert.True(watch.ElapsedMilliseconds < 4000, "took " + watch.ElapsedMilliseconds + " ms");
         }
+
+        // --- Mutant-killing tests ---
+
+        [Fact]
+        public void Fence_closing_requires_same_char_and_min_length()
+        {
+            // Kills: L43 end > line, L44 fence >= fenceLength && m[p] == fenceChar
+            Assert.Equal(new[] { "markdown.code|```", "markdown.code|x", "markdown.code|```" }, M("```\nx\n```"));
+            // A tilde fence must close with tildes
+            Assert.Equal(new[] { "markdown.code|~~~", "markdown.code|x", "markdown.code|~~~" }, M("~~~\nx\n~~~"));
+        }
+
+        [Fact]
+        public void Fence_not_closed_by_wrong_char()
+        {
+            // Kills: L44 m[p] == fenceChar (backtick fence not closed by tildes)
+            Assert.Equal(new[] { "markdown.code|```", "markdown.code|~~~", "markdown.code|more" }, M("```\n~~~\nmore"));
+        }
+
+        [Fact]
+        public void Fence_closing_blanks_after()
+        {
+            // Kills: L44 OnlyBlanksAfter
+            Assert.Equal(new[] { "markdown.code|```", "markdown.code|x", "markdown.code|```   " }, M("```\nx\n```   "));
+        }
+
+        [Fact]
+        public void Math_fence_line()
+        {
+            // Kills: L65 statement mutation for Flush
+            Assert.Equal(new[] { "markdown.math|$$", "markdown.math|x", "markdown.math|$$" }, M("$$\nx\n$$"));
+        }
+
+        [Fact]
+        public void NextLine_handles_crlf()
+        {
+            // Kills: L122 end + 1 > to, m[end + 1] != '\n', arithmetic end - 1
+            Assert.Equal(new[] { "markdown.heading|# T", "markdown.list|-" }, M("# T\r\n- a"));
+        }
+
+        [Fact]
+        public void Leading_counts_tabs_as_four_columns()
+        {
+            // Kills: L132 4 - columns % 4 arithmetic mutation
+            Assert.Equal(new[] { "markdown.heading|# Title" }, M("\n\t# Title\n\t\t# deeper"));
+        }
+
+        [Fact]
+        public void EndsWithMathDelimiter_trims_trailing_whitespace()
+        {
+            // Kills: L148 q > p, q >= p boundary, m[q-1] == ' ' || '\t' check
+            Assert.Equal(new[] { "markdown.math|$$", "markdown.math|x $$", "markdown.strong|**a**" },
+                M("$$\nx $$\n**a**"));
+        }
+
+        [Fact]
+        public void EndsWithMathDelimiter_checks_dollar_dollar()
+        {
+            // Kills: L149 q - 2 >= p, m[q-1] == '$' && m[q-2] == '$'
+            Assert.Equal(new[] { "markdown.math|$$", "markdown.math|a + b$$" }, M("$$\na + b$$"));
+        }
+
+        [Fact]
+        public void ListMarkerEnd_boundary()
+        {
+            // Kills: L180 q < end, L180 q - p arithmetic, L181 q >= end || m[q] != '.'
+            Assert.Equal(new[] { "markdown.list|1." }, M("1. item"));
+            Assert.Equal(new[] { "markdown.list|12)" }, M("12) item"));
+        }
+
+        [Fact]
+        public void MathClose_for_single_dollar_boundary()
+        {
+            // Kills: L249 content < end, m[content] != '$', L254 statement, L257 q + 1 > end
+            Assert.Equal(new[] { "markdown.math|$x$" }, M("text $x$ more"));
+            // A digit after $ prevents math close (so $5 is not math)
+            Assert.Empty(M("costs $5 and $6"));
+        }
+
+        [Fact]
+        public void MathClose_double_dollar()
+        {
+            // Kills: L249 FindRun for $$
+            Assert.Equal(new[] { "markdown.math|$$x$$" }, M("see $$x$$ more"));
+        }
+
+        [Fact]
+        public void Run_counts_consecutive_chars()
+        {
+            // Kills: L307 p + run > end boundary, L307 p - run arithmetic
+            // Emphasis close checks the run length
+            Assert.Equal(new[] { "markdown.strong|**bold**" }, M("**bold**"));
+        }
+
+        [Fact]
+        public void FindRun_and_FindEmphasisClose_skip()
+        {
+            // Kills: L322 statement, L338 UnaryMinus mutation
+            Assert.Equal(new[] { "markdown.code|``ab``" }, M("``ab``"));
+        }
+
+        [Fact]
+        public void Autolink_scanning()
+        {
+            // Kills: L341 q = p + 1 arithmetic, L342 q < end, L343 q >= end && m[q] != '>'
+            Assert.Equal(new[] { "markdown.link|<https://x.y>" }, M("<https://x.y>"));
+        }
+
+        [Fact]
+        public void Not_an_autolink_no_scheme()
+        {
+            // Kills: L343 boundary on m[q] != '>'
+            Assert.Empty(M("<not a link"));
+        }
     }
 }

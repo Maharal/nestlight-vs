@@ -403,5 +403,109 @@ namespace NestLight.Tests
             Assert.Equal(new[] { "1e3", "2.5E-2", "1" }, T(css, ClassificationNames.CssNumber));
             Assert.Equal(new[] { "ms", "em" }, T(css, ClassificationNames.CssUnit));
         }
+
+        // --- Mutant-killing tests ---
+
+        [Fact]
+        public void Selector_comment_is_skipped()
+        {
+            // Kills: CssTokenizer.Selectors.cs L17 statement mutation
+            string css = "a /* c */ b { }";
+            Assert.Equal(new[] { "a", "b" }, T(css, ClassificationNames.CssSelector));
+            Assert.Equal(new[] { "/* c */" }, T(css, ClassificationNames.CssComment));
+        }
+
+        [Fact]
+        public void Selector_string_is_classified()
+        {
+            // Kills: CssTokenizer.Selectors.cs L21, L23 statement mutations
+            string css = "a[href=\"x\"] { }";
+            Assert.Contains("\"x\"", T(css, ClassificationNames.CssString));
+        }
+
+        [Fact]
+        public void Pseudo_class_with_nth_child()
+        {
+            // Kills: CssTokenizer.Selectors.cs L126 statement mutation (IsNth check for pseudo)
+            string css = "a:nth-child(2n+1) { }";
+            Assert.Equal(new[] { ":nth-child" }, T(css, ClassificationNames.CssPseudo));
+            Assert.Equal(new[] { "2", "+1" }, T(css, ClassificationNames.CssNumber));
+        }
+
+        [Fact]
+        public void Prelude_comment_skipped()
+        {
+            // Kills: CssTokenizer.cs L32 statement mutation (comment in prelude), L89-90 statement mutations
+            string css = "@media /* c */ screen { }";
+            Assert.Equal(new[] { "/* c */" }, T(css, ClassificationNames.CssComment));
+            Assert.Equal(new[] { "@media" }, T(css, ClassificationNames.CssAtRule));
+        }
+
+        [Fact]
+        public void Declaration_string_and_comment_skipped()
+        {
+            // Kills: CssTokenizer.cs L155-156 statement mutations
+            string css = "a { b: /* c */ \"x\" }";
+            Assert.Equal(new[] { "/* c */" }, T(css, ClassificationNames.CssComment));
+            Assert.Equal(new[] { "\"x\"" }, T(css, ClassificationNames.CssString));
+        }
+
+        [Fact]
+        public void Declaration_paren_tracking()
+        {
+            // Kills: CssTokenizer.cs L157 statement (paren++), L157 PostIncrement to PostDecrement,
+            // L158 paren < 0 / paren >= 0, L158 statement (paren--), L158 PostDecrement to PostIncrement
+            string css = "a { b: calc(1 + 2); c: d }";
+            Assert.Equal(new[] { "b", "c" }, T(css, ClassificationNames.CssProperty));
+        }
+
+        [Fact]
+        public void Comment_end_in_value()
+        {
+            // Kills: CssTokenizer.cs L190 m[k] == '*' && m[k+1] == '/' logical mutation
+            string css = "a { b: c /* x */ }";
+            Assert.Equal(new[] { "/* x */" }, T(css, ClassificationNames.CssComment));
+        }
+
+        [Fact]
+        public void Condition_range_syntax_with_equality()
+        {
+            // Kills: CssTokenizer.cs L117 m[after] != '=' mutation
+            string css = "@media (width = 600px) { }";
+            Assert.Equal(new[] { "width" }, T(css, ClassificationNames.CssProperty));
+        }
+
+        [Fact]
+        public void Declaration_skip_mask_expressions()
+        {
+            // Kills: CssTokenizer.cs L142 k <= b boundary
+            string css = "a { ${mixin} b: c }";
+            Assert.Equal(new[] { "b" }, T(css, ClassificationNames.CssProperty));
+        }
+
+        [Fact]
+        public void Exponent_number_with_sign_boundary()
+        {
+            // Kills: CssTokenizer.Values.cs L48 logical/arithmetic/equality mutations on exponent
+            string css = "a { b: 1e3; c: 2.5E-2; d: 1E+3 }";
+            Assert.Equal(new[] { "1e3", "2.5E-2", "1E+3" }, T(css, ClassificationNames.CssNumber));
+        }
+
+        [Fact]
+        public void Value_name_function_detection()
+        {
+            // Kills: CssTokenizer.Values.cs L76 j > q, boolean true, statement mutation
+            string css = "a { b: calc(1 + 2) }";
+            Assert.Equal(new[] { "calc" }, T(css, ClassificationNames.CssFunction));
+        }
+
+        [Fact]
+        public void Positive_number_with_plus()
+        {
+            // Kills: Value StartsNumber + sign
+            string css = "a { b: +3px }";
+            Assert.Equal(new[] { "+3" }, T(css, ClassificationNames.CssNumber));
+            Assert.Equal(new[] { "px" }, T(css, ClassificationNames.CssUnit));
+        }
     }
 }

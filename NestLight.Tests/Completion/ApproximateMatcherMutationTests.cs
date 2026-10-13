@@ -116,5 +116,60 @@ namespace NestLight.Tests
         {
             Assert.Equal(-1, Matcher.Distance("xyz", 0, 3, "abcdefghij", 0, 10, 1));
         }
+
+        // ---- String mutation survivors on lines 41-43: parameter names ----
+
+        [Fact]
+        public void Typed_param_name_is_typed()
+        {
+            var ex = Assert.Throws<ArgumentNullException>(() => Matcher.Distance(null, 0, 0, "a", 0, 1, 1));
+            Assert.Equal("typed", ex.ParamName);
+        }
+
+        [Fact]
+        public void Candidate_param_name_is_candidate()
+        {
+            var ex = Assert.Throws<ArgumentNullException>(() => Matcher.Distance("a", 0, 1, null, 0, 0, 1));
+            Assert.Equal("candidate", ex.ParamName);
+        }
+
+        [Fact]
+        public void TypedLength_param_name_is_typedLength()
+        {
+            var ex = Assert.Throws<ArgumentOutOfRangeException>(() => Matcher.Distance("abc", 0, -1, "abc", 0, 3, 1));
+            Assert.Equal("typedLength", ex.ParamName);
+        }
+
+        [Fact]
+        public void CandidateLength_param_name_is_candidateLength()
+        {
+            var ex = Assert.Throws<ArgumentOutOfRangeException>(() => Matcher.Distance("abc", 0, 3, "abc", 0, -1, 1));
+            Assert.Equal("candidateLength", ex.ParamName);
+        }
+
+        [Fact]
+        public void MaxDistance_param_name_is_maxDistance()
+        {
+            var ex = Assert.Throws<ArgumentOutOfRangeException>(() => Matcher.Distance("abc", 0, 3, "abc", 0, 3, -1));
+            Assert.Equal("maxDistance", ex.ParamName);
+        }
+
+        // ---- Swap detection (line 81) ----
+
+        [Fact]
+        public void Swap_of_two_adjacent_letters_detected()
+        {
+            // "sl" -> "ls" swap
+            Assert.Equal(1, Matcher.Distance("sleect", 0, 6, "select", 0, 6, 2));
+        }
+
+        // ---- Same function case insensitive (line 101-103) ----
+
+        [Fact]
+        public void Case_insensitive_matching()
+        {
+            Assert.Equal(0, Matcher.Distance("SELECT", 0, 6, "select", 0, 6, 1));
+            Assert.Equal(0, Matcher.Distance("Select", 0, 6, "SELECT", 0, 6, 1));
+        }
     }
 }
