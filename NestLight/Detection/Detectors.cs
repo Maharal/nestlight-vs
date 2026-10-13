@@ -6,7 +6,7 @@ namespace NestLight.Detection
 {
     internal sealed class SqlDetector : ILanguageDetector
     {
-        private static readonly string[] Verbs = { "select", "insert", "update", "delete", "create", "alter", "drop", "with" };
+        private static readonly string[] Verbs = { "select", "insert", "update", "delete", "create", "alter", "drop", "with", "set" };
         private static readonly string[] Followers = { "from", "into", "set", "table", "values", "where", "join" };
         private static readonly string[] Articles = { "an", "the", "your", "my", "this", "that", "some", "any" };
 
