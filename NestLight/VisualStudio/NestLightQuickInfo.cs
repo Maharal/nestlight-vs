@@ -114,7 +114,8 @@ namespace NestLight.VisualStudio
             if (info.Start + info.Length > snapshot.Length) return Task.FromResult<QuickInfoItem>(null);
 
             var span = snapshot.CreateTrackingSpan(info.Start, info.Length, SpanTrackingMode.EdgeInclusive);
-            object element;
+            var title = new ClassifiedTextElement(new ClassifiedTextRun("keyword", info.Title, ClassifiedTextRunStyle.Bold));
+            object header = title;
             if (info.Color.HasValue)
             {
                 var c = info.Color.Value;
@@ -128,15 +129,12 @@ namespace NestLight.VisualStudio
                     Margin = new Thickness(0, 0, 6, 0),
                     VerticalAlignment = VerticalAlignment.Center
                 };
-                element = new ContainerElement(ContainerElementStyle.Wrapped,
-                    swatch,
-                    new ClassifiedTextElement(new ClassifiedTextRun("keyword", info.Description)));
+                header = new ContainerElement(ContainerElementStyle.Wrapped, swatch, title);
             }
-            else
-            {
-                element = new ContainerElement(ContainerElementStyle.Stacked,
-                    new ClassifiedTextElement(new ClassifiedTextRun("keyword", info.Description)));
-            }
+            object element = info.Detail == null
+                ? new ContainerElement(ContainerElementStyle.Stacked, header)
+                : new ContainerElement(ContainerElementStyle.Stacked, header,
+                    new ClassifiedTextElement(new ClassifiedTextRun("text", info.Detail)));
             return Task.FromResult(new QuickInfoItem(span, element));
         }
 
