@@ -77,6 +77,9 @@ namespace NestLight.VisualStudio
 
         public IAsyncQuickInfoSource TryCreateQuickInfoSource(ITextBuffer textBuffer)
         {
+            // The buffer may match several providers (JavaScript and TypeScript share content types); one source is enough,
+            // otherwise the tooltip is shown once per provider.
+            if (textBuffer.Properties.ContainsProperty(typeof(NestLightQuickInfoSource))) return null;
             return textBuffer.Properties.GetOrCreateSingletonProperty(
                 typeof(NestLightQuickInfoSource),
                 () => new NestLightQuickInfoSource(textBuffer, NestLightBuffer.Get(textBuffer, _host)));

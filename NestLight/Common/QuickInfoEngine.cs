@@ -36,17 +36,30 @@ namespace NestLight.Common
 
             CssColor? color = null;
             string title = description;
+            string detail = DetailOf(token.Type);
             if (text != null && token.Start >= 0 && token.Start + token.Length <= text.Length)
             {
                 string tokenText = text.Substring(token.Start, token.Length);
                 string name = tokenText.Trim();
+                detail = TokenDescriptions.Of(token.Type, name) ?? detail;
                 if (name.Length > 40) name = name.Substring(0, 37) + "...";
-                if (name.Length > 0 && name.IndexOf('\n') < 0 && name.IndexOf('\r') < 0) title = name + " \u2014 " + description;
+                if (name.Length > 0 && !IsLiteralOrComment(token.Type) && name.IndexOf('\n') < 0 && name.IndexOf('\r') < 0) title = name + " \u2014 " + description;
                 if (token.Type == ClassificationNames.CssNumber || token.Type == ClassificationNames.CssValue)
                     color = CssColorParser.TryParse(tokenText);
             }
 
-            return new QuickInfoResult(token.Start, token.Length, description, color, title, DetailOf(token.Type));
+            return new QuickInfoResult(token.Start, token.Length, description, color, title, detail);
+        }
+
+        /// <summary>Whether the text of the token is content (a value, a comment) that the title should not repeat.</summary>
+        private static bool IsLiteralOrComment(string t)
+        {
+            return t == ClassificationNames.AttributeValue || t == ClassificationNames.SqlString || t == ClassificationNames.JsonString
+                || t == ClassificationNames.ExprString || t == ClassificationNames.XmlCData || t == ClassificationNames.MdCode
+                || t == ClassificationNames.MdLink || t == ClassificationNames.MdMath
+                || t == ClassificationNames.Comment || t == ClassificationNames.CssComment || t == ClassificationNames.SqlComment
+                || t == ClassificationNames.XmlComment || t == ClassificationNames.YamlComment || t == ClassificationNames.ShellComment
+                || t == ClassificationNames.TomlComment;
         }
 
         internal static string DescriptionOf(string classificationType)

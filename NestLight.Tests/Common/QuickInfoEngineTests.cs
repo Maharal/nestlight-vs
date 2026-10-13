@@ -75,6 +75,31 @@ namespace NestLight.Tests
             Assert.Equal("HTML tag", result.Value.Description);
         }
 
+        [Theory]
+        [InlineData("const q = sql`SELECT * FROM t`;", "SELECT", "Retrieves rows")]
+        [InlineData("const q = sql`SELECT * FROM t`;", "FROM", "table, view or subquery")]
+        [InlineData("const x = html`<ul><li>a</li></ul>`;", "ul", "unordered")]
+        [InlineData("const x = html`<img src=\"a.png\">`;", "img", "image")]
+        [InlineData("const x = css`.a { display: flex; }`;", "display", "kind of box")]
+        public void Detail_is_specific_to_the_word(string code, string word, string expected)
+        {
+            IReadOnlyList<Token> tokens = NestLightComposition.CreateHighlighter(HostLanguage.JavaScript).Highlight(code);
+            QuickInfoResult? result = QuickInfoEngine.GetInfo(tokens, code.IndexOf(word), code);
+
+            Assert.True(result.HasValue);
+            Assert.Contains(expected, result.Value.Detail);
+            Assert.StartsWith(word, result.Value.Title);
+        }
+
+        [Fact]
+        public void Detail_falls_back_to_the_kind_of_token()
+        {
+            var tokens = new List<Token> { new Token(0, 5, ClassificationNames.Tag) };
+            QuickInfoResult? result = QuickInfoEngine.GetInfo(tokens, 2, "zzzzz");
+
+            Assert.Equal("Defines an HTML element and the kind of content it represents.", result.Value.Detail);
+        }
+
         [Fact]
         public void Css_hex_color_is_parsed()
         {
