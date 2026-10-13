@@ -14,12 +14,12 @@ namespace NestLight.Tests
         }
 
         [Fact]
-        public void It_is_off_by_default_with_every_language_chosen()
+        public void It_is_on_by_default_with_every_language_chosen()
         {
             var options = new DetectionOptions();
-            Assert.False(options.Enabled);
+            Assert.True(options.Enabled);
             Assert.Equal(DetectionOptions.Available.OrderBy(x => x), options.Languages.OrderBy(x => x));
-            Assert.False(options.IsOn("sql"));
+            Assert.True(options.IsOn("sql"));
         }
 
         [Fact]
@@ -47,6 +47,7 @@ namespace NestLight.Tests
         public void A_change_bumps_the_version_and_raises_the_event_but_the_same_values_do_not()
         {
             var options = new DetectionOptions();
+            options.Set(false, DetectionOptions.Available);
             int raised = 0;
             options.Changed += (s, e) => raised++;
             int v0 = options.Version;
@@ -95,14 +96,14 @@ namespace NestLight.Tests
         public void A_missing_or_damaged_file_gives_the_defaults()
         {
             string path = TempFile();
-            Assert.False(DetectionOptionsFile.Load(path).Enabled);
+            Assert.True(DetectionOptionsFile.Load(path).Enabled);
 
             Directory.CreateDirectory(Path.GetDirectoryName(path));
             try
             {
                 File.WriteAllBytes(path, new byte[] { 0, 255, 254, 13, 10, 61, 61, 0 });
                 DetectionOptions loaded = DetectionOptionsFile.Load(path);
-                Assert.False(loaded.Enabled);
+                Assert.True(loaded.Enabled);
                 Assert.Equal(DetectionOptions.Available.Count, loaded.Languages.Count);
             }
             finally { Directory.Delete(Path.GetDirectoryName(path), true); }

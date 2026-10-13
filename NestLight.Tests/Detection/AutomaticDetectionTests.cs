@@ -12,6 +12,13 @@ namespace NestLight.Tests
     {
         private const string Sql = "SELECT id, name FROM customers WHERE active = 1";
 
+        private static DetectionOptions Off()
+        {
+            var options = new DetectionOptions();
+            options.Set(false, DetectionOptions.Available);
+            return options;
+        }
+
         private static DetectionOptions On(params string[] languages)
         {
             var options = new DetectionOptions();
@@ -49,7 +56,7 @@ namespace NestLight.Tests
         [MemberData(nameof(UnmarkedSql))]
         public void Nothing_is_guessed_when_the_detection_is_off_or_absent(HostLanguage host, string code)
         {
-            Assert.Empty(Scan(host, code, new DetectionOptions()));
+            Assert.Empty(Scan(host, code, Off()));
             Assert.Empty(Scan(host, code, null));
         }
 
@@ -105,13 +112,13 @@ namespace NestLight.Tests
             var types = highlighter.Highlight(code).Select(t => t.Type).Distinct().ToList();
             Assert.Contains(types, t => t.Contains("sql"));
 
-            Assert.Empty(NestLightComposition.CreateHighlighter(HostLanguage.CSharp, new DetectionOptions()).Highlight(code));
+            Assert.Empty(NestLightComposition.CreateHighlighter(HostLanguage.CSharp, Off()).Highlight(code));
         }
 
         [Fact]
         public void The_cached_scan_follows_a_change_of_the_options()
         {
-            var options = new DetectionOptions();
+            var options = Off();
             BufferAnalysis analysis = NestLightComposition.CreateForBuffer(HostLanguage.CSharp, options);
             string code = "var q = \"" + Sql + "\";";
 
@@ -127,7 +134,7 @@ namespace NestLight.Tests
         [Fact]
         public void An_edit_after_a_change_of_the_options_is_scanned_under_the_new_options()
         {
-            var options = new DetectionOptions();
+            var options = Off();
             IHostScanner scanner = new CachingHostScanner(NestLightComposition.CreateScanner(HostLanguage.Python, Pipeline.Languages, options), () => options.Version);
             string lines = string.Concat(Enumerable.Range(0, 200).Select(i => "x" + i + " = 1\n"));
             string a = lines + "q = \"" + Sql + "\"\n" + lines;
@@ -141,7 +148,7 @@ namespace NestLight.Tests
         [Fact]
         public void Token_cache_is_recomputed_when_the_version_changes()
         {
-            var options = new DetectionOptions();
+            var options = Off();
             IHighlighter highlighter = NestLightComposition.CreateHighlighter(HostLanguage.CSharp, options);
             string code = "var q = \"" + Sql + "\";";
             var cache = new SnapshotTokenCache<string>(highlighter, s => s, () => options.Version);

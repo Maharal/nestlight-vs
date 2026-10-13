@@ -10,7 +10,7 @@ namespace NestLight.Tests
     {
 
         [Fact]
-        public void A_file_without_enabled_key_does_not_enable_detection()
+        public void A_file_without_enabled_key_leaves_detection_on()
         {
             string path = Path.Combine(Path.GetTempPath(), "nestlight-mut-" + Guid.NewGuid().ToString("N"), "detection.txt");
             try
@@ -18,7 +18,7 @@ namespace NestLight.Tests
                 Directory.CreateDirectory(Path.GetDirectoryName(path));
                 File.WriteAllText(path, "language=sql\nlanguage=css\n");
                 var loaded = DetectionOptionsFile.Load(path);
-                Assert.False(loaded.Enabled);
+                Assert.True(loaded.Enabled);
             }
             finally { Directory.Delete(Path.GetDirectoryName(path), true); }
         }
@@ -57,7 +57,7 @@ namespace NestLight.Tests
             string path = Path.Combine(Path.GetTempPath(), "nestlight-mut-" + Guid.NewGuid().ToString("N"), "detection.txt");
             try
             {
-                var options = new DetectionOptions();
+                var options = new DetectionOptions(); options.Set(false, DetectionOptions.Available);
                 DetectionOptionsFile.Save(path, options);
                 string content = File.ReadAllText(path);
                 Assert.Contains("enabled=false", content);

@@ -35,7 +35,7 @@ namespace NestLight.Tests
             Directory.CreateDirectory(dir);
             try
             {
-                Assert.False(DetectionOptionsFile.Load(dir).Enabled);
+                Assert.True(DetectionOptionsFile.Load(dir).Enabled);
                 Assert.False(DetectionOptionsFile.Save(dir, new DetectionOptions()));
             }
             finally { Directory.Delete(dir); }
@@ -45,15 +45,15 @@ namespace NestLight.Tests
         public void A_file_another_program_holds_open_gives_the_defaults()
         {
             string path = Path.Combine(Path.GetTempPath(), "nestlight-test-" + Guid.NewGuid().ToString("N") + ".txt");
-            File.WriteAllText(path, "enabled=true\n");
+            File.WriteAllText(path, "enabled=false\n");
             try
             {
                 using (new FileStream(path, FileMode.Open, FileAccess.ReadWrite, FileShare.None))
                 {
                     DetectionOptions loaded = DetectionOptionsFile.Load(path);
-                    Assert.False(loaded.Enabled); // the file is there and says true, but it cannot be read: the defaults stand
+                    Assert.True(loaded.Enabled); // the file is there and says false, but it cannot be read: the defaults stand
                 }
-                Assert.True(DetectionOptionsFile.Load(path).Enabled);
+                Assert.False(DetectionOptionsFile.Load(path).Enabled);
             }
             finally { File.Delete(path); }
         }
@@ -66,7 +66,7 @@ namespace NestLight.Tests
             try
             {
                 DetectionOptions loaded = DetectionOptionsFile.Load(path);
-                Assert.False(loaded.Enabled);
+                Assert.True(loaded.Enabled);
                 Assert.Equal(DetectionOptions.Available.Count, loaded.Languages.Count);
             }
             finally { File.Delete(path); }
