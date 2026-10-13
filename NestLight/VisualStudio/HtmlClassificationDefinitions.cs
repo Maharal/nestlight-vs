@@ -108,7 +108,7 @@ namespace NestLight.VisualStudio
     [Export(typeof(EditorFormatDefinition))]
     [ClassificationType(ClassificationTypeNames = ClassificationNames.Mustache)]
     [Name("Template HTML Mustache Format")][UserVisible(true)][Order(After = Priority.High)]
-    internal sealed class TplMustacheFormat : TplFormat { public TplMustacheFormat() : base("Template HTML Mustache ({{ }})", 0xFF, 0x5C, 0xAD, bold: true) { } }
+    internal sealed class TplMustacheFormat : TplFormat { public TplMustacheFormat() : base("Template HTML Mustache ({{ }})", 0x56, 0xB0, 0xC8) { } }
 
     [Export(typeof(EditorFormatDefinition))]
     [ClassificationType(ClassificationTypeNames = ClassificationNames.ExprDelimiter)]
