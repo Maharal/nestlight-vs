@@ -136,6 +136,7 @@ namespace NestLight.Tests
         [InlineData("select the best item from the store")]
         [InlineData("Delete your account from settings")]
         [InlineData("{name} has joined {room}")]
+        [InlineData("See the details of the activity {Utils.GetElapsed(date, false)}: {description}")]
         public void Ordinary_strings_stay_plain(string text)
         {
             Assert.Null(Detect(text));

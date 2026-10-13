@@ -96,7 +96,20 @@ namespace NestLight.Detection
             if (brace < 0) return 0;
             int colon = Probe.IndexOf(t, brace, end, ':');
             if (colon < 0) return 0;
-            return Probe.IndexOf(t, colon, end, ';') >= 0 ? 3 : 2;
+            if (Probe.IndexOf(t, colon, end, ';') >= 0) return 3;
+            return StartsWithProperty(t, brace + 1, colon) ? 2 : 0;
+        }
+
+        /// <summary>Whether the text between the brace and the colon is a lone property name, as in <c>{ color: red }</c>.</summary>
+        private static bool StartsWithProperty(string t, int from, int colon)
+        {
+            int i = from;
+            while (i < colon && char.IsWhiteSpace(t[i])) i++;
+            int nameStart = i;
+            while (i < colon && (char.IsLetterOrDigit(t[i]) || t[i] == '-' || t[i] == '_')) i++;
+            if (i == nameStart) return false;
+            while (i < colon && char.IsWhiteSpace(t[i])) i++;
+            return i == colon;
         }
     }
 
