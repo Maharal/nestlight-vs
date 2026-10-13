@@ -17,7 +17,7 @@ namespace NestLight.Experiments
 
         private static readonly Dictionary<string, string> Snippets = new Dictionary<string, string>
         {
-            { "html", "<ul class=\"list\">\n  <li class=\"item\" data-id=\"1\">@@</li>\n  <!-- note -->\n</ul>" },
+            { "html", "<ul class=\"list\">\n  <li class=\"item {{kind}}\" data-id=\"1\">@@ {{title}}</li>\n  <li>{{{rawHtml}}}</li>\n  <!-- note -->\n</ul>" },
             { "css", ".item > a:hover {\n  color: @@;\n  margin: 0 auto !important;\n  --gap: calc(1px + 2em);\n}" },
             { "sql", "SELECT u.id, COUNT(*) AS n\nFROM users u\nWHERE u.id = @@ AND u.name LIKE 'a%' -- note\nGROUP BY u.id;" },
             { "json", "{\"id\": @@, \"tags\": [\"a\", \"b\"], \"ok\": true, \"n\": null, \"v\": -1.5e3}" },
