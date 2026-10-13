@@ -22,6 +22,7 @@ namespace NestLight.Common
         public const string AttributeBoolean = "template.html.attribute.boolean";
         public const string AttributeValue = "template.html.attribute.value";
         public const string Comment = "template.html.comment";
+        public const string Mustache = "template.html.mustache";
 
         // CSS
         public const string CssSelector = "template.css.selector";
