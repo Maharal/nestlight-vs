@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <!-- The tests of ..\..\..\NestLight.Tests, unchanged, run against Core.csproj instead of the linked source. -->
   <PropertyGroup>
-    <TargetFramework>net10.0</TargetFramework>
+    <TargetFramework>net8.0</TargetFramework>
     <LangVersion>latest</LangVersion>
     <AssemblyName>MutTests</AssemblyName>
     <RootNamespace>NestLight.Tests</RootNamespace>
