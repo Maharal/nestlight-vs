@@ -24,6 +24,8 @@ namespace NestLight.Experiments
 
             public Prechecked(IHighlighter inner, string[] ids) { _inner = inner; _ids = ids; }
 
+            public IHostScanner Scanner { get { return _inner.Scanner; } }
+
             public IReadOnlyList<Token> Highlight(string text)
             {
                 foreach (string id in _ids)

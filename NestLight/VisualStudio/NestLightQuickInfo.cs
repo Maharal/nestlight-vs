@@ -75,7 +75,7 @@ namespace NestLight.VisualStudio
 
         protected NestLightQuickInfoSourceProvider(HostLanguage host) { _host = host; }
 
-        public IAsyncQuickInfoSource CreateQuickInfoSource(ITextBuffer textBuffer)
+        public IAsyncQuickInfoSource TryCreateQuickInfoSource(ITextBuffer textBuffer)
         {
             return textBuffer.Properties.GetOrCreateSingletonProperty(
                 typeof(NestLightQuickInfoSource),
