@@ -7,7 +7,7 @@ using NestLight.Common;
 namespace NestLight.Detection
 {
     /// <summary>
-    /// Whether the plugin guesses the language of strings nobody marked, and for which languages. Off until the user turns it on. It is
+    /// Whether the plugin guesses the language of strings nobody marked, and for which languages. On unless the user turns it off. It is
     /// read by the scanners on every scan and changed from the options page, so it is a snapshot swapped as a whole: a scan sees either
     /// the old options or the new ones, never a mix, and <see cref="Version"/> tells whoever caches a result that it is stale.
     /// </summary>
@@ -20,7 +20,7 @@ namespace NestLight.Detection
             public int Version;
         }
 
-        private volatile State _state = new State { Enabled = false, Languages = new HashSet<string>(LanguageDetector.Languages), Version = 0 };
+        private volatile State _state = new State { Enabled = true, Languages = new HashSet<string>(LanguageDetector.Languages), Version = 0 };
 
         public event EventHandler Changed;
 
@@ -62,7 +62,7 @@ namespace NestLight.Detection
             get { return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "NestLight", "detection.txt"); }
         }
 
-        /// <summary>The options saved in the file. A file that is missing, cannot be read or is not an options file gives the defaults: off, every language chosen.</summary>
+        /// <summary>The options saved in the file. A file that is missing, cannot be read or is not an options file gives the defaults: on, every language chosen.</summary>
         public static DetectionOptions Load(string path)
         {
             var options = new DetectionOptions();
