@@ -16,6 +16,7 @@ namespace NestLight.Tests
         [InlineData("SELECT id, name FROM customers WHERE active = 1", "sql")]
         [InlineData("insert into orders (customer_id, total) values (1, 2)", "sql")]
         [InlineData("  UPDATE products SET price = 1 WHERE id = 2  ", "sql")]
+        [InlineData("SET language us_english; --sets the language\nSELECT DISTINCT DATEPART(month, created) - 1\nFROM Orders\nWHERE ShopId = @ShopId\nAND Status <> @Cancelled;", "sql")]
         [InlineData("<div class=\"card\"><p>Body</p></div>", "html")]
         [InlineData("<img src=\"logo.png\" alt=\"Logo\" />", "html")]
         [InlineData("{\"name\": \"Ada\", \"age\": 36}", "json")]
