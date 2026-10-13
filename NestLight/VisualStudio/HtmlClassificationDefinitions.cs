@@ -33,6 +33,9 @@ namespace NestLight.VisualStudio
         [Export(typeof(ClassificationTypeDefinition))][Name(ClassificationNames.Comment)]
         internal static ClassificationTypeDefinition Comment;
 
+        [Export(typeof(ClassificationTypeDefinition))][Name(ClassificationNames.Mustache)]
+        internal static ClassificationTypeDefinition Mustache;
+
         [Export(typeof(ClassificationTypeDefinition))][Name(ClassificationNames.ExprDelimiter)]
         internal static ClassificationTypeDefinition ExprDelimiter;
 
@@ -101,6 +104,11 @@ namespace NestLight.VisualStudio
     [ClassificationType(ClassificationTypeNames = ClassificationNames.Comment)]
     [Name("Template HTML Comment Format")][UserVisible(true)][Order(After = Priority.High)]
     internal sealed class TplCommentFormat : TplFormat { public TplCommentFormat() : base("Template HTML Comment", 0x6A, 0x99, 0x55, italic: true) { } }
+
+    [Export(typeof(EditorFormatDefinition))]
+    [ClassificationType(ClassificationTypeNames = ClassificationNames.Mustache)]
+    [Name("Template HTML Mustache Format")][UserVisible(true)][Order(After = Priority.High)]
+    internal sealed class TplMustacheFormat : TplFormat { public TplMustacheFormat() : base("Template HTML Mustache ({{ }})", 0xFF, 0x5C, 0xAD, bold: true) { } }
 
     [Export(typeof(EditorFormatDefinition))]
     [ClassificationType(ClassificationTypeNames = ClassificationNames.ExprDelimiter)]

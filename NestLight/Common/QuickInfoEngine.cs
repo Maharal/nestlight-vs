@@ -81,6 +81,7 @@ namespace NestLight.Common
             if (classificationType == ClassificationNames.AttributeBoolean) return "HTML boolean attribute";
             if (classificationType == ClassificationNames.AttributeValue) return "HTML attribute value";
             if (classificationType == ClassificationNames.Comment) return "HTML comment";
+            if (classificationType == ClassificationNames.Mustache) return "Mustache tag";
 
             if (classificationType == ClassificationNames.CssProperty) return "CSS property";
             if (classificationType == ClassificationNames.CssCustomProperty) return "CSS custom property (variable)";
@@ -169,6 +170,7 @@ namespace NestLight.Common
             if (classificationType == ClassificationNames.AttributeBoolean) return "An attribute that enables a behavior simply by being present on the element.";
             if (classificationType == ClassificationNames.AttributeValue) return "The value assigned to an HTML attribute.";
             if (classificationType == ClassificationNames.Comment) return "Text ignored by the browser, used for notes.";
+            if (classificationType == ClassificationNames.Mustache) return "A template placeholder, {{value}} or {{{value}}}, that a template engine replaces with data. Three braces insert the value without HTML escaping.";
             if (classificationType == ClassificationNames.CssProperty) return "Sets a style aspect of the selected elements, such as color, size or layout.";
             if (classificationType == ClassificationNames.CssCustomProperty) return "A user-defined CSS variable, read elsewhere with var().";
             if (classificationType == ClassificationNames.CssSelector) return "Chooses which elements the style rules apply to.";

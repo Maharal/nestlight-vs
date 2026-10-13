@@ -57,6 +57,11 @@ namespace NestLight.EmbeddedLanguages
             int i = from;
             while (i < n)
             {
+                if (m[i] == '{')
+                {
+                    int mustacheEnd = MustacheEnd(m, i, n);
+                    if (mustacheEnd > 0) { add(i, mustacheEnd, ClassificationNames.Mustache); i = mustacheEnd; continue; }
+                }
                 if (m[i] != '<') { i++; continue; }
 
                 // Comment <!-- ... -->
@@ -122,7 +127,7 @@ namespace NestLight.EmbeddedLanguages
                             }
                             else
                             {
-                                add(v, closed ? q + 1 : n, ClassificationNames.AttributeValue);
+                                Value(m, v, closed ? q + 1 : n, add);
                             }
                             q = closed ? q + 1 : n;
                         }
@@ -132,7 +137,7 @@ namespace NestLight.EmbeddedLanguages
                             while (q < n && !char.IsWhiteSpace(m[q]) && m[q] != '>' &&
                                    !(m[q] == '/' && q + 1 < n && m[q + 1] == '>'))
                                 q++;
-                            add(v, q, ClassificationNames.AttributeValue);
+                            Value(m, v, q, add);
                         }
                         p = q;
                     }
@@ -148,6 +153,36 @@ namespace NestLight.EmbeddedLanguages
                 }
                 i = p;
             }
+        }
+
+        /// <summary>An attribute value, with the Mustache tags inside it set apart from the rest of the value.</summary>
+        private static void Value(char[] m, int from, int to, TokenSink add)
+        {
+            int seg = from;
+            int i = from;
+            while (i < to)
+            {
+                int end = m[i] == '{' ? MustacheEnd(m, i, to) : -1;
+                if (end < 0) { i++; continue; }
+                if (i > seg) add(seg, i, ClassificationNames.AttributeValue);
+                add(i, end, ClassificationNames.Mustache);
+                i = seg = end;
+            }
+            if (to > seg) add(seg, to, ClassificationNames.AttributeValue);
+        }
+
+        /// <summary>
+        /// The end of the Mustache tag that starts at <paramref name="p"/>: <c>{{...}}</c> or <c>{{{...}}}</c>, the part every Mustache-like
+        /// engine shares (Mustache, Handlebars, Vue, Angular...). Returns -1 when there is none or it is not closed.
+        /// </summary>
+        private static int MustacheEnd(char[] m, int p, int n)
+        {
+            if (p + 1 >= n || m[p] != '{' || m[p + 1] != '{') return -1;
+            bool triple = p + 2 < n && m[p + 2] == '{';
+            string close = triple ? "}}}" : "}}";
+            int open = p + (triple ? 3 : 2);
+            int end = TextUtil.IndexOf(m, close, open, n);
+            return end < 0 ? -1 : end + close.Length;
         }
 
         private void Embedded(string id, char[] m, int from, int to, TokenSink add)

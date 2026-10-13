@@ -74,7 +74,7 @@ It is a heuristic and can be wrong: a string that only looks like code is colore
 
 | Language | Ids | Highlighted |
 |---|---|---|
-| HTML | `html`, `htm`, `svg` | tags, attributes, comments, `@event` / `.property` / `?boolean` bindings, CSS in `<style>` and `style="..."` |
+| HTML | `html`, `htm`, `svg` | tags, attributes, comments, `@event` / `.property` / `?boolean` bindings, Mustache tags (`{{x}}` and `{{{x}}}`, in text and attribute values), CSS in `<style>` and `style="..."` |
 | CSS | `css` | selectors, properties, `--custom-properties`, values, units, colors, functions, at-rules, `!important`, nesting |
 | SQL | `sql` | keywords, identifiers, literals, operators, comments |
 | JSON | `json` | keys, strings, numbers, literals, punctuation |

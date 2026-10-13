@@ -9,6 +9,41 @@ namespace NestLight.Tests
     {
         private static string[] T(string html, string type) { return Lexer.Texts(Lexer.H(html), type); }
 
+        // ---- Mustache --------------------------------------------------------------
+
+        [Theory]
+        [InlineData("<p>Hi {{name}}!</p>", "{{name}}")]
+        [InlineData("<p>{{{raw html}}}</p>", "{{{raw html}}}")]
+        [InlineData("<p>{{#if ok}}</p>", "{{#if ok}}")]
+        [InlineData("<a href=\"{{url}}\">x</a>", "{{url}}")]
+        [InlineData("<a href={{url}}>x</a>", "{{url}}")]
+        public void Mustache_tags_are_marked_with_their_delimiters(string html, string expected)
+        {
+            Assert.Equal(new[] { expected }, T(html, ClassificationNames.Mustache));
+        }
+
+        [Fact]
+        public void Mustache_inside_an_attribute_value_splits_the_value()
+        {
+            Assert.Equal(new[] { "\"item ", "\"" }, T("<i class=\"item {{kind}}\"></i>", ClassificationNames.AttributeValue));
+        }
+
+        [Fact]
+        public void Mustache_hides_a_less_than_sign_inside_it()
+        {
+            Assert.Empty(T("<p>{{ a < b }}</p>", ClassificationNames.Mustache).Where(s => s != "{{ a < b }}"));
+            Assert.Equal(new[] { "p", "p" }, T("<p>{{ a < b }}</p>", ClassificationNames.Tag));
+        }
+
+        [Theory]
+        [InlineData("<p>{{name</p>")]
+        [InlineData("<p>{name}</p>")]
+        [InlineData("<p>{ {name} }</p>")]
+        public void Unclosed_or_single_brace_is_not_Mustache(string html)
+        {
+            Assert.Empty(T(html, ClassificationNames.Mustache));
+        }
+
         // ---- tags ----------------------------------------------------------------
 
         [Fact]
