@@ -4,7 +4,7 @@
 
 Nestlight recognizes code embedded in string literals from a tag or a marker comment, colors it as its own language, and leaves interpolated expressions to the host code. It colors the embedded code, completes it as you type, shows diagnostics for structural errors, and supports go-to-definition and rename for CSS classes and ids — all without changing your code.
 
-<!-- TODO: add a screenshot, e.g. docs/screenshot.png -->
+![Nestlight highlighting HTML and CSS inside a Web Component in Visual Studio Professional](docs/example-web-components.png)
 
 ## Hosts
 
@@ -148,7 +148,7 @@ To build from source, open `NestLight/NestLight.csproj` with the **Visual Studio
 
 To run the tests, use **Test > Run All Tests** in Visual Studio or `dotnet test NestLight.Tests` from a terminal.
 
-Releases are built by CI (VSIX plus a test report) and follow [Semantic Versioning](https://semver.org); see [RELEASING.md](RELEASING.md).
+Releases are built by CI (VSIX plus a test report) and follow [Semantic Versioning](https://semver.org).
 
 Colors are under **Tools > Options > Environment > Fonts and Colors > Text Editor**, in the items named **Template &lt;Language&gt; ...**.
 
