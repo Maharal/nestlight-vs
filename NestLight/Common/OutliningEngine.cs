@@ -52,6 +52,7 @@ namespace NestLight.Common
                     result.Add(new OutlineRegion(start, end));
                 }
                 if (IsMarkup(s.EmbeddedLanguageId)) Elements(text, s.Start, end, result);
+                else OutliningStructures.Regions(s.EmbeddedLanguageId, text, s.Start, end, result);
             }
             result.Sort((a, b) => a.Start != b.Start ? a.Start.CompareTo(b.Start) : b.End.CompareTo(a.End));
             return result;
