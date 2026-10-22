@@ -19,11 +19,11 @@ namespace NestLight.Tests
         }
 
         [Fact]
-        public void A_marked_string_of_several_lines_can_be_collapsed_after_its_first_line()
+        public void A_marked_string_of_several_lines_can_be_collapsed_between_its_quotes()
         {
             const string code = "const q = /*html*/`\n  <div>\n    <p>x</p>\n  </div>\n`;";
             OutlineRegion r = Regions(code).First();
-            Assert.Equal(code.IndexOf('\n'), r.Start);
+            Assert.Equal(code.IndexOf('`') + 1, r.Start);
             Assert.Equal(code.LastIndexOf('`'), r.End);
         }
 
@@ -110,10 +110,29 @@ namespace NestLight.Tests
         }
 
         [Fact]
-        public void A_windows_line_break_is_hidden_whole()
+        public void Regions_never_share_a_start_and_never_cross()
         {
-            const string code = "const q = /*html*/`\r\n<div>\r\n</div>\r\n`;";
-            Assert.Equal(code.IndexOf('\r'), Regions(code).First().Start);
+            string[] codes =
+            {
+                "const q = /*html*/`<ul>\n  <li>a</li>\n  <li>\n    b\n  </li>\n</ul>`;",
+                "const q = /*md*/`# A\ntext\n## B\nmore`;",
+                "const q = /*json*/`{\n\"a\": [\n1\n]\n}`;",
+                "const q = /*yaml*/`a:\n  b:\n    c: 1\n`;",
+                "const q = /*css*/`a{\nb{\n}\n}`;",
+                "const q = /*html*/`\r\n<div>\r\n<p>\r\nx\r\n</p>\r\n</div>\r\n`;"
+            };
+            foreach (string code in codes)
+            {
+                OutlineRegion[] r = Regions(code);
+                Assert.NotEmpty(r);
+                for (int i = 0; i < r.Length; i++)
+                    for (int j = i + 1; j < r.Length; j++)
+                    {
+                        bool disjoint = r[i].End <= r[j].Start;
+                        bool inside = r[j].Start > r[i].Start && r[j].End <= r[i].End;
+                        Assert.True(disjoint || inside, code);
+                    }
+            }
         }
     }
 }

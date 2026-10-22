@@ -108,18 +108,26 @@ namespace NestLight.VisualStudio
         {
             var result = new List<ITagSpan<IOutliningRegionTag>>();
             if (spans.Count == 0) return result;
-            ITextSnapshot snapshot = spans[0].Snapshot;
-            IHostScanner scanner = _shared.Analysis.Highlighter.Scanner;
-            if (scanner == null) return result;
-            string text = _shared.Text.Of(snapshot);
-
-            foreach (OutlineRegion region in OutliningEngine.Regions(scanner.Scan(text), text))
+            try
             {
-                if (region.End > snapshot.Length) continue;
-                var span = new SnapshotSpan(snapshot, region.Start, region.End - region.Start);
-                if (!Intersects(spans, span)) continue;
-                string hint = text.Substring(region.Start, Math.Min(region.End - region.Start, HintLength)).TrimStart('\r', '\n');
-                result.Add(new TagSpan<IOutliningRegionTag>(span, new OutliningRegionTag(false, false, "...", hint)));
+                ITextSnapshot snapshot = spans[0].Snapshot;
+                IHostScanner scanner = _shared.Analysis.Highlighter.Scanner;
+                if (scanner == null) return result;
+                string text = _shared.Text.Of(snapshot);
+
+                foreach (OutlineRegion region in OutliningEngine.Regions(scanner.Scan(text), text))
+                {
+                    if (region.Start < 0 || region.End > snapshot.Length || region.End <= region.Start) continue;
+                    var span = new SnapshotSpan(snapshot, region.Start, region.End - region.Start);
+                    if (!Intersects(spans, span)) continue;
+                    string hint = text.Substring(region.Start, Math.Min(region.End - region.Start, HintLength)).Trim((char)13, (char)10);
+                    result.Add(new TagSpan<IOutliningRegionTag>(span, new OutliningRegionTag(false, false, "...", hint)));
+                }
+            }
+            catch (Exception)
+            {
+                // A tagger that throws is switched off by the editor, and the chevrons of the whole file go with it. No regions for this call is better.
+                result.Clear();
             }
             return result;
         }

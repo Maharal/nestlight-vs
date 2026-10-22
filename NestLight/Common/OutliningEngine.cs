@@ -18,7 +18,7 @@ namespace NestLight.Common
     /// <summary>
     /// Decides what can be collapsed in a host file: the content of each embedded string that takes several lines, and, inside markup
     /// (html, svg, xml), each element that takes several lines. The line of the opening quote or tag stays visible (it says what is
-    /// hidden, like the header of a method) and so does the closing one.
+    /// hidden) and so does the closing one.
     /// </summary>
     internal static class OutliningEngine
     {
@@ -38,24 +38,37 @@ namespace NestLight.Common
             {
                 if (s.EmbeddedLanguageId == null) continue;
                 int end = s.End < text.Length ? s.End : text.Length;
-                int firstBreak = -1, breaks = 0;
+                int breaks = 0;
                 for (int i = s.Start; i < end; i++)
-                {
-                    if (text[i] != '\n') continue;
-                    if (firstBreak < 0) firstBreak = i;
-                    breaks++;
-                }
-                if (breaks >= MinLineBreaks)
-                {
-                    // A "\r\n" break is hidden whole: the range starts before its "\r".
-                    int start = firstBreak > s.Start && text[firstBreak - 1] == '\r' ? firstBreak - 1 : firstBreak;
-                    result.Add(new OutlineRegion(start, end));
-                }
+                    if (text[i] == (char)10) breaks++;
+                if (breaks >= MinLineBreaks) result.Add(new OutlineRegion(s.Start, end));
                 if (IsMarkup(s.EmbeddedLanguageId)) Elements(text, s.Start, end, result);
                 else OutliningStructures.Regions(s.EmbeddedLanguageId, text, s.Start, end, result);
             }
-            result.Sort((a, b) => a.Start != b.Start ? a.Start.CompareTo(b.Start) : b.End.CompareTo(a.End));
-            return result;
+            return Nested(result);
+        }
+
+        /// <summary>
+        /// Keeps the regions that nest properly: the editor cannot lay out two that start at the same place or that cross each
+        /// other, so of such a pair the outer (or the first) one stays. Ordered by start, the outer one first.
+        /// </summary>
+        private static IReadOnlyList<OutlineRegion> Nested(List<OutlineRegion> regions)
+        {
+            regions.Sort((a, b) => a.Start != b.Start ? a.Start.CompareTo(b.Start) : b.End.CompareTo(a.End));
+            var kept = new List<OutlineRegion>();
+            var enclosing = new List<OutlineRegion>();
+            foreach (OutlineRegion r in regions)
+            {
+                while (enclosing.Count > 0 && enclosing[enclosing.Count - 1].End <= r.Start) enclosing.RemoveAt(enclosing.Count - 1);
+                if (enclosing.Count > 0)
+                {
+                    OutlineRegion top = enclosing[enclosing.Count - 1];
+                    if (r.Start == top.Start || r.End > top.End) continue;
+                }
+                kept.Add(r);
+                enclosing.Add(r);
+            }
+            return kept;
         }
 
         private static bool IsMarkup(string id)
