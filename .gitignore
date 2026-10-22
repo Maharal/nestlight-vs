@@ -64,3 +64,6 @@ nunit-*.xml
 # Python
 __pycache__/
 *.pyc
+
+# Visual Studio local state
+.vs/
